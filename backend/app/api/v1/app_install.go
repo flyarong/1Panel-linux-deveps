@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/1Panel-dev/1Panel/backend/app/dto/request"
@@ -14,8 +13,8 @@ import (
 )
 
 // @Tags App
-// @Summary List app installed
-// @Description 获取已安装应用列表
+// @Summary Page app installed
+// @Description 分页获取已安装应用列表
 // @Accept json
 // @Param request body request.AppInstalledSearch true "request"
 // @Success 200
@@ -48,20 +47,40 @@ func (b *BaseApi) SearchAppInstalled(c *gin.Context) {
 }
 
 // @Tags App
+// @Summary List app installed
+// @Description 获取已安装应用列表
+// @Accept json
+// @Success 200 array dto.AppInstallInfo
+// @Security ApiKeyAuth
+// @Router /apps/installed/list [get]
+func (b *BaseApi) ListAppInstalled(c *gin.Context) {
+	list, err := appInstallService.GetInstallList()
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, list)
+}
+
+// @Tags App
 // @Summary Check app installed
 // @Description 检查应用安装情况
 // @Accept json
-// @Param key path string true "request"
+// @Param request body request.AppInstalledInfo true "request"
 // @Success 200 {object} response.AppInstalledCheck
 // @Security ApiKeyAuth
-// @Router /apps/installed/check/:key [get]
+// @Router /apps/installed/check [post]
 func (b *BaseApi) CheckAppInstalled(c *gin.Context) {
-	key, ok := c.Params.Get("key")
-	if !ok {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, errors.New("error key in path"))
+	var req request.AppInstalledInfo
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
 	}
-	checkData, err := appInstallService.CheckExist(key)
+	if err := global.VALID.Struct(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	checkData, err := appInstallService.CheckExist(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -73,17 +92,17 @@ func (b *BaseApi) CheckAppInstalled(c *gin.Context) {
 // @Summary Search app port by key
 // @Description 获取应用端口
 // @Accept json
-// @Param key path string true "request"
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {integer} port
 // @Security ApiKeyAuth
-// @Router /apps/installed/loadport/:key [get]
+// @Router /apps/installed/loadport [post]
 func (b *BaseApi) LoadPort(c *gin.Context) {
-	key, ok := c.Params.Get("key")
-	if !ok {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, errors.New("error key in path"))
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
 	}
-	port, err := appInstallService.LoadPort(key)
+	port, err := appInstallService.LoadPort(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -95,17 +114,17 @@ func (b *BaseApi) LoadPort(c *gin.Context) {
 // @Summary Search app password by key
 // @Description 获取应用连接信息
 // @Accept json
-// @Param key path string true "request"
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {string} response.DatabaseConn
 // @Security ApiKeyAuth
 // @Router /apps/installed/conninfo/:key [get]
 func (b *BaseApi) LoadConnInfo(c *gin.Context) {
-	key, ok := c.Params.Get("key")
-	if !ok {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, errors.New("error key in path"))
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
 	}
-	conn, err := appInstallService.LoadConnInfo(key)
+	conn, err := appInstallService.LoadConnInfo(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -118,7 +137,7 @@ func (b *BaseApi) LoadConnInfo(c *gin.Context) {
 // @Description 删除前检查
 // @Accept json
 // @Param appInstallId path integer true "App install id"
-// @Success 200 {anrry} dto.AppResource
+// @Success 200 {array} dto.AppResource
 // @Security ApiKeyAuth
 // @Router /apps/installed/delete/check/:appInstallId [get]
 func (b *BaseApi) DeleteCheck(c *gin.Context) {
@@ -178,7 +197,7 @@ func (b *BaseApi) OperateInstalled(c *gin.Context) {
 // @Description 通过 key 获取应用 service
 // @Accept json
 // @Param key path string true "request"
-// @Success 200 {anrry} response.AppService
+// @Success 200 {array} response.AppService
 // @Security ApiKeyAuth
 // @Router /apps/services/:key [get]
 func (b *BaseApi) GetServices(c *gin.Context) {
@@ -196,7 +215,7 @@ func (b *BaseApi) GetServices(c *gin.Context) {
 // @Description 通过 install id 获取应用更新版本
 // @Accept json
 // @Param appInstallId path integer true "request"
-// @Success 200 {anrry} dto.AppVersion
+// @Success 200 {array} dto.AppVersion
 // @Security ApiKeyAuth
 // @Router /apps/installed/:appInstallId/versions [get]
 func (b *BaseApi) GetUpdateVersions(c *gin.Context) {
@@ -243,17 +262,17 @@ func (b *BaseApi) ChangeAppPort(c *gin.Context) {
 // @Summary Search default config by key
 // @Description 通过 key 获取应用默认配置
 // @Accept json
-// @Param key path string true "request"
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {string} content
 // @Security ApiKeyAuth
-// @Router /apps/installed/conf/:key [get]
+// @Router /apps/installed/conf [post]
 func (b *BaseApi) GetDefaultConfig(c *gin.Context) {
-	key := c.Param("key")
-	if key == "" {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInternalServer, nil)
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
 	}
-	content, err := appInstallService.GetDefaultConfigByKey(key)
+	content, err := appInstallService.GetDefaultConfigByKey(req.Type, req.Name)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -304,4 +323,26 @@ func (b *BaseApi) UpdateInstalled(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags App
+// @Summary ignore App Update
+// @Description 忽略应用升级版本
+// @Accept json
+// @Param request body request.AppInstalledIgnoreUpgrade true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /apps/installed/ignore [post]
+// @x-panel-log {"bodyKeys":["installId"],"paramKeys":[],"BeforeFuntions":[],"formatZH":"忽略应用 [installId] 版本升级","formatEN":"Application param update [installId]"}
+func (b *BaseApi) IgnoreUpgrade(c *gin.Context) {
+	var req request.AppInstalledIgnoreUpgrade
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := appInstallService.IgnoreUpgrade(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithOutData(c)
 }

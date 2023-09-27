@@ -1,40 +1,44 @@
 <template>
     <div>
-        <el-row>
-            <el-col :span="2">
-                <div>
-                    <el-button :icon="Back" @click="back" circle :disabled="paths.length == 0" />
-                    <el-button :icon="Refresh" circle @click="search" />
-                </div>
-            </el-col>
-            <el-col :span="22">
-                <div v-show="!searchableStatus" tabindex="0" @click="searchableStatus = true">
-                    <div class="path" ref="pathRef">
-                        <span ref="breadCrumbRef">
-                            <span class="root">
-                                <el-link @click.stop="jump('/')">
-                                    <el-icon :size="20"><HomeFilled /></el-icon>
-                                </el-link>
-                            </span>
-                            <span v-for="item in paths" :key="item.url" class="other">
-                                <span class="split">></span>
-                                <el-link @click.stop="jump(item.url)">{{ item.name }}</el-link>
-                            </span>
+        <div class="flex items-center">
+            <div class="flex-shrink-0 flex items-center mr-4">
+                <el-button :icon="Back" @click="back" circle :disabled="paths.length == 0" />
+                <el-button :icon="Refresh" circle @click="search" />
+            </div>
+            <div
+                v-show="!searchableStatus"
+                tabindex="0"
+                @click="searchableStatus = true"
+                class="address-bar bg-white shadow-md rounded-md px-4 py-2 flex items-center flex-grow"
+            >
+                <div ref="pathRef" class="w-full">
+                    <span ref="breadCrumbRef" class="w-full flex items-center">
+                        <span class="root mr-2">
+                            <el-link @click.stop="jump('/')">
+                                <el-icon :size="20"><HomeFilled /></el-icon>
+                            </el-link>
                         </span>
-                    </div>
+                        <span v-for="path in paths" :key="path.url" class="inline-flex items-center">
+                            <span class="mr-2">></span>
+                            <el-link class="path-segment cursor-pointer mr-2 pathname" @click.stop="jump(path.url)">
+                                {{ path.name }}
+                            </el-link>
+                        </span>
+                    </span>
                 </div>
-                <el-input
-                    ref="searchableInputRef"
-                    v-show="searchableStatus"
-                    v-model="searchablePath"
-                    @blur="searchableInputBlur"
-                    @keyup.enter="
-                        jump(searchablePath);
-                        searchableStatus = false;
-                    "
-                />
-            </el-col>
-        </el-row>
+            </div>
+            <el-input
+                ref="searchableInputRef"
+                v-show="searchableStatus"
+                v-model="searchablePath"
+                @blur="searchableInputBlur"
+                class="px-4 py-2 bg-white border rounded-md shadow-md"
+                @keyup.enter="
+                    jump(searchablePath);
+                    searchableStatus = false;
+                "
+            />
+        </div>
         <LayoutContent :title="$t('file.file')" v-loading="loading">
             <template #toolbar>
                 <el-dropdown @command="handleCreate">
@@ -95,7 +99,7 @@
                             </el-checkbox>
                         </template>
                         <template #append>
-                            <el-button icon="Search" @click="search" />
+                            <el-button icon="Search" @click="search" round />
                         </template>
                     </el-input>
                 </div>
@@ -122,14 +126,18 @@
                             <el-link :underline="false" @click="openMode(row)" type="primary">{{ row.mode }}</el-link>
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('file.user')" prop="user" show-overflow-tooltip>
+                    <el-table-column :label="$t('commons.table.user')" prop="user" show-overflow-tooltip>
                         <template #default="{ row }">
-                            <el-link :underline="false" @click="openChown(row)" type="primary">{{ row.user }}</el-link>
+                            <el-link :underline="false" @click="openChown(row)" type="primary">
+                                {{ row.user ? row.user : '-' }} ({{ row.uid }})
+                            </el-link>
                         </template>
                     </el-table-column>
                     <el-table-column :label="$t('file.group')" prop="group">
                         <template #default="{ row }">
-                            <el-link :underline="false" @click="openChown(row)" type="primary">{{ row.group }}</el-link>
+                            <el-link :underline="false" @click="openChown(row)" type="primary">
+                                {{ row.group ? row.group : '-' }} ({{ row.gid }})
+                            </el-link>
                         </template>
                     </el-table-column>
                     <el-table-column :label="$t('file.size')" prop="size" max-width="50">
@@ -153,11 +161,11 @@
                         show-overflow-tooltip
                     ></el-table-column>
                     <fu-table-operations
-                        :ellipsis="3"
+                        :ellipsis="mobile ? 0 : 3"
                         :buttons="buttons"
                         :label="$t('commons.table.operate')"
-                        min-width="200"
-                        fixed="right"
+                        :min-width="mobile ? 'auto' : 300"
+                        :fixed="mobile ? false : 'right'"
                         fix
                     />
                 </ComplexTable>
@@ -176,16 +184,16 @@
             <Process :open="processPage.open" @close="closeProcess" />
             <Owner ref="chownRef" @close="search"></Owner>
             <Detail ref="detailRef" />
+            <Delete ref="deleteRef" @close="search" />
         </LayoutContent>
     </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, reactive, ref } from '@vue/runtime-core';
-import { GetFilesList, DeleteFile, GetFileContent, ComputeDirSize } from '@/api/modules/files';
+import { nextTick, onMounted, reactive, ref, computed } from '@vue/runtime-core';
+import { GetFilesList, GetFileContent, ComputeDirSize } from '@/api/modules/files';
 import { computeSize, dateFormat, downloadFile, getIcon, getRandomStr } from '@/utils/util';
 import { File } from '@/api/interface/file';
-import { useDeleteData } from '@/hooks/use-delete-data';
 import i18n from '@/lang';
 import CreateFile from './create/index.vue';
 import ChangeRole from './change-role/index.vue';
@@ -198,15 +206,18 @@ import Wget from './wget/index.vue';
 import Move from './move/index.vue';
 import Download from './download/index.vue';
 import Owner from './chown/index.vue';
+import Delete from './delete/index.vue';
 import { Mimetypes, Languages } from '@/global/mimetype';
 import Process from './process/index.vue';
 import Detail from './detail/index.vue';
 import { useRouter } from 'vue-router';
 import { Back, Refresh } from '@element-plus/icons-vue';
 import { MsgSuccess, MsgWarning } from '@/utils/message';
-import { ElMessageBox } from 'element-plus';
+// import { ElMessageBox } from 'element-plus';
 import { useSearchable } from './hooks/searchable';
 import { ResultData } from '@/api/interface';
+import { GlobalStore } from '@/store';
+const globalStore = GlobalStore();
 
 interface FilePaths {
     url: string;
@@ -259,14 +270,20 @@ const pathRef = ref();
 const breadCrumbRef = ref();
 const chownRef = ref();
 const moveOpen = ref(false);
+const deleteRef = ref();
 
 // editablePath
 const { searchableStatus, searchablePath, searchableInputRef, searchableInputBlur } = useSearchable(paths);
 
 const paginationConfig = reactive({
+    cacheSizeKey: 'file-page-size',
     currentPage: 1,
     pageSize: 100,
     total: 0,
+});
+
+const mobile = computed(() => {
+    return globalStore.isMobile();
 });
 
 const search = async () => {
@@ -330,7 +347,14 @@ const copyDir = (row: File.File) => {
 };
 
 const handlePath = () => {
-    if (breadCrumbRef.value.offsetWidth > pathWidth.value) {
+    const breadcrumbElement = breadCrumbRef.value as any;
+    const pathNodes = breadcrumbElement.querySelectorAll('.pathname');
+
+    let totalpathWidth = 0;
+    pathNodes.forEach((node) => {
+        totalpathWidth += node.offsetWidth;
+    });
+    if (totalpathWidth > pathWidth.value) {
         paths.value.splice(0, 1);
         paths.value[0].name = '..';
         nextTick(function () {
@@ -357,6 +381,8 @@ const jump = async (url: string) => {
     req.containSub = false;
     req.search = '';
     let searchResult = await searchFile();
+
+    globalStore.setLastFilePath(req.path);
     // check search result,the file is exists?
     if (!searchResult.data.path) {
         req.path = oldUrl;
@@ -399,30 +425,11 @@ const handleCreate = (commnad: string) => {
 };
 
 const delFile = async (row: File.File | null) => {
-    await useDeleteData(DeleteFile, row as File.FileDelete, 'commons.msg.delete');
-    search();
+    deleteRef.value.acceptParams([row]);
 };
 
 const batchDelFiles = () => {
-    ElMessageBox.confirm(i18n.global.t('commons.msg.delete'), i18n.global.t('commons.msg.deleteTitle'), {
-        confirmButtonText: i18n.global.t('commons.button.confirm'),
-        cancelButtonText: i18n.global.t('commons.button.cancel'),
-        type: 'info',
-    }).then(() => {
-        const pros = [];
-        for (const s of selects.value) {
-            pros.push(DeleteFile({ path: s['path'], isDir: s['isDir'] }));
-        }
-        loading.value = true;
-        Promise.all(pros)
-            .then(() => {
-                MsgSuccess(i18n.global.t('commons.msg.deleteSuccess'));
-                search();
-            })
-            .finally(() => {
-                loading.value = false;
-            });
-    });
+    deleteRef.value.acceptParams(selects.value);
 };
 
 const getFileSize = (size: number) => {
@@ -630,14 +637,26 @@ onMounted(() => {
     if (router.currentRoute.value.query.path) {
         req.path = String(router.currentRoute.value.query.path);
         getPaths(req.path);
+        globalStore.setLastFilePath(req.path);
+    } else {
+        if (globalStore.lastFilePath && globalStore.lastFilePath != '') {
+            req.path = globalStore.lastFilePath;
+            getPaths(req.path);
+        }
     }
-    pathWidth.value = pathRef.value.offsetWidth * 0.7;
+    pathWidth.value = pathRef.value.offsetWidth;
     search();
+
+    nextTick(function () {
+        handlePath();
+    });
 });
 </script>
 
 <style scoped lang="scss">
 .path {
+    display: flex;
+    align-items: center;
     border: 1px solid #ebeef5;
     background-color: var(--panel-path-bg);
     height: 30px;
@@ -662,7 +681,7 @@ onMounted(() => {
 
 .search {
     display: inline;
-    width: 300px;
+    width: 400px;
     float: right;
 }
 

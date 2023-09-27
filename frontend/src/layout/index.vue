@@ -123,12 +123,9 @@ onMounted(() => {
 .main-container {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    flex-basis: auto;
     position: relative;
-    min-height: 100%;
-    height: calc(100vh);
-    transition: margin-left 0.28s;
+    height: 100vh;
+    transition: margin-left 0.3s;
     margin-left: var(--panel-menu-width);
     background-color: #f4f4f4;
     overflow-x: hidden;
@@ -136,19 +133,16 @@ onMounted(() => {
 .app-main {
     padding: 20px;
     flex: 1;
-    flex-basis: auto;
     overflow: auto;
 }
 .app-sidebar {
-    transition: width 0.28s;
+    transition: width 0.3s;
     width: var(--panel-menu-width) !important;
-    height: 100%;
     position: fixed;
     font-size: 0px;
     top: 0;
     bottom: 0;
     left: 0;
-    z-index: 1001;
     overflow: hidden;
 }
 
@@ -175,9 +169,10 @@ onMounted(() => {
         margin-left: 0px;
     }
     .app-sidebar {
-        transition: transform 0.28s;
+        transition: transform 0.3s;
         width: var(--panel-menu-width) !important;
         background: #ffffff;
+        z-index: 9999;
     }
     .app-footer {
         display: block;

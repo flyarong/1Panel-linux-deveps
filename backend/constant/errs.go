@@ -42,6 +42,7 @@ var (
 	ErrTypePasswordExpired = "ErrPasswordExpired"
 	ErrNameIsExist         = "ErrNameIsExist"
 	ErrDemoEnvironment     = "ErrDemoEnvironment"
+	ErrCmdIllegal          = "ErrCmdIllegal"
 )
 
 // app
@@ -68,6 +69,8 @@ var (
 	ErrGroupIsUsed        = "ErrGroupIsUsed"
 	ErrUsernameIsExist    = "ErrUsernameIsExist"
 	ErrUsernameIsNotExist = "ErrUsernameIsNotExist"
+	ErrBackupMatch        = "ErrBackupMatch"
+	ErrBackupExist        = "ErrBackupExist"
 )
 
 // ssl
@@ -93,6 +96,8 @@ var (
 	ErrUserIsExist     = "ErrUserIsExist"
 	ErrDatabaseIsExist = "ErrDatabaseIsExist"
 	ErrExecTimeOut     = "ErrExecTimeOut"
+	ErrRemoteExist     = "ErrRemoteExist"
+	ErrLocalExist      = "ErrLocalExist"
 )
 
 // redis
@@ -109,14 +114,22 @@ var (
 
 // runtime
 var (
-	ErrDirNotFound    = "ErrDirNotFound"
-	ErrFileNotExist   = "ErrFileNotExist"
-	ErrImageBuildErr  = "ErrImageBuildErr"
-	ErrImageExist     = "ErrImageExist"
-	ErrDelWithWebsite = "ErrDelWithWebsite"
+	ErrDirNotFound         = "ErrDirNotFound"
+	ErrFileNotExist        = "ErrFileNotExist"
+	ErrImageBuildErr       = "ErrImageBuildErr"
+	ErrImageExist          = "ErrImageExist"
+	ErrDelWithWebsite      = "ErrDelWithWebsite"
+	ErrRuntimeStart        = "ErrRuntimeStart"
+	ErrPackageJsonNotFound = "ErrPackageJsonNotFound"
+	ErrScriptsNotFound     = "ErrScriptsNotFound"
 )
 
 var (
 	ErrBackupInUsed = "ErrBackupInUsed"
 	ErrOSSConn      = "ErrOSSConn"
+	ErrEntrance     = "ErrEntrance"
+)
+
+var (
+	ErrFirewall = "ErrFirewall"
 )

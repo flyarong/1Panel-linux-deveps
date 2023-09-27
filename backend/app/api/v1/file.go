@@ -52,7 +52,7 @@ func (b *BaseApi) ListFiles(c *gin.Context) {
 // @Description 分页获取上传文件
 // @Accept json
 // @Param request body request.SearchUploadWithPage true "request"
-// @Success 200 {anrry} response.FileInfo
+// @Success 200 {array} response.FileInfo
 // @Security ApiKeyAuth
 // @Router /files/upload/search [post]
 func (b *BaseApi) SearchUploadWithPage(c *gin.Context) {
@@ -81,7 +81,7 @@ func (b *BaseApi) SearchUploadWithPage(c *gin.Context) {
 // @Description 加载文件树
 // @Accept json
 // @Param request body request.FileOption true "request"
-// @Success 200 {anrry} response.FileTree
+// @Success 200 {array} response.FileTree
 // @Security ApiKeyAuth
 // @Router /files/tree [post]
 func (b *BaseApi) GetFileTree(c *gin.Context) {
@@ -532,7 +532,7 @@ func (b *BaseApi) DownloadChunkFiles(c *gin.Context) {
 		}
 		defer file.Close()
 
-		file.Seek(startPos, 0)
+		_, _ = file.Seek(startPos, 0)
 		reader := io.LimitReader(file, endPos-startPos+1)
 		_, err = io.CopyBuffer(c.Writer, reader, buffer)
 		if err != nil {
@@ -542,28 +542,6 @@ func (b *BaseApi) DownloadChunkFiles(c *gin.Context) {
 	} else {
 		c.File(filePath)
 	}
-}
-
-// @Tags File
-// @Summary Download file with path
-// @Description 下载指定文件
-// @Accept json
-// @Param request body dto.FilePath true "request"
-// @Success 200
-// @Security ApiKeyAuth
-// @Router /files/download/bypath [post]
-// @x-panel-log {"bodyKeys":["path"],"paramKeys":[],"BeforeFuntions":[],"formatZH":"下载文件 [path]","formatEN":"Download file [path]"}
-func (b *BaseApi) DownloadFile(c *gin.Context) {
-	var req dto.FilePath
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
-		return
-	}
-	if err := global.VALID.Struct(req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
-		return
-	}
-	c.File(req.Path)
 }
 
 // @Tags File
@@ -587,33 +565,6 @@ func (b *BaseApi) Size(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, res)
-}
-
-// @Tags File
-// @Summary Read file
-// @Description 读取文件
-// @Accept json
-// @Param request body dto.FilePath true "request"
-// @Success 200 {string} content
-// @Security ApiKeyAuth
-// @Router /files/loadfile [post]
-func (b *BaseApi) LoadFromFile(c *gin.Context) {
-	var req dto.FilePath
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
-		return
-	}
-	if err := global.VALID.Struct(req); err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
-		return
-	}
-
-	content, err := os.ReadFile(req.Path)
-	if err != nil {
-		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
-		return
-	}
-	helper.SuccessWithData(c, string(content))
 }
 
 func mergeChunks(fileName string, fileDir string, dstDir string, chunkCount int) error {
@@ -683,7 +634,12 @@ func (b *BaseApi) UploadChunkFiles(c *gin.Context) {
 	}
 	filename := c.PostForm("filename")
 	fileDir := filepath.Join(tmpDir, filename)
-	_ = os.MkdirAll(fileDir, 0755)
+	if chunkIndex == 0 {
+		if fileOp.Stat(fileDir) {
+			_ = fileOp.DeleteDir(fileDir)
+		}
+		_ = os.MkdirAll(fileDir, 0755)
+	}
 	filePath := filepath.Join(fileDir, filename)
 
 	defer func() {
@@ -734,19 +690,12 @@ var wsUpgrade = websocket.Upgrader{
 	},
 }
 
-var WsManager = websocket2.Manager{
-	Group:       make(map[string]*websocket2.Client),
-	Register:    make(chan *websocket2.Client, 128),
-	UnRegister:  make(chan *websocket2.Client, 128),
-	ClientCount: 0,
-}
-
 func (b *BaseApi) Ws(c *gin.Context) {
 	ws, err := wsUpgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
 	}
-	wsClient := websocket2.NewWsClient("wsClient", ws)
+	wsClient := websocket2.NewWsClient("fileClient", ws)
 	go wsClient.Read()
 	go wsClient.Write()
 }

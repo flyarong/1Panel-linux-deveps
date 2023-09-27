@@ -1,6 +1,6 @@
 <template>
     <div v-if="recordShow" v-loading="loading">
-        <div class="a-card" style="margin-top: 20px">
+        <div class="app-status" style="margin-top: 20px">
             <el-card>
                 <div>
                     <el-popover
@@ -47,22 +47,22 @@
                             {{ loadZero(dialogData.rowData?.minute) }}
                         </span>
                         <span v-if="dialogData.rowData?.specType === 'perNDay'">
-                            {{ dialogData.rowData?.day }}{{ $t('cronjob.day1') }},&nbsp;
+                            {{ dialogData.rowData?.day }}{{ $t('commons.units.day') }},&nbsp;
                             {{ loadZero(dialogData.rowData?.hour) }} :
                             {{ loadZero(dialogData.rowData?.minute) }}
                         </span>
                         <span v-if="dialogData.rowData?.specType === 'perNHour'">
-                            {{ dialogData.rowData?.hour }}{{ $t('cronjob.hour') }},&nbsp;
+                            {{ dialogData.rowData?.hour }}{{ $t('commons.units.hour') }},&nbsp;
                             {{ loadZero(dialogData.rowData?.minute) }}
                         </span>
                         <span v-if="dialogData.rowData?.specType === 'perHour'">
                             &nbsp;{{ loadZero(dialogData.rowData?.minute) }}
                         </span>
                         <span v-if="dialogData.rowData?.specType === 'perNMinute'">
-                            &nbsp;{{ dialogData.rowData?.minute }}{{ $t('cronjob.minute') }}
+                            &nbsp;{{ dialogData.rowData?.minute }}{{ $t('commons.units.minute') }}
                         </span>
                         <span v-if="dialogData.rowData?.specType === 'perNSecond'">
-                            &nbsp;{{ dialogData.rowData?.second }}{{ $t('cronjob.second') }}
+                            &nbsp;{{ dialogData.rowData?.second }}{{ $t('commons.units.second') }}
                         </span>
                         &nbsp;{{ $t('cronjob.handle') }}
                     </el-tag>
@@ -123,8 +123,8 @@
                 </el-row>
             </template>
             <template #main>
-                <div style="overflow: auto">
-                    <el-row :gutter="20" v-show="hasRecords" style="min-width: 900px">
+                <div class="mainClass">
+                    <el-row :gutter="20" v-show="hasRecords" class="mainRowClass">
                         <el-col :span="8">
                             <div>
                                 <ul class="infinite-list" style="overflow: auto">
@@ -167,7 +167,7 @@
                                         </template>
                                         <span class="status-count">{{ dialogData.rowData!.targetDir }}</span>
                                         <el-button
-                                            v-if="currentRecord?.status === 'Success'"
+                                            v-if="currentRecord?.status === 'Success' && dialogData.rowData!.type !== 'snapshot'"
                                             type="primary"
                                             style="margin-left: 10px"
                                             link
@@ -176,6 +176,17 @@
                                         >
                                             {{ $t('file.download') }}
                                         </el-button>
+                                    </el-form-item>
+                                    <el-form-item class="description" v-if="dialogData.rowData!.type === 'app'">
+                                        <template #label>
+                                            <span class="status-label">{{ $t('cronjob.app') }}</span>
+                                        </template>
+                                        <span v-if="dialogData.rowData!.appID !== 'all'" class="status-count">
+                                            {{ dialogData.rowData!.appID }}
+                                        </span>
+                                        <span v-else class="status-count">
+                                            {{ $t('commons.table.all') }}
+                                        </span>
                                     </el-form-item>
                                     <el-form-item class="description" v-if="dialogData.rowData!.type === 'website'">
                                         <template #label>
@@ -227,11 +238,12 @@
                                         </template>
                                         <span class="status-count">{{ dialogData.rowData!.retainCopies }}</span>
                                     </el-form-item>
+                                    <el-form-item
+                                        class="description"
+                                        v-if="dialogData.rowData!.type === 'snapshot'"
+                                    ></el-form-item>
                                 </el-row>
-                                <el-form-item
-                                    class="description"
-                                    v-if="dialogData.rowData!.type === 'website' || dialogData.rowData!.type === 'directory'"
-                                >
+                                <el-form-item class="description" v-if=" dialogData.rowData!.type === 'directory'">
                                     <template #label>
                                         <span class="status-label">{{ $t('cronjob.exclusionRules') }}</span>
                                     </template>
@@ -358,15 +370,24 @@
 import { onBeforeUnmount, reactive, ref } from 'vue';
 import { Cronjob } from '@/api/interface/cronjob';
 import { loadZero } from '@/utils/util';
-import { searchRecords, download, handleOnce, updateStatus, cleanRecords } from '@/api/modules/cronjob';
+import {
+    searchRecords,
+    downloadRecord,
+    handleOnce,
+    updateStatus,
+    cleanRecords,
+    getRecordLog,
+    downloadRecordCheck,
+} from '@/api/modules/cronjob';
 import { dateFormat } from '@/utils/util';
 import i18n from '@/lang';
 import { ElMessageBox } from 'element-plus';
-import { DownloadByPath, LoadFile } from '@/api/modules/files';
 import { Codemirror } from 'vue-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { MsgError, MsgInfo, MsgSuccess } from '@/utils/message';
+import { loadDBOptions } from '@/api/modules/database';
+import { ListAppInstalled } from '@/api/modules/app';
 
 const loading = ref();
 const refresh = ref(false);
@@ -391,8 +412,33 @@ const delLoading = ref();
 const cleanData = ref();
 
 const acceptParams = async (params: DialogProps): Promise<void> => {
+    let itemSize = Number(localStorage.getItem(searchInfo.cacheSizeKey));
+    if (itemSize) {
+        searchInfo.pageSize = itemSize;
+    }
+
     recordShow.value = true;
     dialogData.value = params;
+    if (dialogData.value.rowData.type === 'database') {
+        const data = await loadDBOptions();
+        let itemDBs = data.data || [];
+        for (const item of itemDBs) {
+            if (item.id == dialogData.value.rowData.dbName) {
+                dialogData.value.rowData.dbName = item.database + ' [' + item.name + ']';
+                break;
+            }
+        }
+    }
+    if (dialogData.value.rowData.type === 'app') {
+        const res = await ListAppInstalled();
+        let itemApps = res.data || [];
+        for (const item of itemApps) {
+            if (item.id == dialogData.value.rowData.appID) {
+                dialogData.value.rowData.appID = item.key + ' [' + item.name + ']';
+                break;
+            }
+        }
+    }
     search();
     timer = setInterval(() => {
         search();
@@ -401,6 +447,7 @@ const acceptParams = async (params: DialogProps): Promise<void> => {
 
 const handleSizeChange = (val: number) => {
     searchInfo.pageSize = val;
+    localStorage.setItem(searchInfo.cacheSizeKey, val + '');
     search();
 };
 const handleCurrentChange = (val: number) => {
@@ -461,13 +508,14 @@ const weekOptions = [
     { label: i18n.global.t('cronjob.thursday'), value: 4 },
     { label: i18n.global.t('cronjob.friday'), value: 5 },
     { label: i18n.global.t('cronjob.saturday'), value: 6 },
-    { label: i18n.global.t('cronjob.sunday'), value: 7 },
+    { label: i18n.global.t('cronjob.sunday'), value: 0 },
 ];
 const timeRangeLoad = ref<[Date, Date]>([
     new Date(new Date(new Date().getTime() - 3600 * 1000 * 24 * 7).setHours(0, 0, 0, 0)),
     new Date(new Date().setHours(23, 59, 59, 999)),
 ]);
 const searchInfo = reactive({
+    cacheSizeKey: 'cronjob-record-page-size',
     page: 1,
     pageSize: 8,
     recordTotal: 0,
@@ -528,11 +576,16 @@ const search = async () => {
     if (!currentRecord.value) {
         currentRecord.value = records.value[0];
     } else {
+        let beDelete = true;
         for (const item of records.value) {
             if (item.id === currentRecord.value.id) {
+                beDelete = false;
                 currentRecord.value = item;
                 break;
             }
+        }
+        if (beDelete) {
+            currentRecord.value = records.value[0];
         }
     }
     if (currentRecord.value?.records) {
@@ -541,12 +594,20 @@ const search = async () => {
 };
 
 const onDownload = async (record: any, backupID: number) => {
-    if (dialogData.value.rowData.dbName === 'all') {
-        MsgInfo(i18n.global.t('cronjob.allOptionHelper', [i18n.global.t('database.database')]));
-        return;
+    let type = '';
+    switch (dialogData.value.rowData.type) {
+        case 'database':
+            type = i18n.global.t('database.database');
+            break;
+        case 'app':
+            type = i18n.global.t('app.app');
+            break;
+        case 'website':
+            type = i18n.global.t('website.website');
+            break;
     }
-    if (dialogData.value.rowData.website === 'all') {
-        MsgInfo(i18n.global.t('cronjob.allOptionHelper', [i18n.global.t('website.website')]));
+    if (currentRecord.value.file.indexOf(',') !== -1) {
+        MsgInfo(i18n.global.t('cronjob.allOptionHelper', [type]));
         return;
     }
     if (!record.file || record.file.indexOf('/') === -1) {
@@ -557,8 +618,8 @@ const onDownload = async (record: any, backupID: number) => {
         recordID: record.id,
         backupAccountID: backupID,
     };
-    await download(params).then(async (res) => {
-        const file = await DownloadByPath(res.data);
+    await downloadRecordCheck(params).then(async () => {
+        const file = await downloadRecord(params);
         const downloadUrl = window.URL.createObjectURL(new Blob([file]));
         const a = document.createElement('a');
         a.style.display = 'none';
@@ -582,7 +643,7 @@ const loadRecord = async (row: Cronjob.Record) => {
         return;
     }
     if (row.records) {
-        const res = await LoadFile({ path: row.records });
+        const res = await getRecordLog(row.id);
         currentRecordDetail.value = res.data;
     }
 };
@@ -625,9 +686,11 @@ const cleanRecord = async () => {
 
 function isBackup() {
     return (
+        dialogData.value.rowData!.type === 'app' ||
         dialogData.value.rowData!.type === 'website' ||
         dialogData.value.rowData!.type === 'database' ||
-        dialogData.value.rowData!.type === 'directory'
+        dialogData.value.rowData!.type === 'directory' ||
+        dialogData.value.rowData!.type === 'snapshot'
     );
 }
 function loadWeek(i: number) {
@@ -675,45 +738,19 @@ defineExpose({
         color: red;
     }
 }
-.a-card {
-    font-size: 17px;
-    .el-card {
-        --el-card-padding: 12px;
-        .buttons {
-            margin-left: 100px;
-        }
-    }
-}
-.status-content {
-    float: left;
-    margin-left: 50px;
-}
-
-.app-warn {
-    text-align: center;
-    margin-top: 100px;
-    span:first-child {
-        color: #bbbfc4;
-    }
-
-    span:nth-child(2) {
-        color: $primary-color;
-        cursor: pointer;
-    }
-
-    span:nth-child(2):hover {
-        color: #74a4f3;
-    }
-
-    img {
-        width: 300px;
-        height: 300px;
-    }
-}
 .descriptionWide {
     width: 40%;
 }
 .description {
     width: 30%;
+}
+
+@media only screen and (max-width: 1000px) {
+    .mainClass {
+        overflow: auto;
+    }
+    .mainRowClass {
+        min-width: 900px;
+    }
 }
 </style>

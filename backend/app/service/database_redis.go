@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -20,7 +21,7 @@ type RedisService struct{}
 type IRedisService interface {
 	UpdateConf(req dto.RedisConfUpdate) error
 	UpdatePersistenceConf(req dto.RedisConfPersistenceUpdate) error
-	ChangePassword(info dto.ChangeDBInfo) error
+	ChangePassword(info dto.ChangeRedisPass) error
 
 	LoadStatus() (*dto.RedisStatus, error)
 	LoadConf() (*dto.RedisConf, error)
@@ -53,7 +54,7 @@ func (u *RedisService) UpdateConf(req dto.RedisConfUpdate) error {
 	return nil
 }
 
-func (u *RedisService) ChangePassword(req dto.ChangeDBInfo) error {
+func (u *RedisService) ChangePassword(req dto.ChangeRedisPass) error {
 	if err := updateInstallInfoInDB("redis", "", "password", true, req.Value); err != nil {
 		return err
 	}
@@ -163,7 +164,7 @@ func (u *RedisService) SearchBackupListWithPage(req dto.PageInfo) (int64, interf
 	if err != nil {
 		return 0, nil, err
 	}
-	backupDir := fmt.Sprintf("%s/database/redis/%s", localDir, redisInfo.Name)
+	backupDir := path.Join(localDir, fmt.Sprintf("database/redis/%s", redisInfo.Name))
 	_ = filepath.Walk(backupDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil

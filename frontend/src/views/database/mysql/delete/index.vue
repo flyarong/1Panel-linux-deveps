@@ -5,7 +5,7 @@
         width="30%"
         :close-on-click-modal="false"
     >
-        <el-form ref="deleteForm" v-loading="loading">
+        <el-form ref="deleteForm" v-loading="loading" @submit.prevent>
             <el-form-item>
                 <el-checkbox v-model="deleteReq.forceDelete" :label="$t('app.forceDelete')" />
                 <span class="input-help">
@@ -48,6 +48,8 @@ import { MsgSuccess } from '@/utils/message';
 
 let deleteReq = ref({
     id: 0,
+    type: '',
+    database: '',
     deleteBackup: false,
     forceDelete: false,
 });
@@ -60,13 +62,17 @@ const deleteForm = ref<FormInstance>();
 
 interface DialogProps {
     id: number;
+    type: string;
     name: string;
+    database: string;
 }
 const emit = defineEmits<{ (e: 'search'): void }>();
 
 const acceptParams = async (prop: DialogProps) => {
     deleteReq.value = {
         id: prop.id,
+        type: prop.type,
+        database: prop.database,
         deleteBackup: false,
         forceDelete: false,
     };

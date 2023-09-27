@@ -11,9 +11,13 @@
         </template>
         <el-row v-loading="loading">
             <el-col :span="22" :offset="1">
-                <el-alert type="error" :closable="false">
-                    <p>{{ $t('app.appInstallWarn') }}</p>
-                </el-alert>
+                <el-alert
+                    :title="$t('app.appInstallWarn')"
+                    class="common-prompt"
+                    :closable="false"
+                    type="error"
+                    v-if="canEditPort(installData.app.key)"
+                />
                 <el-form
                     @submit.prevent
                     ref="paramForm"
@@ -23,10 +27,21 @@
                     :rules="rules"
                     :validate-on-rule-change="false"
                 >
-                    <el-form-item :label="$t('app.name')" prop="name">
+                    <el-form-item :label="$t('commons.table.name')" prop="name">
                         <el-input v-model.trim="req.name"></el-input>
                     </el-form-item>
+                    <el-form-item :label="$t('app.version')" prop="version">
+                        <el-select v-model="req.version" @change="getAppDetail(req.version)">
+                            <el-option
+                                v-for="(version, index) in appVersions"
+                                :key="index"
+                                :label="version"
+                                :value="version"
+                            ></el-option>
+                        </el-select>
+                    </el-form-item>
                     <Params
+                        :key="paramKey"
                         v-if="open"
                         v-model:form="req.params"
                         v-model:params="installData.params"
@@ -43,25 +58,41 @@
                                 :placeholder="$t('app.containerNameHelper')"
                             ></el-input>
                         </el-form-item>
-                        <el-form-item :label="$t('container.cpuQuota')" prop="cpuQuota">
+                        <el-form-item
+                            :label="$t('container.cpuQuota')"
+                            prop="cpuQuota"
+                            :rules="checkNumberRange(0, limits.cpu)"
+                        >
                             <el-input type="number" style="width: 40%" v-model.number="req.cpuQuota" maxlength="5">
                                 <template #append>{{ $t('app.cpuCore') }}</template>
                             </el-input>
-                            <span class="input-help">{{ $t('container.limitHelper') }}</span>
+                            <span class="input-help">
+                                {{ $t('container.limitHelper', [limits.cpu]) }}{{ $t('commons.units.core') }}
+                            </span>
                         </el-form-item>
-                        <el-form-item :label="$t('container.memoryLimit')" prop="memoryLimit">
+                        <el-form-item
+                            :label="$t('container.memoryLimit')"
+                            prop="memoryLimit"
+                            :rules="checkNumberRange(0, limits.memory)"
+                        >
                             <el-input style="width: 40%" v-model.number="req.memoryLimit" maxlength="10">
                                 <template #append>
-                                    <el-select v-model="req.memoryUnit" placeholder="Select" style="width: 85px">
-                                        <el-option label="KB" value="K" />
+                                    <el-select
+                                        v-model="req.memoryUnit"
+                                        placeholder="Select"
+                                        style="width: 85px"
+                                        @change="changeUnit"
+                                    >
                                         <el-option label="MB" value="M" />
                                         <el-option label="GB" value="G" />
                                     </el-select>
                                 </template>
                             </el-input>
-                            <span class="input-help">{{ $t('container.limitHelper') }}</span>
+                            <span class="input-help">
+                                {{ $t('container.limitHelper', [limits.memory]) }}{{ req.memoryUnit }}B
+                            </span>
                         </el-form-item>
-                        <el-form-item prop="allowPort" v-if="canEditPort(installData.app)">
+                        <el-form-item prop="allowPort" v-if="canEditPort(installData.app.key)">
                             <el-checkbox v-model="req.allowPort" :label="$t('app.allowPort')" size="large" />
                             <span class="input-help">{{ $t('app.allowPortHelper') }}</span>
                         </el-form-item>
@@ -102,11 +133,11 @@
 
 <script lang="ts" setup name="appInstall">
 import { App } from '@/api/interface/app';
-import { InstallApp } from '@/api/modules/app';
+import { GetApp, GetAppDetail, InstallApp } from '@/api/modules/app';
 import { Rules, checkNumberRange } from '@/global/form-rules';
 import { canEditPort } from '@/global/business';
 import { FormInstance, FormRules } from 'element-plus';
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import Params from '../params/index.vue';
 import Header from '@/components/drawer-header/index.vue';
@@ -115,26 +146,25 @@ import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
 import i18n from '@/lang';
 import { MsgError } from '@/utils/message';
+import { Container } from '@/api/interface/container';
+import { loadResourceLimit } from '@/api/modules/container';
 
 const extensions = [javascript(), oneDark];
 const router = useRouter();
 
 interface InstallRrops {
-    appDetailId: number;
     params?: App.AppParams;
     app: any;
-    compose: string;
 }
 
 const installData = ref<InstallRrops>({
-    appDetailId: 0,
     app: {},
-    compose: '',
 });
 const open = ref(false);
 const rules = ref<FormRules>({
     name: [Rules.appName],
     params: [],
+    version: [Rules.requiredSelect],
     containerName: [Rules.containerName],
     cpuQuota: [Rules.requiredInput, checkNumberRange(0, 99999)],
     memoryLimit: [Rules.requiredInput, checkNumberRange(0, 9999999999)],
@@ -146,20 +176,39 @@ const initData = () => ({
     appDetailId: 0,
     params: form.value,
     name: '',
-    advanced: false,
+    advanced: true,
     cpuQuota: 0,
     memoryLimit: 0,
-    memoryUnit: 'MB',
+    memoryUnit: 'M',
     containerName: '',
     allowPort: false,
     editCompose: false,
     dockerCompose: '',
+    version: '',
+    appID: '',
 });
 const req = reactive(initData());
-
+const limits = ref<Container.ResourceLimit>({
+    cpu: null as number,
+    memory: null as number,
+});
+const oldMemory = ref<number>(0);
+const appVersions = ref<string[]>([]);
 const handleClose = () => {
     open.value = false;
     resetForm();
+    if (router.currentRoute.value.query.install) {
+        router.push({ name: 'AppAll' });
+    }
+};
+const paramKey = ref(1);
+
+const changeUnit = () => {
+    if (req.memoryUnit == 'M') {
+        limits.value.memory = oldMemory.value;
+    } else {
+        limits.value.memory = Number((oldMemory.value / 1024).toFixed(2));
+    }
 };
 
 const resetForm = () => {
@@ -168,14 +217,40 @@ const resetForm = () => {
         paramForm.value.resetFields();
     }
     Object.assign(req, initData());
-    req.dockerCompose = installData.value.compose;
 };
 
-const acceptParams = (props: InstallRrops): void => {
-    installData.value = props;
+const acceptParams = async (props: InstallRrops) => {
     resetForm();
+    if (props.app.versions != undefined) {
+        installData.value = props;
+    } else {
+        const res = await GetApp(props.app.key);
+        installData.value.app = res.data;
+    }
+
+    const app = installData.value.app;
+    appVersions.value = app.versions;
+    if (appVersions.value.length > 0) {
+        req.version = appVersions.value[0];
+        getAppDetail(appVersions.value[0]);
+    }
+
     req.name = props.app.key;
     open.value = true;
+};
+
+const getAppDetail = async (version: string) => {
+    loading.value = true;
+    try {
+        const res = await GetAppDetail(installData.value.app.id, version, 'app');
+        req.appDetailId = res.data.id;
+        req.dockerCompose = res.data.dockerCompose;
+        installData.value.params = res.data.params;
+        paramKey.value++;
+    } catch (error) {
+    } finally {
+        loading.value = false;
+    }
 };
 
 const submit = async (formEl: FormInstance | undefined) => {
@@ -188,26 +263,49 @@ const submit = async (formEl: FormInstance | undefined) => {
             MsgError(i18n.global.t('app.composeNullErr'));
             return;
         }
-        req.appDetailId = installData.value.appDetailId;
         if (req.cpuQuota < 0) {
             req.cpuQuota = 0;
         }
         if (req.memoryLimit < 0) {
             req.memoryLimit = 0;
         }
-        loading.value = true;
-        InstallApp(req)
-            .then(() => {
-                handleClose();
-                router.push({ path: '/apps/installed' });
-            })
-            .finally(() => {
-                loading.value = false;
+        if (canEditPort(installData.value.app.key) && !req.allowPort) {
+            ElMessageBox.confirm(i18n.global.t('app.installWarn'), i18n.global.t('app.checkTitle'), {
+                confirmButtonText: i18n.global.t('commons.button.confirm'),
+                cancelButtonText: i18n.global.t('commons.button.cancel'),
+            }).then(async () => {
+                install();
             });
+        } else {
+            install();
+        }
     });
+};
+
+const install = () => {
+    loading.value = true;
+    InstallApp(req)
+        .then(() => {
+            handleClose();
+            router.push({ path: '/apps/installed' });
+        })
+        .finally(() => {
+            loading.value = false;
+        });
+};
+
+const loadLimit = async () => {
+    const res = await loadResourceLimit();
+    limits.value = res.data;
+    limits.value.memory = Number((limits.value.memory / 1024 / 1024).toFixed(2));
+    oldMemory.value = limits.value.memory;
 };
 
 defineExpose({
     acceptParams,
+});
+
+onMounted(() => {
+    loadLimit();
 });
 </script>

@@ -12,6 +12,7 @@ export namespace App {
         source: string;
         type: string;
         status: string;
+        limit: number;
     }
 
     export interface AppDTO extends App {
@@ -41,7 +42,6 @@ export namespace App {
         readme: string;
         params: AppParams;
         dockerCompose: string;
-        enbale: boolean;
         image: string;
     }
 
@@ -117,6 +117,12 @@ export namespace App {
         app: App;
     }
 
+    export interface AppInstalledInfo {
+        id: number;
+        key: string;
+        name: string;
+    }
+
     export interface CheckInstalled {
         name: string;
         version: string;
@@ -128,11 +134,15 @@ export namespace App {
         appInstallId: number;
         containerName: string;
         installPath: string;
+        httpPort: number;
+        httpsPort: number;
     }
 
     export interface DatabaseConnInfo {
         password: string;
+        privilege: boolean;
         serviceName: string;
+        systemIP: string;
         port: number;
     }
     export interface AppInstallResource {
@@ -187,5 +197,12 @@ export namespace App {
         containerName: string;
         allowPort: boolean;
         dockerCompose: string;
+    }
+
+    export interface IgnoredApp {
+        name: string;
+        detailID: number;
+        version: string;
+        icon: string;
     }
 }

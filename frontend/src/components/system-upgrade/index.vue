@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="flx-center">
         <span v-if="props.footer">
             <el-button type="primary" link @click="toForum">
                 <span>{{ $t('setting.forum') }}</span>
@@ -11,38 +11,32 @@
             <el-divider direction="vertical" />
         </span>
         <span class="version">{{ $t('setting.currentVersion') + version }}</span>
-        <el-badge
-            is-dot
-            class="item"
-            v-if="version !== 'Waiting' && globalStore.hasNewVersion"
-            style="margin-top: -6px"
-        >
+        <el-badge is-dot class="item" v-if="version !== 'Waiting' && globalStore.hasNewVersion">
             <el-button type="primary" link @click="onLoadUpgradeInfo">
-                <span style="font-size: 14px">（{{ $t('setting.hasNewVersion') }}）</span>
+                <span>（{{ $t('setting.hasNewVersion') }}）</span>
             </el-button>
         </el-badge>
         <el-button
             v-if="version !== 'Waiting' && !globalStore.hasNewVersion"
-            style="margin-top: -2px"
             type="primary"
             link
             @click="onLoadUpgradeInfo"
         >
-            （{{ $t('setting.upgradeCheck') }}）
+            <span>（{{ $t('setting.upgradeCheck') }}）</span>
         </el-button>
         <el-tag v-if="version === 'Waiting'" round style="margin-left: 10px">{{ $t('setting.upgrading') }}</el-tag>
     </div>
     <el-drawer :close-on-click-modal="false" :key="refresh" v-model="drawerVisiable" size="50%" append-to-body>
         <template #header>
-            <DrawerHeader :header="$t('setting.upgrade')" :back="handleClose" />
+            <DrawerHeader :header="$t('commons.button.upgrade')" :back="handleClose" />
         </template>
         <div class="panel-MdEditor">
             <el-alert :closable="false">
-                {{ $t('setting.versionHelper') }}
-                <li>{{ $t('setting.versionHelper1') }}</li>
-                <li>{{ $t('setting.versionHelper2') }}</li>
+                <span class="line-heigth">{{ $t('setting.versionHelper') }}</span>
+                <li class="line-heigth">{{ $t('setting.versionHelper1') }}</li>
+                <li class="line-heigth">{{ $t('setting.versionHelper2') }}</li>
             </el-alert>
-            <div class="default-theme">
+            <div class="default-theme" style="margin-left: 20px">
                 <h2 class="inline-block">{{ $t('app.version') }}</h2>
             </div>
             <el-radio-group class="inline-block tag" v-model="upgradeVersion" @change="changeOption">
@@ -133,7 +127,7 @@ const changeOption = async () => {
 };
 
 const onUpgrade = async () => {
-    ElMessageBox.confirm(i18n.global.t('setting.upgradeHelper', i18n.global.t('setting.upgrade')), {
+    ElMessageBox.confirm(i18n.global.t('setting.upgradeHelper', i18n.global.t('commons.button.upgrade')), {
         confirmButtonText: i18n.global.t('commons.button.confirm'),
         cancelButtonText: i18n.global.t('commons.button.cancel'),
         type: 'info',
@@ -158,18 +152,21 @@ onMounted(() => {
     text-decoration: none;
     letter-spacing: 0.5px;
 }
+.line-heigth {
+    line-height: 25px;
+}
 .panel-MdEditor {
     height: calc(100vh - 330px);
-    margin-left: 70px;
     .tag {
         margin-top: -6px;
+        margin-left: 20px;
         vertical-align: middle;
     }
     :deep(.md-editor-preview) {
         font-size: 14px;
     }
     :deep(.default-theme h2) {
-        margin: 13px 0;
+        margin: 13px, 0;
         padding: 0;
         font-size: 16px;
     }

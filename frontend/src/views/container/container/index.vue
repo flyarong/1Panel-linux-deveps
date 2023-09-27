@@ -10,7 +10,7 @@
                 <el-row>
                     <el-col :xs="24" :sm="16" :md="16" :lg="16" :xl="16">
                         <el-button type="primary" @click="onOpenDialog('create')">
-                            {{ $t('container.createContainer') }}
+                            {{ $t('container.create') }}
                         </el-button>
                         <el-button type="primary" plain @click="onClean()">
                             {{ $t('container.containerPrune') }}
@@ -60,10 +60,19 @@
                     :pagination-config="paginationConfig"
                     v-model:selects="selects"
                     :data="data"
+                    @sort-change="search"
                     @search="search"
+                    :row-style="{ height: '65px' }"
                 >
                     <el-table-column type="selection" fix />
-                    <el-table-column :label="$t('commons.table.name')" min-width="80" prop="name" fix>
+                    <el-table-column
+                        :label="$t('commons.table.name')"
+                        :width="mobile ? 300 : 'auto'"
+                        min-width="80"
+                        prop="name"
+                        sortable
+                        fix
+                    >
                         <template #default="{ row }">
                             <Tooltip @click="onInspect(row.containerID)" :text="row.name" />
                         </template>
@@ -74,23 +83,118 @@
                         min-width="80"
                         prop="imageName"
                     />
-                    <el-table-column :label="$t('commons.table.status')" min-width="60" prop="state" fix>
+                    <el-table-column :label="$t('commons.table.status')" min-width="70" prop="state" sortable fix>
                         <template #default="{ row }">
                             <Status :key="row.state" :status="row.state"></Status>
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('container.source')" show-overflow-tooltip min-width="125" fix>
+                    <el-table-column :label="$t('container.source')" show-overflow-tooltip min-width="80" fix>
                         <template #default="{ row }">
-                            CPU: {{ row.cpuPercent.toFixed(2) }}% {{ $t('monitor.memory') }}:
-                            {{ row.memoryPercent.toFixed(2) }}%
+                            <div v-if="row.hasLoad">
+                                <div class="source-font">CPU: {{ row.cpuPercent.toFixed(2) }}%</div>
+                                <div class="float-left source-font">
+                                    {{ $t('monitor.memory') }}: {{ row.memoryPercent.toFixed(2) }}%
+                                </div>
+                                <el-popover placement="right" width="500px" class="float-right">
+                                    <template #reference>
+                                        <svg-icon iconName="p-xiangqing" class="svg-icon"></svg-icon>
+                                    </template>
+                                    <template #default>
+                                        <el-row>
+                                            <el-col :span="8">
+                                                <el-statistic
+                                                    :title="$t('container.cpuUsage')"
+                                                    :value="loadCPUValue(row.cpuTotalUsage)"
+                                                    :precision="2"
+                                                >
+                                                    <template #suffix>{{ loadCPUUnit(row.cpuTotalUsage) }}</template>
+                                                </el-statistic>
+                                            </el-col>
+                                            <el-col :span="8">
+                                                <el-statistic
+                                                    :title="$t('container.cpuTotal')"
+                                                    :value="loadCPUValue(row.systemUsage)"
+                                                    :precision="2"
+                                                >
+                                                    <template #suffix>{{ loadCPUUnit(row.systemUsage) }}</template>
+                                                </el-statistic>
+                                            </el-col>
+                                            <el-col :span="8">
+                                                <el-statistic :title="$t('container.core')" :value="row.percpuUsage" />
+                                            </el-col>
+                                        </el-row>
+
+                                        <el-row class="mt-4">
+                                            <el-col :span="8">
+                                                <el-statistic
+                                                    :title="$t('container.memUsage')"
+                                                    :value="loadMemValue(row.memoryUsage)"
+                                                    :precision="2"
+                                                >
+                                                    <template #suffix>{{ loadMemUnit(row.memoryUsage) }}</template>
+                                                </el-statistic>
+                                            </el-col>
+                                            <el-col :span="8">
+                                                <el-statistic
+                                                    :title="$t('container.memCache')"
+                                                    :value="loadMemValue(row.memoryCache)"
+                                                    :precision="2"
+                                                >
+                                                    <template #suffix>{{ loadMemUnit(row.memoryCache) }}</template>
+                                                </el-statistic>
+                                            </el-col>
+                                            <el-col :span="8">
+                                                <el-statistic
+                                                    :title="$t('container.memTotal')"
+                                                    :value="loadMemValue(row.memoryLimit)"
+                                                    :precision="2"
+                                                >
+                                                    <template #suffix>{{ loadMemUnit(row.memoryLimit) }}</template>
+                                                </el-statistic>
+                                            </el-col>
+                                        </el-row>
+                                    </template>
+                                </el-popover>
+                            </div>
+                            <div v-if="!row.hasLoad">
+                                <el-button link loading></el-button>
+                            </div>
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('container.port')" min-width="80" prop="ports" fix>
+                    <el-table-column :label="$t('container.ip')" :width="mobile ? 80 : 'auto'" min-width="70" fix>
+                        <template #default="{ row }">
+                            <div v-if="row.network">
+                                <div v-for="(item, index) in row.network" :key="index">{{ item }}</div>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                        :label="$t('commons.table.port')"
+                        :width="mobile ? 260 : 'auto'"
+                        min-width="130"
+                        prop="ports"
+                        fix
+                    >
                         <template #default="{ row }">
                             <div v-if="row.ports">
                                 <div v-for="(item, index) in row.ports" :key="index">
                                     <div v-if="row.expand || (!row.expand && index < 3)">
-                                        <el-tag class="tagMargin">{{ item }}</el-tag>
+                                        <el-tooltip :hide-after="20" :content="item" placement="top">
+                                            <el-button
+                                                v-if="item.indexOf('->') !== -1"
+                                                @click="goDashboard(item)"
+                                                class="tagMargin"
+                                                icon="Position"
+                                                type="primary"
+                                                plain
+                                                size="small"
+                                            >
+                                                {{ item.length > 25 ? item.substring(0, 25) + '...' : item }}
+                                            </el-button>
+                                            <el-button v-else class="tagMargin" type="primary" plain size="small">
+                                                {{ item }}
+                                            </el-button>
+                                        </el-tooltip>
                                     </div>
                                 </div>
                                 <div v-if="!row.expand && row.ports.length > 3">
@@ -98,19 +202,24 @@
                                         {{ $t('commons.button.expand') }}...
                                     </el-button>
                                 </div>
+                                <div v-if="row.expand && row.ports.length > 3">
+                                    <el-button type="primary" link @click="row.expand = false">
+                                        {{ $t('commons.button.collapse') }}
+                                    </el-button>
+                                </div>
                             </div>
                         </template>
                     </el-table-column>
                     <el-table-column
                         :label="$t('container.upTime')"
-                        min-width="70"
+                        min-width="80"
                         show-overflow-tooltip
                         prop="runTime"
                         fix
                     />
                     <fu-table-operations
-                        width="300px"
-                        :ellipsis="3"
+                        width="180px"
+                        :ellipsis="2"
                         :buttons="buttons"
                         :label="$t('commons.table.operate')"
                         fix
@@ -120,6 +229,7 @@
         </LayoutContent>
 
         <CodemirrorDialog ref="mydetail" />
+        <PruneDialog @search="search" ref="dialogPruneRef" />
 
         <ReNameDialog @search="search" ref="dialogReNameRef" />
         <ContainerLogDialog ref="dialogContainerLogRef" />
@@ -127,46 +237,60 @@
         <UpgraeDialog @search="search" ref="dialogUpgradeRef" />
         <MonitorDialog ref="dialogMonitorRef" />
         <TerminalDialog ref="dialogTerminalRef" />
+
+        <PortJumpDialog ref="dialogPortJumpRef" />
+        <HandleDialog @search="search" ref="handleRef" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import Tooltip from '@/components/tooltip/index.vue';
 import TableSetting from '@/components/table-setting/index.vue';
+import PruneDialog from '@/views/container/container/prune/index.vue';
 import ReNameDialog from '@/views/container/container/rename/index.vue';
 import OperateDialog from '@/views/container/container/operate/index.vue';
 import UpgraeDialog from '@/views/container/container/upgrade/index.vue';
 import MonitorDialog from '@/views/container/container/monitor/index.vue';
 import ContainerLogDialog from '@/views/container/container/log/index.vue';
 import TerminalDialog from '@/views/container/container/terminal/index.vue';
+import HandleDialog from '@/views/container/container/handle/index.vue';
 import CodemirrorDialog from '@/components/codemirror-dialog/index.vue';
+import PortJumpDialog from '@/components/port-jump/index.vue';
 import Status from '@/components/status/index.vue';
-import { reactive, onMounted, ref } from 'vue';
+import { reactive, onMounted, ref, computed } from 'vue';
 import {
-    containerOperator,
-    containerPrune,
+    containerListStats,
     inspect,
     loadContainerInfo,
     loadDockerStatus,
     searchContainer,
 } from '@/api/modules/container';
 import { Container } from '@/api/interface/container';
-import { ElMessageBox } from 'element-plus';
 import i18n from '@/lang';
 import router from '@/routers';
-import { MsgSuccess } from '@/utils/message';
-import { computeSize } from '@/utils/util';
+import { MsgWarning } from '@/utils/message';
+import { GlobalStore } from '@/store';
+const globalStore = GlobalStore();
+
+const mobile = computed(() => {
+    return globalStore.isMobile();
+});
 
 const loading = ref();
 const data = ref();
 const selects = ref<any>([]);
 const paginationConfig = reactive({
+    cacheSizeKey: 'container-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
+    orderBy: 'created_at',
+    order: 'null',
 });
 const searchName = ref();
 const dialogUpgradeRef = ref();
+const dialogPortJumpRef = ref();
+const handleRef = ref();
 
 const dockerStatus = ref('Running');
 const loadStatus = async () => {
@@ -184,6 +308,20 @@ const loadStatus = async () => {
             loading.value = false;
         });
 };
+
+const goDashboard = async (port: any) => {
+    if (port.indexOf('127.0.0.1') !== -1) {
+        MsgWarning(i18n.global.t('container.unExposedPort'));
+        return;
+    }
+    if (!port || port.indexOf(':') === -1 || port.indexOf('->') === -1) {
+        MsgWarning(i18n.global.t('commons.msg.errPort'));
+        return;
+    }
+    let portEx = port.match(/:(\d+)/)[1];
+    dialogPortJumpRef.value.acceptParams({ port: portEx });
+};
+
 const goSetting = async () => {
     router.push({ name: 'ContainerSetting' });
 };
@@ -195,21 +333,26 @@ const props = withDefaults(defineProps<Filters>(), {
     filters: '',
 });
 
-const detailInfo = ref();
 const mydetail = ref();
 
 const dialogContainerLogRef = ref();
 const dialogReNameRef = ref();
+const dialogPruneRef = ref();
 
-const search = async () => {
+const search = async (column?: any) => {
     let filterItem = props.filters ? props.filters : '';
+    paginationConfig.orderBy = column?.order ? column.prop : paginationConfig.orderBy;
+    paginationConfig.order = column?.order ? column.order : paginationConfig.order;
     let params = {
         name: searchName.value,
         page: paginationConfig.currentPage,
         pageSize: paginationConfig.pageSize,
         filters: filterItem,
+        orderBy: paginationConfig.orderBy,
+        order: paginationConfig.order,
     };
     loading.value = true;
+    loadStats();
     await searchContainer(params)
         .then((res) => {
             loading.value = false;
@@ -220,6 +363,62 @@ const search = async () => {
             loading.value = false;
         });
 };
+
+const loadStats = async () => {
+    const res = await containerListStats();
+    let stats = res.data || [];
+    if (stats.length === 0) {
+        return;
+    }
+    for (const container of data.value) {
+        for (const item of stats) {
+            if (container.containerID === item.containerID) {
+                container.hasLoad = true;
+                container.cpuTotalUsage = item.cpuTotalUsage;
+                container.systemUsage = item.systemUsage;
+                container.cpuPercent = item.cpuPercent;
+                container.percpuUsage = item.percpuUsage;
+                container.memoryCache = item.memoryCache;
+                container.memoryUsage = item.memoryUsage;
+                container.memoryLimit = item.memoryLimit;
+                container.memoryPercent = item.memoryPercent;
+                break;
+            }
+        }
+    }
+};
+
+const loadCPUUnit = (t: number) => {
+    const num = 1000;
+    if (t < num) return ' ns';
+    if (t < Math.pow(num, 2)) return ' μs';
+    if (t < Math.pow(num, 3)) return ' ms';
+    return ' s';
+};
+function loadCPUValue(t: number) {
+    const num = 1000;
+    if (t < num) return t;
+    if (t < Math.pow(num, 2)) return Number((t / num).toFixed(2));
+    if (t < Math.pow(num, 3)) return Number((t / Math.pow(num, 2)).toFixed(2));
+    return Number((t / Math.pow(num, 3)).toFixed(2));
+}
+const loadMemUnit = (t: number) => {
+    if (t == 0) {
+        return '';
+    }
+    const num = 1024;
+    if (t < num) return ' B';
+    if (t < Math.pow(num, 2)) return ' KiB';
+    if (t < Math.pow(num, 3)) return ' MiB';
+    return ' GiB';
+};
+function loadMemValue(t: number) {
+    const num = 1024;
+    if (t < num) return t;
+    if (t < Math.pow(num, 2)) return Number((t / num).toFixed(2));
+    if (t < Math.pow(num, 3)) return Number((t / Math.pow(num, 2)).toFixed(2));
+    return Number((t / Math.pow(num, 3)).toFixed(2));
+}
 
 const dialogOperateRef = ref();
 const onEdit = async (container: string) => {
@@ -233,6 +432,7 @@ const onOpenDialog = async (
     rowData: Partial<Container.ContainerHelper> = {
         cmd: [],
         cmdStr: '',
+        publishAllPorts: false,
         exposedPorts: [],
         cpuShares: 1024,
         nanoCPUs: 0,
@@ -263,40 +463,16 @@ const onTerminal = (row: any) => {
 
 const onInspect = async (id: string) => {
     const res = await inspect({ id: id, type: 'container' });
-    detailInfo.value = JSON.stringify(JSON.parse(res.data), null, 2);
+    let detailInfo = JSON.stringify(JSON.parse(res.data), null, 2);
     let param = {
         header: i18n.global.t('commons.button.view'),
-        detailInfo: detailInfo.value,
+        detailInfo: detailInfo,
     };
     mydetail.value!.acceptParams(param);
 };
 
 const onClean = () => {
-    ElMessageBox.confirm(i18n.global.t('container.containerPruneHelper'), i18n.global.t('container.containerPrune'), {
-        confirmButtonText: i18n.global.t('commons.button.confirm'),
-        cancelButtonText: i18n.global.t('commons.button.cancel'),
-        type: 'info',
-    }).then(async () => {
-        loading.value = true;
-        let params = {
-            pruneType: 'container',
-            withTagAll: false,
-        };
-        await containerPrune(params)
-            .then((res) => {
-                loading.value = false;
-                MsgSuccess(
-                    i18n.global.t('container.cleanSuccessWithSpace', [
-                        res.data.deletedNumber,
-                        computeSize(res.data.spaceReclaimed),
-                    ]),
-                );
-                search();
-            })
-            .catch(() => {
-                loading.value = false;
-            });
-    });
+    dialogPruneRef.value!.acceptParams();
 };
 
 const checkStatus = (operation: string, row: Container.ContainerInfo | null) => {
@@ -338,47 +514,17 @@ const checkStatus = (operation: string, row: Container.ContainerInfo | null) => 
 const onOperate = async (operation: string, row: Container.ContainerInfo | null) => {
     let opList = row ? [row] : selects.value;
     let msg = i18n.global.t('container.operatorHelper', [i18n.global.t('container.' + operation)]);
+    let containers = [];
     for (const item of opList) {
+        containers.push(item.name);
         if (item.isFromApp) {
             msg = i18n.global.t('container.operatorAppHelper', [i18n.global.t('container.' + operation)]);
-            break;
         }
     }
-    ElMessageBox.confirm(msg, i18n.global.t('container.' + operation), {
-        confirmButtonText: i18n.global.t('commons.button.confirm'),
-        cancelButtonText: i18n.global.t('commons.button.cancel'),
-        type: 'info',
-    }).then(() => {
-        let ps = [];
-        for (const item of opList) {
-            const param = {
-                name: item.name,
-                operation: operation,
-                newName: '',
-            };
-            ps.push(containerOperator(param));
-        }
-        loading.value = true;
-        Promise.all(ps)
-            .then(() => {
-                loading.value = false;
-                search();
-                MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-            })
-            .catch(() => {
-                loading.value = false;
-                search();
-            });
-    });
+    handleRef.value.acceptParams({ containers: containers, operation: operation, msg: msg });
 };
 
 const buttons = [
-    {
-        label: i18n.global.t('commons.button.edit'),
-        click: (row: Container.ContainerInfo) => {
-            onEdit(row.containerID);
-        },
-    },
     {
         label: i18n.global.t('file.terminal'),
         disabled: (row: Container.ContainerInfo) => {
@@ -395,18 +541,24 @@ const buttons = [
         },
     },
     {
+        label: i18n.global.t('commons.button.edit'),
+        click: (row: Container.ContainerInfo) => {
+            onEdit(row.containerID);
+        },
+    },
+    {
+        label: i18n.global.t('commons.button.upgrade'),
+        click: (row: Container.ContainerInfo) => {
+            dialogUpgradeRef.value!.acceptParams({ container: row.name, image: row.imageName, fromApp: row.isFromApp });
+        },
+    },
+    {
         label: i18n.global.t('container.monitor'),
         disabled: (row: Container.ContainerInfo) => {
             return row.state !== 'running';
         },
         click: (row: Container.ContainerInfo) => {
             onMonitor(row);
-        },
-    },
-    {
-        label: i18n.global.t('container.upgrade'),
-        click: (row: Container.ContainerInfo) => {
-            dialogUpgradeRef.value!.acceptParams({ container: row.name, image: row.imageName, fromApp: row.isFromApp });
         },
     },
     {
@@ -491,5 +643,13 @@ onMounted(() => {
 <style scoped lang="scss">
 .tagMargin {
     margin-top: 2px;
+}
+.source-font {
+    font-size: 12px;
+}
+.svg-icon {
+    margin-top: -3px;
+    font-size: 6px;
+    cursor: pointer;
 }
 </style>

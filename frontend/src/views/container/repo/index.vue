@@ -45,7 +45,7 @@
                         min-width="100"
                         fix
                     />
-                    <el-table-column :label="$t('container.protocol')" prop="protocol" min-width="60" fix />
+                    <el-table-column :label="$t('commons.table.protocol')" prop="protocol" min-width="60" fix />
                     <el-table-column :label="$t('commons.table.status')" prop="status" min-width="60" fix>
                         <template #default="{ row }">
                             <el-tag v-if="row.status === 'Success'" type="success">
@@ -66,7 +66,7 @@
                         fix
                         :formatter="dateFormat"
                     />
-                    <fu-table-operations :buttons="buttons" :label="$t('commons.table.operate')" />
+                    <fu-table-operations width="200px" :buttons="buttons" :label="$t('commons.table.operate')" />
                 </ComplexTable>
             </template>
         </LayoutContent>
@@ -89,6 +89,7 @@ const loading = ref();
 const data = ref();
 const selects = ref<any>([]);
 const paginationConfig = reactive({
+    cacheSizeKey: 'image-repo-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
@@ -173,7 +174,7 @@ const buttons = [
     {
         label: i18n.global.t('commons.button.sync'),
         disabled: (row: Container.RepoInfo) => {
-            return row.downloadUrl === 'docker.io';
+            return row.id === 1;
         },
         click: (row: Container.RepoInfo) => {
             onCheckConn(row);
@@ -182,7 +183,7 @@ const buttons = [
     {
         label: i18n.global.t('commons.button.edit'),
         disabled: (row: Container.RepoInfo) => {
-            return row.downloadUrl === 'docker.io';
+            return row.id === 1;
         },
         click: (row: Container.RepoInfo) => {
             onOpenDialog('edit', row);
@@ -191,7 +192,7 @@ const buttons = [
     {
         label: i18n.global.t('commons.button.delete'),
         disabled: (row: Container.RepoInfo) => {
-            return row.downloadUrl === 'docker.io';
+            return row.id === 1;
         },
         click: (row: Container.RepoInfo) => {
             onDelete(row);

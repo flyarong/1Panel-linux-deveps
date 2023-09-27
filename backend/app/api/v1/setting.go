@@ -2,6 +2,10 @@ package v1
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"path"
+	"strconv"
 
 	"github.com/1Panel-dev/1Panel/backend/app/api/v1/helper"
 	"github.com/1Panel-dev/1Panel/backend/app/dto"
@@ -133,6 +137,22 @@ func (b *BaseApi) LoadFromCert(c *gin.Context) {
 }
 
 // @Tags System Setting
+// @Summary Download system cert
+// @Description 下载证书
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /settings/ssl/download [post]
+func (b *BaseApi) DownloadSSL(c *gin.Context) {
+	pathItem := path.Join(global.CONF.System.BaseDir, "1panel/secret/server.crt")
+	if _, err := os.Stat(pathItem); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+
+	c.File(pathItem)
+}
+
+// @Tags System Setting
 // @Summary Update system port
 // @Description 更新系统端口
 // @Accept json
@@ -260,11 +280,23 @@ func (b *BaseApi) CleanMonitor(c *gin.Context) {
 // @Tags System Setting
 // @Summary Load mfa info
 // @Description 获取 mfa 信息
+// @Param interval path string true "request"
 // @Success 200 {object} mfa.Otp
 // @Security ApiKeyAuth
-// @Router /settings/mfa [get]
+// @Router /settings/mfa/:interval [get]
 func (b *BaseApi) GetMFA(c *gin.Context) {
-	otp, err := mfa.GetOtp("admin")
+	intervalStr, ok := c.Params.Get("interval")
+	if !ok {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, errors.New("error interval in path"))
+		return
+	}
+	interval, err := strconv.Atoi(intervalStr)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, fmt.Errorf("type conversion failed, err: %v", err))
+		return
+	}
+
+	otp, err := mfa.GetOtp("admin", interval)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -288,9 +320,14 @@ func (b *BaseApi) MFABind(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
 	}
-	success := mfa.ValidCode(req.Code, req.Secret)
+	success := mfa.ValidCode(req.Code, req.Interval, req.Secret)
 	if !success {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, errors.New("code is not valid"))
+		return
+	}
+
+	if err := settingService.Update("MFAInterval", req.Interval); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
 	}
 

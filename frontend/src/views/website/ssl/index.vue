@@ -100,6 +100,7 @@ import { GlobalStore } from '@/store';
 const globalStore = GlobalStore();
 
 const paginationConfig = reactive({
+    cacheSizeKey: 'ssl-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
@@ -136,7 +137,7 @@ const buttons = [
         },
     },
     {
-        label: i18n.global.t('app.delete'),
+        label: i18n.global.t('commons.button.delete'),
         click: function (row: Website.SSL) {
             deleteSSL(row.id);
         },

@@ -1,13 +1,13 @@
 <template>
     <div>
-        <LayoutContent :title="$t('setting.backup')">
+        <LayoutContent :title="$t('commons.button.backup')">
             <template #main>
                 <el-form label-position="left" label-width="130px" :v-key="reflash">
                     <el-row :gutter="20">
                         <el-col :span="24">
                             <div>
-                                <svg-icon style="font-size: 7px" iconName="p-file-folder"></svg-icon>
-                                <span style="font-size: 14px; font-weight: 500">&nbsp;{{ $t('setting.LOCAL') }}</span>
+                                <svg-icon class="card-logo" iconName="p-file-folder"></svg-icon>
+                                <span class="card-title">&nbsp;{{ $t('setting.LOCAL') }}</span>
                                 <div style="float: right">
                                     <el-button round @click="onOpenDialog('edit', 'local', localData)">
                                         {{ $t('commons.button.edit') }}
@@ -28,7 +28,7 @@
                 </el-form>
 
                 <div class="common-div">
-                    <span style="font-size: 14px; font-weight: 500">{{ $t('setting.thirdParty') }}</span>
+                    <span class="card-title">{{ $t('setting.thirdParty') }}</span>
                 </div>
 
                 <el-alert type="info" :closable="false" class="common-div">
@@ -40,8 +40,8 @@
                 <el-row :gutter="20" class="common-div">
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-aws"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;{{ $t('setting.S3') }}</span>
+                            <svg-icon class="card-logo" iconName="p-aws"></svg-icon>
+                            <span class="card-title">&nbsp;{{ $t('setting.S3') }}</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -66,14 +66,29 @@
                             <el-form-item label="Bucket">
                                 {{ s3Data.bucket }}
                             </el-form-item>
+                            <el-form-item :label="$t('setting.scType')">
+                                <span v-if="!s3Data.varsJson['scType'] || s3Data.varsJson['scType'] === 'STANDARD'">
+                                    {{ $t('setting.typeStandard') }}
+                                </span>
+                                <span v-if="s3Data.varsJson['scType'] === 'STANDARD_IA'">
+                                    {{ $t('setting.typeStandard_IA') }}
+                                </span>
+                                <span v-if="s3Data.varsJson['scType'] === 'GLACIER'">
+                                    {{ $t('setting.typeArchive') }}
+                                </span>
+                                <span v-if="s3Data.varsJson['scType'] === 'DEEP_ARCHIVE'">
+                                    {{ $t('setting.typeDeep_Archive') }}
+                                </span>
+                            </el-form-item>
                             <el-form-item :label="$t('setting.backupDir')">
-                                {{ s3Data.backupPath }}
+                                <span v-if="s3Data.backupPath">{{ s3Data.backupPath }}</span>
+                                <span v-else>{{ $t('setting.unSetting') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, s3Data.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button size="large" round plain type="primary" @click="onOpenDialog('create', 'S3')">
                                 {{ $t('setting.createBackupAccount', [$t('setting.S3')]) }}
                             </el-button>
@@ -81,8 +96,8 @@
                     </el-col>
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-oss"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;{{ $t('setting.OSS') }}</span>
+                            <svg-icon class="card-logo" iconName="p-oss"></svg-icon>
+                            <span class="card-title">&nbsp;{{ $t('setting.OSS') }}</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -105,14 +120,29 @@
                             <el-form-item label="Bucket">
                                 {{ ossData.bucket }}
                             </el-form-item>
+                            <el-form-item :label="$t('setting.scType')">
+                                <span v-if="!ossData.varsJson['scType'] || ossData.varsJson['scType'] === 'Standard'">
+                                    {{ $t('setting.typeStandard') }}
+                                </span>
+                                <span v-if="ossData.varsJson['scType'] === 'IA'">
+                                    {{ $t('setting.typeStandard_IA') }}
+                                </span>
+                                <span v-if="ossData.varsJson['scType'] === 'Archive'">
+                                    {{ $t('setting.typeArchive') }}
+                                </span>
+                                <span v-if="ossData.varsJson['scType'] === 'ColdArchive'">
+                                    {{ $t('setting.typeDeep_Archive') }}
+                                </span>
+                            </el-form-item>
                             <el-form-item :label="$t('setting.backupDir')">
-                                {{ ossData.backupPath }}
+                                <span v-if="ossData.backupPath">{{ ossData.backupPath }}</span>
+                                <span v-else>{{ $t('setting.unSetting') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, ossData.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button size="large" round plain type="primary" @click="onOpenDialog('create', 'OSS')">
                                 {{ $t('setting.createBackupAccount', [$t('setting.OSS')]) }}
                             </el-button>
@@ -122,8 +152,8 @@
                 <el-row :gutter="20" class="common-div">
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-tengxunyun1"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;{{ $t('setting.COS') }}</span>
+                            <svg-icon class="card-logo" iconName="p-tengxunyun1"></svg-icon>
+                            <span class="card-title">&nbsp;{{ $t('setting.COS') }}</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -145,14 +175,29 @@
                             <el-form-item label="Bucket">
                                 {{ cosData.bucket }}
                             </el-form-item>
+                            <el-form-item :label="$t('setting.scType')">
+                                <span v-if="!cosData.varsJson['scType'] || cosData.varsJson['scType'] === 'Standard'">
+                                    {{ $t('setting.typeStandard') }}
+                                </span>
+                                <span v-if="cosData.varsJson['scType'] === 'Standard_IA'">
+                                    {{ $t('setting.typeStandard_IA') }}
+                                </span>
+                                <span v-if="cosData.varsJson['scType'] === 'Archive'">
+                                    {{ $t('setting.typeArchive') }}
+                                </span>
+                                <span v-if="cosData.varsJson['scType'] === 'Deep_Archive'">
+                                    {{ $t('setting.typeDeep_Archive') }}
+                                </span>
+                            </el-form-item>
                             <el-form-item :label="$t('setting.backupDir')">
-                                {{ cosData.backupPath }}
+                                <span v-if="cosData.backupPath">{{ cosData.backupPath }}</span>
+                                <span v-else>{{ $t('setting.unSetting') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, cosData.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button size="large" round plain type="primary" @click="onOpenDialog('create', 'COS')">
                                 {{ $t('setting.createBackupAccount', [$t('setting.COS')]) }}
                             </el-button>
@@ -160,8 +205,8 @@
                     </el-col>
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-onedrive"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;{{ $t('setting.OneDrive') }}</span>
+                            <svg-icon class="card-logo" iconName="p-onedrive"></svg-icon>
+                            <span class="card-title">&nbsp;{{ $t('setting.OneDrive') }}</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -179,13 +224,14 @@
                         <el-divider class="devider" />
                         <div v-if="oneDriveData.id !== 0" style="margin-left: 20px">
                             <el-form-item :label="$t('setting.backupDir')">
-                                {{ oneDriveData.backupPath }}
+                                <span v-if="oneDriveData.backupPath">{{ oneDriveData.backupPath }}</span>
+                                <span v-else>{{ $t('setting.unSetting') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, oneDriveData.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button
                                 size="large"
                                 round
@@ -201,8 +247,8 @@
                 <el-row :gutter="20" style="margin-top: 20px">
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-qiniuyun"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;{{ $t('setting.KODO') }}</span>
+                            <svg-icon class="card-logo" iconName="p-qiniuyun"></svg-icon>
+                            <span class="card-title">&nbsp;{{ $t('setting.KODO') }}</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -226,13 +272,14 @@
                                 {{ kodoData.bucket }}
                             </el-form-item>
                             <el-form-item :label="$t('setting.backupDir')">
-                                {{ kodoData.backupPath }}
+                                <span v-if="kodoData.backupPath">{{ kodoData.backupPath }}</span>
+                                <span v-else>{{ $t('setting.unSetting') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, kodoData.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button size="large" round plain type="primary" @click="onOpenDialog('create', 'KODO')">
                                 {{ $t('setting.createBackupAccount', [$t('setting.KODO')]) }}
                             </el-button>
@@ -240,8 +287,8 @@
                     </el-col>
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-minio"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;MINIO</span>
+                            <svg-icon class="card-logo" iconName="p-minio"></svg-icon>
+                            <span class="card-title">&nbsp;MINIO</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -264,13 +311,14 @@
                                 {{ minioData.bucket }}
                             </el-form-item>
                             <el-form-item :label="$t('setting.backupDir')">
-                                {{ minioData.backupPath }}
+                                <span v-if="minioData.backupPath">{{ minioData.backupPath }}</span>
+                                <span v-else>{{ $t('setting.unSetting') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, minioData.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button size="large" round plain type="primary" @click="onOpenDialog('create', 'MINIO')">
                                 {{ $t('setting.createBackupAccount', [$t('setting.MINIO')]) }}
                             </el-button>
@@ -280,8 +328,8 @@
                 <el-row :gutter="20" style="margin-top: 20px">
                     <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
                         <div>
-                            <svg-icon style="font-size: 7px" iconName="p-SFTP"></svg-icon>
-                            <span style="font-size: 14px; font-weight: 500">&nbsp;SFTP</span>
+                            <svg-icon class="card-logo" iconName="p-SFTP"></svg-icon>
+                            <span class="card-title">&nbsp;SFTP</span>
                             <div style="float: right">
                                 <el-button
                                     round
@@ -301,20 +349,17 @@
                             <el-form-item :label="$t('setting.address')">
                                 {{ sftpData.varsJson['address'] }}
                             </el-form-item>
-                            <el-form-item :label="$t('setting.port')">
+                            <el-form-item :label="$t('commons.table.port')">
                                 {{ sftpData.varsJson['port'] }}
                             </el-form-item>
                             <el-form-item :label="$t('setting.path')">
                                 {{ sftpData.bucket }}
                             </el-form-item>
-                            <el-form-item :label="$t('setting.backupDir')">
-                                {{ sftpData.backupPath }}
-                            </el-form-item>
                             <el-form-item :label="$t('commons.table.createdAt')">
                                 {{ dateFormat(0, 0, sftpData.createdAt) }}
                             </el-form-item>
                         </div>
-                        <el-alert v-else center class="alert" style="height: 167px" :closable="false">
+                        <el-alert v-else center class="alert" style="height: 257px" :closable="false">
                             <el-button size="large" round plain type="primary" @click="onOpenDialog('create', 'SFTP')">
                                 {{ $t('setting.createBackupAccount', [$t('setting.SFTP')]) }}
                             </el-button>
@@ -361,6 +406,7 @@ const ossData = ref<Backup.BackupInfo>({
     varsJson: {
         region: '',
         endpoint: '',
+        scType: 'Standard',
     },
     createdAt: new Date(),
 });
@@ -415,6 +461,7 @@ const s3Data = ref<Backup.BackupInfo>({
     vars: '',
     varsJson: {
         region: '',
+        scType: 'Standard',
         endpoint: '',
     },
     createdAt: new Date(),
@@ -429,6 +476,7 @@ const cosData = ref<Backup.BackupInfo>({
     vars: '',
     varsJson: {
         region: '',
+        scType: 'Standard',
     },
     createdAt: new Date(),
 });
@@ -523,5 +571,14 @@ onMounted(() => {
 
 .common-div {
     margin-top: 20px;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 25px;
+}
+.card-logo {
+    font-size: 7px;
 }
 </style>

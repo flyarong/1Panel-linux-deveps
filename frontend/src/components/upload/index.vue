@@ -60,13 +60,13 @@
                             {{ computeSize(row.size) }}
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('commons.table.createdAt')" min-width="80" fix>
+                    <el-table-column show-overflow-tooltip :label="$t('commons.table.createdAt')" min-width="90" fix>
                         <template #default="{ row }">
                             {{ row.createdAt }}
                         </template>
                     </el-table-column>
                     <fu-table-operations
-                        width="300px"
+                        width="150px"
                         :buttons="buttons"
                         :ellipsis="10"
                         :label="$t('commons.table.operate')"
@@ -100,6 +100,7 @@ const baseDir = ref();
 const data = ref();
 const title = ref();
 const paginationConfig = reactive({
+    cacheSizeKey: 'upload-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
@@ -126,10 +127,11 @@ const acceptParams = async (params: DialogProps): Promise<void> => {
     if (type.value === 'website' || type.value === 'app') {
         title.value = name.value;
     }
+    let dir = type.value === 'mysql' || type.value === 'mariadb' ? 'database/' + type.value : type.value;
     if (detailName.value) {
-        baseDir.value = `${pathRes.data}/uploads/${type.value}/${name.value}/${detailName.value}/`;
+        baseDir.value = `${pathRes.data}/uploads/${dir}/${name.value}/${detailName.value}/`;
     } else {
-        baseDir.value = `${pathRes.data}/uploads/${type.value}/${name.value}/`;
+        baseDir.value = `${pathRes.data}/uploads/${dir}/${name.value}/`;
     }
     upVisiable.value = true;
     search();

@@ -9,25 +9,25 @@
             <template #header>
                 <DrawerHeader :header="$t('commons.button.log')" :resource="logSearch.container" :back="handleClose">
                     <template #extra v-if="!mobile">
-                        <el-button @click="toggleFullscreen" class="fullScreen" icon="FullScreen" plain></el-button>
+                        <el-tooltip :content="loadTooltip()" placement="top">
+                            <el-button @click="toggleFullscreen" class="fullScreen" icon="FullScreen" plain></el-button>
+                        </el-tooltip>
                     </template>
                 </DrawerHeader>
             </template>
             <div>
-                <el-select @change="searchLogs" style="width: 30%; float: left" v-model="logSearch.mode">
+                <el-select @change="searchLogs" class="fetchClass" v-model="logSearch.mode">
                     <template #prefix>{{ $t('container.fetch') }}</template>
                     <el-option v-for="item in timeOptions" :key="item.label" :value="item.value" :label="item.label" />
                 </el-select>
-                <el-input
-                    @change="searchLogs"
-                    class="margin-button"
-                    style="width: 20%; float: left"
-                    v-model.number="logSearch.tail"
-                >
-                    <template #prefix>
-                        <div style="margin-left: 2px">{{ $t('container.lines') }}</div>
-                    </template>
-                </el-input>
+                <el-select @change="searchLogs" class="tailClass" v-model.number="logSearch.tail">
+                    <template #prefix>{{ $t('container.lines') }}</template>
+                    <el-option :value="0" :label="$t('commons.table.all')" />
+                    <el-option :value="100" :label="100" />
+                    <el-option :value="200" :label="200" />
+                    <el-option :value="500" :label="500" />
+                    <el-option :value="1000" :label="1000" />
+                </el-select>
                 <div class="margin-button" style="float: left">
                     <el-checkbox border @change="searchLogs" v-model="logSearch.isWatch">
                         {{ $t('commons.button.watch') }}
@@ -43,7 +43,7 @@
 
             <codemirror
                 :autofocus="true"
-                placeholder="None data"
+                :placeholder="$t('commons.msg.noneData')"
                 :indent-with-tab="true"
                 :tabSize="4"
                 style="margin-top: 20px; height: calc(100vh - 230px)"
@@ -68,7 +68,7 @@
 <script lang="ts" setup>
 import { cleanContainerLog } from '@/api/modules/container';
 import i18n from '@/lang';
-import { dateFormatForName } from '@/utils/util';
+import { dateFormatForName, downloadWithContent } from '@/utils/util';
 import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -126,6 +126,10 @@ function toggleFullscreen() {
         screenfull.toggle();
     }
 }
+
+const loadTooltip = () => {
+    return i18n.global.t('commons.button.' + (screenfull.isFullscreen ? 'quitFullscreen' : 'fullscreen'));
+};
 const handleClose = async () => {
     logVisiable.value = false;
     terminalSocket.value.close();
@@ -134,7 +138,7 @@ watch(logVisiable, (val) => {
     if (screenfull.isEnabled && !val && !mobile.value) screenfull.exit();
 });
 const searchLogs = async () => {
-    if (!Number(logSearch.tail) || Number(logSearch.tail) <= 0) {
+    if (Number(logSearch.tail) < 0) {
         MsgError(i18n.global.t('container.linesHelper'));
         return;
     }
@@ -147,7 +151,7 @@ const searchLogs = async () => {
         `${protocol}://${host}/api/v1/containers/search/log?container=${logSearch.containerID}&since=${logSearch.mode}&tail=${logSearch.tail}&follow=${logSearch.isWatch}`,
     );
     terminalSocket.value.onmessage = (event) => {
-        logInfo.value += event.data;
+        logInfo.value += event.data.replace(/\x1B\[[0-9;]*[mG]/g, '');
         const state = view.value.state;
         view.value.dispatch({
             selection: { anchor: state.doc.length, head: state.doc.length },
@@ -157,17 +161,21 @@ const searchLogs = async () => {
 };
 
 const onDownload = async () => {
-    const downloadUrl = window.URL.createObjectURL(new Blob([logInfo.value]));
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = downloadUrl;
-    a.download = logSearch.container + '-' + dateFormatForName(new Date()) + '.log';
-    const event = new MouseEvent('click');
-    a.dispatchEvent(event);
+    let msg =
+        logSearch.tail === 0
+            ? i18n.global.t('container.downLogHelper1', [logSearch.container])
+            : i18n.global.t('container.downLogHelper2', [logSearch.container, logSearch.tail]);
+    ElMessageBox.confirm(msg, i18n.global.t('file.download'), {
+        confirmButtonText: i18n.global.t('commons.button.confirm'),
+        cancelButtonText: i18n.global.t('commons.button.cancel'),
+        type: 'info',
+    }).then(async () => {
+        downloadWithContent(logInfo.value, logSearch.container + '-' + dateFormatForName(new Date()) + '.log');
+    });
 };
 
 const onClean = async () => {
-    ElMessageBox.confirm(i18n.global.t('commons.msg.clean'), i18n.global.t('container.cleanLog'), {
+    ElMessageBox.confirm(i18n.global.t('container.cleanLogHelper'), i18n.global.t('container.cleanLog'), {
         confirmButtonText: i18n.global.t('commons.button.confirm'),
         cancelButtonText: i18n.global.t('commons.button.cancel'),
         type: 'info',
@@ -214,5 +222,14 @@ defineExpose({
 }
 .fullScreen {
     border: none;
+}
+.tailClass {
+    width: 20%;
+    float: left;
+    margin-left: 20px;
+}
+.fetchClass {
+    width: 30%;
+    float: left;
 }
 </style>

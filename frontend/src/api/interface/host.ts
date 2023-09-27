@@ -66,6 +66,8 @@ export namespace Host {
         pingStatus: string;
     }
     export interface RuleSearch extends ReqPage {
+        status: string;
+        strategy: string;
         info: string;
         type: string;
     }
@@ -77,6 +79,14 @@ export namespace Host {
         strategy: string;
         appName: string;
         isUsed: boolean;
+        description: string;
+    }
+    export interface UpdateDescription {
+        address: string;
+        port: string;
+        protocol: string;
+        strategy: string;
+        description: string;
     }
     export interface RulePort {
         operation: string;
@@ -85,11 +95,13 @@ export namespace Host {
         source: string;
         protocol: string;
         strategy: string;
+        description: string;
     }
     export interface RuleIP {
         operation: string;
         address: string;
         strategy: string;
+        description: string;
     }
     export interface UpdatePortRule {
         oldRule: RulePort;
@@ -128,6 +140,13 @@ export namespace Host {
         logs: Array<sshHistory>;
         successfulCount: number;
         failedCount: number;
+    }
+    export interface logAnalysis {
+        address: string;
+        area: string;
+        successfulCount: number;
+        failedCount: number;
+        status: string;
     }
     export interface sshHistory {
         date: Date;

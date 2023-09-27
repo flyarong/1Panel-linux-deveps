@@ -1,51 +1,60 @@
 <template>
-    <div v-show="onSetting" v-loading="loading">
-        <LayoutContent :title="'MySQL ' + $t('database.setting')" :reload="true">
-            <template #buttons>
-                <el-button type="primary" :plain="activeName !== 'conf'" @click="jumpToConf">
-                    {{ $t('database.confChange') }}
-                </el-button>
-                <el-button
-                    type="primary"
-                    :disabled="mysqlStatus !== 'Running'"
-                    :plain="activeName !== 'status'"
-                    @click="activeName = 'status'"
-                >
-                    {{ $t('database.currentStatus') }}
-                </el-button>
-                <el-button
-                    type="primary"
-                    :disabled="mysqlStatus !== 'Running'"
-                    :plain="activeName !== 'tuning'"
-                    @click="activeName = 'tuning'"
-                >
-                    {{ $t('database.performanceTuning') }}
-                </el-button>
-                <el-button type="primary" :plain="activeName !== 'port'" @click="activeName = 'port'">
-                    {{ $t('database.portSetting') }}
-                </el-button>
-                <el-button
-                    type="primary"
-                    :disabled="mysqlStatus !== 'Running'"
-                    :plain="activeName !== 'log'"
-                    @click="activeName = 'log'"
-                >
-                    {{ $t('database.log') }}
-                </el-button>
-                <el-button
-                    type="primary"
-                    :disabled="mysqlStatus !== 'Running'"
-                    @click="jumpToSlowlog"
-                    :plain="activeName !== 'slowLog'"
-                >
-                    {{ $t('database.slowLog') }}
-                </el-button>
+    <div v-loading="loading">
+        <LayoutContent>
+            <template #title>
+                <back-button name="MySQL" :header="props.database + ' ' + $t('commons.button.set')">
+                    <template #buttons>
+                        <el-button type="primary" :plain="activeName !== 'conf'" @click="jumpToConf">
+                            {{ $t('database.confChange') }}
+                        </el-button>
+                        <el-button
+                            type="primary"
+                            :disabled="mysqlStatus !== 'Running'"
+                            :plain="activeName !== 'status'"
+                            @click="activeName = 'status'"
+                        >
+                            {{ $t('database.currentStatus') }}
+                        </el-button>
+                        <el-button
+                            type="primary"
+                            :disabled="mysqlStatus !== 'Running'"
+                            :plain="activeName !== 'tuning'"
+                            @click="activeName = 'tuning'"
+                        >
+                            {{ $t('database.performanceTuning') }}
+                        </el-button>
+                        <el-button type="primary" :plain="activeName !== 'port'" @click="activeName = 'port'">
+                            {{ $t('commons.table.port') }}
+                        </el-button>
+                        <el-button
+                            type="primary"
+                            :disabled="mysqlStatus !== 'Running'"
+                            :plain="activeName !== 'log'"
+                            @click="activeName = 'log'"
+                        >
+                            {{ $t('database.log') }}
+                        </el-button>
+                        <el-button
+                            type="primary"
+                            :disabled="mysqlStatus !== 'Running'"
+                            @click="jumpToSlowlog"
+                            :plain="activeName !== 'slowLog'"
+                        >
+                            {{ $t('database.slowLog') }}
+                        </el-button>
+                    </template>
+                </back-button>
             </template>
+
+            <template #app>
+                <AppStatus :app-key="props.type" :app-name="props.database" v-model:loading="loading" />
+            </template>
+
             <template #main>
                 <div v-if="activeName === 'conf'">
                     <codemirror
                         :autofocus="true"
-                        placeholder="None data"
+                        :placeholder="$t('commons.msg.noneData')"
                         :indent-with-tab="true"
                         :tabSize="4"
                         style="margin-top: 10px; height: calc(100vh - 375px)"
@@ -81,7 +90,7 @@
                         <el-row>
                             <el-col :span="1"><br /></el-col>
                             <el-col :span="10">
-                                <el-form-item :label="$t('setting.port')" prop="port" :rules="Rules.port">
+                                <el-form-item :label="$t('commons.table.port')" prop="port" :rules="Rules.port">
                                     <el-input clearable type="number" v-model.number="baseInfo.port" />
                                 </el-form-item>
                                 <el-form-item>
@@ -103,6 +112,25 @@
             </template>
         </LayoutContent>
 
+        <el-dialog
+            v-model="upgradeVisiable"
+            :title="$t('app.checkTitle')"
+            width="30%"
+            :close-on-click-modal="false"
+            :destroy-on-close="true"
+        >
+            <el-alert :closable="false" :title="$t('database.confNotFound')" type="info">
+                <el-link icon="Position" @click="goUpgrade()" type="primary">
+                    {{ $t('database.goUpgrade') }}
+                </el-link>
+            </el-alert>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="upgradeVisiable = false">{{ $t('commons.button.cancel') }}</el-button>
+                </span>
+            </template>
+        </el-dialog>
+
         <ConfirmDialog ref="confirmPortRef" @confirm="onSubmitChangePort"></ConfirmDialog>
         <ConfirmDialog ref="confirmConfRef" @confirm="onSubmitChangeConf"></ConfirmDialog>
     </div>
@@ -115,21 +143,19 @@ import Status from '@/views/database/mysql/setting/status/index.vue';
 import Variables from '@/views/database/mysql/setting/variables/index.vue';
 import SlowLog from '@/views/database/mysql/setting/slow-log/index.vue';
 import ConfirmDialog from '@/components/confirm-dialog/index.vue';
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { LoadFile } from '@/api/modules/files';
-import { loadMysqlBaseInfo, loadMysqlVariables, updateMysqlConfByFile } from '@/api/modules/database';
-import { ChangePort, GetAppDefaultConfig } from '@/api/modules/app';
+import { loadDatabaseFile, loadMysqlBaseInfo, loadMysqlVariables, updateMysqlConfByFile } from '@/api/modules/database';
+import { ChangePort, CheckAppInstalled, GetAppDefaultConfig } from '@/api/modules/app';
 import { Rules } from '@/global/form-rules';
 import i18n from '@/lang';
-import { loadBaseDir } from '@/api/modules/setting';
 import { MsgSuccess } from '@/utils/message';
+import router from '@/routers';
 
 const loading = ref(false);
 
-const baseDir = ref();
 const extensions = [javascript(), oneDark];
 const activeName = ref('conf');
 
@@ -142,6 +168,7 @@ const baseInfo = reactive({
 });
 const panelFormRef = ref<FormInstance>();
 const mysqlConf = ref();
+const upgradeVisiable = ref();
 
 const useOld = ref(false);
 
@@ -149,38 +176,24 @@ const statusRef = ref();
 const variablesRef = ref();
 const slowLogRef = ref();
 
-const onSetting = ref<boolean>(false);
 const mysqlName = ref();
 const mysqlStatus = ref();
 const mysqlVersion = ref();
 const variables = ref();
 
-interface DialogProps {
-    mysqlName: string;
-    mysqlVersion: string;
-    status: string;
+interface DBProps {
+    type: string;
+    database: string;
 }
+const props = withDefaults(defineProps<DBProps>(), {
+    type: '',
+    database: '',
+});
 
 const dialogContainerLogRef = ref();
-const acceptParams = (props: DialogProps): void => {
-    onSetting.value = true;
-    mysqlStatus.value = props.status;
-    mysqlVersion.value = props.mysqlVersion;
-    loadBaseInfo();
-    if (mysqlStatus.value === 'Running') {
-        loadVariables();
-        loadSlowLogs();
-        statusRef.value!.acceptParams({ mysqlName: props.mysqlName });
-    }
-};
-const onClose = (): void => {
-    onSetting.value = false;
-};
-
 const jumpToConf = async () => {
     activeName.value = 'conf';
-    const pathRes = await loadBaseDir();
-    loadMysqlConf(`${pathRes.data}/apps/mysql/${mysqlName.value}/conf/my.cnf`);
+    loadMysqlConf();
 };
 
 const jumpToSlowlog = async () => {
@@ -190,8 +203,8 @@ const jumpToSlowlog = async () => {
 
 const onSubmitChangePort = async () => {
     let params = {
-        key: 'mysql',
-        name: mysqlName.value,
+        key: props.type,
+        name: props.database,
         port: baseInfo.port,
     };
     loading.value = true;
@@ -229,15 +242,21 @@ function callback(error: any) {
 
 const getDefaultConfig = async () => {
     loading.value = true;
-    const res = await GetAppDefaultConfig('mysql');
-    mysqlConf.value = res.data;
-    useOld.value = true;
-    loading.value = false;
+    await GetAppDefaultConfig(props.type, props.database)
+        .then((res) => {
+            mysqlConf.value = res.data;
+            useOld.value = true;
+            loading.value = false;
+        })
+        .catch(() => {
+            loading.value = false;
+        });
 };
 
 const onSubmitChangeConf = async () => {
     let param = {
-        mysqlName: mysqlName.value,
+        type: props.type,
+        database: props.database,
         file: mysqlConf.value,
     };
     loading.value = true;
@@ -267,13 +286,11 @@ const loadContainerLog = async (containerID: string) => {
 };
 
 const loadBaseInfo = async () => {
-    const res = await loadMysqlBaseInfo();
+    const res = await loadMysqlBaseInfo(props.type, props.database);
     mysqlName.value = res.data?.name;
     baseInfo.port = res.data?.port;
     baseInfo.containerID = res.data?.containerName;
-    const pathRes = await loadBaseDir();
-    baseDir.value = pathRes.data;
-    loadMysqlConf(`${pathRes.data}/apps/mysql/${mysqlName.value}/conf/my.cnf`);
+    loadMysqlConf();
     loadContainerLog(baseInfo.containerID);
 };
 
@@ -282,35 +299,60 @@ const changeLoading = (status: boolean) => {
 };
 
 const loadVariables = async () => {
-    const res = await loadMysqlVariables();
+    const res = await loadMysqlVariables(props.type, props.database);
     variables.value = res.data;
     variablesRef.value!.acceptParams({
-        mysqlName: mysqlName.value,
+        type: props.type,
+        database: props.database,
         mysqlVersion: mysqlVersion.value,
         variables: res.data,
     });
 };
 
 const loadSlowLogs = async () => {
-    const res = await loadMysqlVariables();
+    const res = await loadMysqlVariables(props.type, props.database);
     variables.value = res.data;
 
     let param = {
-        mysqlName: mysqlName.value,
+        type: props.type,
+        database: props.database,
         variables: variables.value,
     };
     slowLogRef.value!.acceptParams(param);
 };
 
-const loadMysqlConf = async (path: string) => {
+const loadMysqlConf = async () => {
     useOld.value = false;
-    const res = await LoadFile({ path: path });
-    loading.value = false;
-    mysqlConf.value = res.data;
+    await loadDatabaseFile(props.type + '-conf', props.database)
+        .then((res) => {
+            loading.value = false;
+            mysqlConf.value = res.data;
+        })
+        .catch(() => {
+            upgradeVisiable.value = true;
+            loading.value = false;
+        });
 };
 
-defineExpose({
-    acceptParams,
-    onClose,
+const goUpgrade = () => {
+    router.push({ name: 'AppUpgrade' });
+};
+
+const onLoadInfo = async () => {
+    await CheckAppInstalled(props.type, props.database).then((res) => {
+        mysqlName.value = res.data.name;
+        mysqlStatus.value = res.data.status;
+        mysqlVersion.value = res.data.version;
+        loadBaseInfo();
+        if (mysqlStatus.value === 'Running') {
+            loadVariables();
+            loadSlowLogs();
+            statusRef.value!.acceptParams({ type: props.type, database: props.database });
+        }
+    });
+};
+
+onMounted(() => {
+    onLoadInfo();
 });
 </script>

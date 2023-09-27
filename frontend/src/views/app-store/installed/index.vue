@@ -21,7 +21,7 @@
                                 :type="activeTag === item.key ? 'primary' : ''"
                                 :plain="activeTag !== item.key"
                             >
-                                {{ item.name }}
+                                {{ language == 'zh' || language == 'tw' ? item.name : item.key }}
                             </el-button>
                         </div>
                     </div>
@@ -46,6 +46,9 @@
             <el-button @click="sync" type="primary" link v-if="mode === 'installed' && data != null">
                 {{ $t('app.sync') }}
             </el-button>
+            <el-button @click="openIngore" type="primary" link v-if="mode === 'upgrade'">
+                {{ $t('app.showIgnore') }}
+            </el-button>
         </template>
 
         <template #main>
@@ -64,11 +67,7 @@
                     </span>
                 </template>
             </el-alert>
-            <el-alert type="info" :closable="false" v-if="mode === 'upgrade'">
-                <template #default>
-                    <span>{{ $t('app.upgradeHelper') }}</span>
-                </template>
-            </el-alert>
+            <el-alert type="info" :title="$t('app.upgradeHelper')" :closable="false" v-if="mode === 'upgrade'" />
             <div class="update-prompt" v-if="data == null">
                 <span>{{ mode === 'upgrade' ? $t('app.updatePrompt') : $t('app.installPrompt') }}</span>
                 <div>
@@ -160,7 +159,18 @@
                                                 @click="openBackups(installed.app.key, installed.name)"
                                                 v-if="mode === 'installed'"
                                             >
-                                                {{ $t('app.backup') }}
+                                                {{ $t('commons.button.backup') }}
+                                            </el-button>
+                                            <el-button
+                                                class="h-button"
+                                                type="primary"
+                                                plain
+                                                round
+                                                size="small"
+                                                @click="openOperate(installed, 'ignore')"
+                                                v-if="mode === 'upgrade'"
+                                            >
+                                                {{ $t('commons.button.ignore') }}
                                             </el-button>
                                             <el-button
                                                 class="h-button"
@@ -176,13 +186,28 @@
                                                 @click="openOperate(installed, 'upgrade')"
                                                 v-if="mode === 'upgrade'"
                                             >
-                                                {{ $t('app.upgrade') }}
+                                                {{ $t('commons.button.upgrade') }}
                                             </el-button>
                                         </div>
                                         <div class="d-description">
-                                            <el-tag>{{ $t('app.version') }}：{{ installed.version }}</el-tag>
-                                            <el-tag v-if="installed.httpPort > 0">
+                                            <el-tag class="middle-center">
+                                                {{ $t('app.version') }}：{{ installed.version }}
+                                            </el-tag>
+                                            <el-tag
+                                                class="middle-center"
+                                                v-if="installed.httpPort > 0"
+                                                @click="goDashboard(installed.httpPort, 'http')"
+                                            >
+                                                <el-icon class="middle-center"><Position /></el-icon>
                                                 {{ $t('app.busPort') }}：{{ installed.httpPort }}
+                                            </el-tag>
+                                            <el-tag
+                                                class="middle-center"
+                                                v-if="installed.httpsPort > 0"
+                                                @click="goDashboard(installed.httpsPort, 'https')"
+                                            >
+                                                <el-icon class="middle-center"><Position /></el-icon>
+                                                {{ $t('app.busPort') }}：{{ installed.httpsPort }}
                                             </el-tag>
                                             <div class="description">
                                                 <span>
@@ -217,14 +242,25 @@
                     </div>
                 </el-col>
             </el-row>
+            <div class="page-button" v-if="mode === 'installed'">
+                <fu-table-pagination
+                    v-model:current-page="paginationConfig.currentPage"
+                    v-model:page-size="paginationConfig.pageSize"
+                    v-bind="paginationConfig"
+                    @change="search"
+                    :layout="'total, sizes, prev, pager, next, jumper'"
+                />
+            </div>
         </template>
     </LayoutContent>
     <Backups ref="backupRef" @close="search" />
     <Uploads ref="uploadRef" />
-    <AppResources ref="checkRef" />
+    <AppResources ref="checkRef" @close="search" />
     <AppDelete ref="deleteRef" @close="search" />
     <AppParams ref="appParamRef" />
     <AppUpgrade ref="upgradeRef" @close="search" />
+    <PortJumpDialog ref="dialogPortJumpRef" />
+    <AppIgnore ref="ignoreRef" @close="search" />
 </template>
 
 <script lang="ts" setup>
@@ -240,22 +276,26 @@ import i18n from '@/lang';
 import { ElMessageBox } from 'element-plus';
 import Backups from '@/components/backup/index.vue';
 import Uploads from '@/components/upload/index.vue';
+import PortJumpDialog from '@/components/port-jump/index.vue';
 import AppResources from './check/index.vue';
 import AppDelete from './delete/index.vue';
 import AppParams from './detail/index.vue';
 import AppUpgrade from './upgrade/index.vue';
+import AppIgnore from './ignore/index.vue';
 import { App } from '@/api/interface/app';
 import Status from '@/components/status/index.vue';
 import { getAge } from '@/utils/util';
 import { useRouter } from 'vue-router';
 import { MsgSuccess } from '@/utils/message';
 import { toFolder } from '@/global/business';
+import { useI18n } from 'vue-i18n';
 
 const data = ref<any>();
 const loading = ref(false);
 const syncLoading = ref(false);
 let timer: NodeJS.Timer | null = null;
 const paginationConfig = reactive({
+    cacheSizeKey: 'app-installed-page-size',
     currentPage: 1,
     pageSize: 20,
     total: 0,
@@ -272,11 +312,13 @@ const checkRef = ref();
 const deleteRef = ref();
 const appParamRef = ref();
 const upgradeRef = ref();
+const ignoreRef = ref();
+const dialogPortJumpRef = ref();
 const tags = ref<App.Tag[]>([]);
 const activeTag = ref('all');
 const searchReq = reactive({
     page: 1,
-    pageSize: 15,
+    pageSize: 20,
     name: '',
     tags: [],
     update: false,
@@ -284,6 +326,8 @@ const searchReq = reactive({
 const router = useRouter();
 const activeName = ref(i18n.global.t('app.installed'));
 const mode = ref('installed');
+
+const language = useI18n().locale.value;
 
 const sync = () => {
     syncLoading.value = true;
@@ -323,16 +367,20 @@ const search = () => {
     });
 };
 
+const goDashboard = async (port: any, protocol: string) => {
+    dialogPortJumpRef.value.acceptParams({ port: port, protocol: protocol });
+};
+
 const openOperate = (row: any, op: string) => {
     operateReq.installId = row.id;
     operateReq.operate = op;
-    if (op == 'upgrade') {
-        upgradeRef.value.acceptParams(row.id, row.name);
+    if (op == 'upgrade' || op == 'ignore') {
+        upgradeRef.value.acceptParams(row.id, row.name, op);
     } else if (op == 'delete') {
         AppInstalledDeleteCheck(row.id).then(async (res) => {
             const items = res.data;
             if (res.data && res.data.length > 0) {
-                checkRef.value.acceptParams({ items: items });
+                checkRef.value.acceptParams({ items: items, key: row.app.key, installID: row.id });
             } else {
                 deleteRef.value.acceptParams(row);
             }
@@ -340,6 +388,10 @@ const openOperate = (row: any, op: string) => {
     } else {
         onOperate(op);
     }
+};
+
+const openIngore = () => {
+    ignoreRef.value.acceptParams();
 };
 
 const operate = async () => {
@@ -379,7 +431,7 @@ const buttons = [
             openOperate(row, 'sync');
         },
         disabled: (row: any) => {
-            return row.status === 'DownloadErr' || row.status === 'Upgrading';
+            return row.status === 'DownloadErr' || row.status === 'Upgrading' || row.status === 'Rebuilding';
         },
     },
     {
@@ -388,7 +440,7 @@ const buttons = [
             openOperate(row, 'rebuild');
         },
         disabled: (row: any) => {
-            return row.status === 'DownloadErr' || row.status === 'Upgrading';
+            return row.status === 'DownloadErr' || row.status === 'Upgrading' || row.status === 'Rebuilding';
         },
     },
     {
@@ -397,7 +449,7 @@ const buttons = [
             openOperate(row, 'restart');
         },
         disabled: (row: any) => {
-            return row.status === 'DownloadErr' || row.status === 'Upgrading';
+            return row.status === 'DownloadErr' || row.status === 'Upgrading' || row.status === 'Rebuilding';
         },
     },
     {
@@ -410,7 +462,8 @@ const buttons = [
                 row.status === 'Running' ||
                 row.status === 'Error' ||
                 row.status === 'DownloadErr' ||
-                row.status === 'Upgrading'
+                row.status === 'Upgrading' ||
+                row.status === 'Rebuilding'
             );
         },
     },
@@ -420,11 +473,16 @@ const buttons = [
             openOperate(row, 'stop');
         },
         disabled: (row: any) => {
-            return row.status !== 'Running' || row.status === 'DownloadErr' || row.status === 'Upgrading';
+            return (
+                row.status !== 'Running' ||
+                row.status === 'DownloadErr' ||
+                row.status === 'Upgrading' ||
+                row.status === 'Rebuilding'
+            );
         },
     },
     {
-        label: i18n.global.t('app.delete'),
+        label: i18n.global.t('commons.button.uninstall'),
         click: (row: any) => {
             openOperate(row, 'delete');
         },
@@ -435,7 +493,7 @@ const buttons = [
             openParam(row);
         },
         disabled: (row: any) => {
-            return row.status === 'DownloadErr' || row.status === 'Upgrading';
+            return row.status === 'DownloadErr' || row.status === 'Upgrading' || row.status === 'Rebuilding';
         },
     },
 ];

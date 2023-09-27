@@ -11,6 +11,7 @@ type AppSearch struct {
 	Tags      []string `json:"tags"`
 	Type      string   `json:"type"`
 	Recommend bool     `json:"recommend"`
+	Resource  string   `json:"resource"`
 }
 
 type AppInstallCreate struct {
@@ -41,6 +42,11 @@ type AppInstalledSearch struct {
 	Unused bool     `json:"unused"`
 }
 
+type AppInstalledInfo struct {
+	Key  string `json:"key" validate:"required"`
+	Name string `json:"name"`
+}
+
 type AppBackupSearch struct {
 	dto.PageInfo
 	AppInstallID uint `json:"appInstallID"`
@@ -58,12 +64,18 @@ type AppInstalledOperate struct {
 	ForceDelete  bool                `json:"forceDelete"`
 	DeleteBackup bool                `json:"deleteBackup"`
 	DeleteDB     bool                `json:"deleteDB"`
+	Backup       bool                `json:"backup"`
 }
 
 type AppInstalledUpdate struct {
 	InstallId uint                   `json:"installId" validate:"required"`
 	Params    map[string]interface{} `json:"params" validate:"required"`
 	AppContainerConfig
+}
+
+type AppInstalledIgnoreUpgrade struct {
+	DetailID uint   `json:"detailID"  validate:"required"`
+	Operate  string `json:"operate"   validate:"required,oneof=cancel ignore"`
 }
 
 type PortUpdate struct {

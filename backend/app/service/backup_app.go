@@ -34,7 +34,7 @@ func (u *BackupService) AppBackup(req dto.CommonBackup) error {
 	}
 	timeNow := time.Now().Format("20060102150405")
 
-	backupDir := fmt.Sprintf("%s/app/%s/%s", localDir, req.Name, req.DetailName)
+	backupDir := path.Join(localDir, fmt.Sprintf("app/%s/%s", req.Name, req.DetailName))
 
 	fileName := fmt.Sprintf("%s_%s.tar.gz", req.DetailName, timeNow)
 	if err := handleAppBackup(&install, backupDir, fileName); err != nil {
@@ -104,18 +104,16 @@ func handleAppBackup(install *model.AppInstall, backupDir, fileName string) erro
 		return err
 	}
 
-	resource, _ := appInstallResourceRepo.GetFirst(appInstallResourceRepo.WithAppInstallId(install.ID))
-	if resource.ID != 0 && resource.ResourceId != 0 {
-		mysqlInfo, err := appInstallRepo.LoadBaseInfo(constant.AppMysql, "")
-		if err != nil {
-			return err
-		}
-		db, err := mysqlRepo.Get(commonRepo.WithByID(resource.ResourceId))
-		if err != nil {
-			return err
-		}
-		if err := handleMysqlBackup(mysqlInfo, tmpDir, db.Name, fmt.Sprintf("%s.sql.gz", install.Name)); err != nil {
-			return err
+	resources, _ := appInstallResourceRepo.GetBy(appInstallResourceRepo.WithAppInstallId(install.ID))
+	for _, resource := range resources {
+		if resource.Key == "mysql" || resource.Key == "mariadb" {
+			db, err := mysqlRepo.Get(commonRepo.WithByID(resource.ResourceId))
+			if err != nil {
+				return err
+			}
+			if err := handleMysqlBackup(db.MysqlName, db.Name, tmpDir, fmt.Sprintf("%s.sql.gz", install.Name)); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -153,7 +151,7 @@ func handleAppRecover(install *model.AppInstall, recoverFile string, isRollback 
 	}
 
 	if !isRollback {
-		rollbackFile := fmt.Sprintf("%s/original/app/%s_%s.tar.gz", global.CONF.System.BaseDir, install.Name, time.Now().Format("20060102150405"))
+		rollbackFile := path.Join(global.CONF.System.TmpDir, fmt.Sprintf("app/%s_%s.tar.gz", install.Name, time.Now().Format("20060102150405")))
 		if err := handleAppBackup(install, path.Dir(rollbackFile), path.Base(rollbackFile)); err != nil {
 			return fmt.Errorf("backup app %s for rollback before recover failed, err: %v", install.Name, err)
 		}
@@ -173,41 +171,62 @@ func handleAppRecover(install *model.AppInstall, recoverFile string, isRollback 
 	}
 
 	newEnvFile := ""
-	resource, _ := appInstallResourceRepo.GetFirst(appInstallResourceRepo.WithAppInstallId(install.ID))
-	if resource.ID != 0 && install.App.Key != "mysql" {
-		mysqlInfo, err := appInstallRepo.LoadBaseInfo(resource.Key, "")
+	resources, _ := appInstallResourceRepo.GetBy(appInstallResourceRepo.WithAppInstallId(install.ID))
+	for _, resource := range resources {
+		if resource.From != "local" {
+			continue
+		}
+		resourceApp, err := appInstallRepo.GetFirst(commonRepo.WithByID(resource.LinkId))
 		if err != nil {
 			return err
 		}
-		db, err := mysqlRepo.Get(commonRepo.WithByID(resource.ResourceId))
-		if err != nil {
-			return err
-		}
+		if resource.Key == "mysql" || resource.Key == "mariadb" {
+			mysqlInfo, err := appInstallRepo.LoadBaseInfo(resource.Key, resourceApp.Name)
+			if err != nil {
+				return err
+			}
+			db, err := mysqlRepo.Get(commonRepo.WithByID(resource.ResourceId))
+			if err != nil {
+				return err
+			}
 
-		newDB, envMap, err := reCreateDB(db.ID, oldInstall.Env)
-		if err != nil {
-			return err
-		}
-		oldHost := fmt.Sprintf("\"PANEL_DB_HOST\":\"%v\"", envMap["PANEL_DB_HOST"].(string))
-		newHost := fmt.Sprintf("\"PANEL_DB_HOST\":\"%v\"", mysqlInfo.ServiceName)
-		oldInstall.Env = strings.ReplaceAll(oldInstall.Env, oldHost, newHost)
-		envMap["PANEL_DB_HOST"] = mysqlInfo.ServiceName
-		newEnvFile, err = coverEnvJsonToStr(oldInstall.Env)
-		if err != nil {
-			return err
-		}
-		_ = appInstallResourceRepo.BatchUpdateBy(map[string]interface{}{"resource_id": newDB.ID}, commonRepo.WithByID(resource.ID))
+			newDB, envMap, err := reCreateDB(db.ID, resourceApp, oldInstall.Env)
+			if err != nil {
+				return err
+			}
+			oldHost := fmt.Sprintf("\"PANEL_DB_HOST\":\"%v\"", envMap["PANEL_DB_HOST"].(string))
+			newHost := fmt.Sprintf("\"PANEL_DB_HOST\":\"%v\"", mysqlInfo.ServiceName)
+			oldInstall.Env = strings.ReplaceAll(oldInstall.Env, oldHost, newHost)
+			envMap["PANEL_DB_HOST"] = mysqlInfo.ServiceName
+			newEnvFile, err = coverEnvJsonToStr(oldInstall.Env)
+			if err != nil {
+				return err
+			}
+			_ = appInstallResourceRepo.BatchUpdateBy(map[string]interface{}{"resource_id": newDB.ID}, commonRepo.WithByID(resource.ID))
 
-		if err := handleMysqlRecover(mysqlInfo, tmpPath, newDB.Name, fmt.Sprintf("%s.sql.gz", install.Name), true); err != nil {
-			global.LOG.Errorf("handle recover from sql.gz failed, err: %v", err)
-			return err
+			if err := handleMysqlRecover(dto.CommonRecover{
+				Name:       newDB.MysqlName,
+				DetailName: newDB.Name,
+				File:       fmt.Sprintf("%s/%s.sql.gz", tmpPath, install.Name),
+			}, true); err != nil {
+				global.LOG.Errorf("handle recover from sql.gz failed, err: %v", err)
+				return err
+			}
 		}
 	}
+
+	appDir := install.GetPath()
+	backPath := fmt.Sprintf("%s_bak", appDir)
+	_ = fileOp.Rename(appDir, backPath)
+	_ = fileOp.CreateDir(appDir, 0755)
 
 	if err := handleUnTar(tmpPath+"/app.tar.gz", fmt.Sprintf("%s/%s", constant.AppInstallDir, install.App.Key)); err != nil {
 		global.LOG.Errorf("handle recover from app.tar.gz failed, err: %v", err)
+		_ = fileOp.DeleteDir(appDir)
+		_ = fileOp.Rename(backPath, appDir)
 		return err
 	}
+	_ = fileOp.DeleteDir(backPath)
 
 	if len(newEnvFile) != 0 {
 		envPath := fmt.Sprintf("%s/%s/%s/.env", constant.AppInstallDir, install.App.Key, install.Name)
@@ -223,18 +242,20 @@ func handleAppRecover(install *model.AppInstall, recoverFile string, isRollback 
 	oldInstall.Status = constant.StatusRunning
 	oldInstall.AppId = install.AppId
 	oldInstall.AppDetailId = install.AppDetailId
+	oldInstall.App.ID = install.AppId
 	if err := appInstallRepo.Save(context.Background(), &oldInstall); err != nil {
 		global.LOG.Errorf("save db app install failed, err: %v", err)
 		return err
 	}
 	isOk = true
+
 	return nil
 }
 
-func reCreateDB(dbID uint, oldEnv string) (*model.DatabaseMysql, map[string]interface{}, error) {
+func reCreateDB(dbID uint, app model.AppInstall, oldEnv string) (*model.DatabaseMysql, map[string]interface{}, error) {
 	mysqlService := NewIMysqlService()
 	ctx := context.Background()
-	_ = mysqlService.Delete(ctx, dto.MysqlDBDelete{ID: dbID, DeleteBackup: true, ForceDelete: true})
+	_ = mysqlService.Delete(ctx, dto.MysqlDBDelete{ID: dbID, Database: app.Name, Type: app.App.Key, DeleteBackup: false, ForceDelete: true})
 
 	envMap := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(oldEnv), &envMap); err != nil {
@@ -245,6 +266,8 @@ func reCreateDB(dbID uint, oldEnv string) (*model.DatabaseMysql, map[string]inte
 	oldPassword, _ := envMap["PANEL_DB_USER_PASSWORD"].(string)
 	createDB, err := mysqlService.Create(context.Background(), dto.MysqlDBCreate{
 		Name:       oldName,
+		From:       "local",
+		Database:   app.Name,
 		Format:     "utf8mb4",
 		Username:   oldUser,
 		Password:   oldPassword,

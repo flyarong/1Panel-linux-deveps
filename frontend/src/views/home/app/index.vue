@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-scrollbar max-height="500px">
+        <el-scrollbar height="525px" class="moz-height">
             <div class="h-app-card" v-for="(app, index) in apps" :key="index">
                 <el-row :gutter="10">
                     <el-col :span="5">
@@ -15,7 +15,7 @@
                             </div>
                             <div class="h-app-desc">
                                 <span>
-                                    {{ language == 'zh' ? app.shortDescZh : app.shortDescEn }}
+                                    {{ language == 'zh' || language == 'tw' ? app.shortDescZh : app.shortDescEn }}
                                 </span>
                             </div>
                         </div>
@@ -27,6 +27,7 @@
                             plain
                             round
                             size="small"
+                            :disabled="app.limit == 1 && app.installed"
                             @click="goInstall(app.key)"
                         >
                             {{ $t('app.install') }}
@@ -57,14 +58,14 @@ let req = reactive({
 });
 
 let loading = ref(false);
-let apps = ref<App.App[]>([]);
+let apps = ref<App.AppDTO[]>([]);
 
 const acceptParams = (): void => {
     search(req);
 };
 
 const goInstall = (key: string) => {
-    router.push({ name: 'AppDetail', params: { appKey: key } });
+    router.push({ name: 'AppAll', query: { install: key } });
 };
 
 const search = async (req: App.AppReq) => {
@@ -88,6 +89,7 @@ defineExpose({
     cursor: pointer;
     padding: 10px 15px;
     margin-right: 10px;
+    line-height: 18px;
 
     .h-app-content {
         padding-left: 15px;
@@ -117,5 +119,12 @@ defineExpose({
     margin-top: 13px;
     border: 0;
     border-top: var(--panel-border);
+}
+
+/* FOR MOZILLA */
+@-moz-document url-prefix() {
+    .moz-height {
+        height: 524px;
+    }
 }
 </style>

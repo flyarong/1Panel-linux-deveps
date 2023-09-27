@@ -8,7 +8,12 @@
                 },
             ]"
         />
-        <el-alert v-if="!isSafety" :closable="false" style="margin-top: 20px" type="warning">
+        <el-alert
+            v-if="!isSafety && globalStore.showEntranceWarn"
+            style="margin-top: 20px"
+            type="warning"
+            @close="hideEntrance"
+        >
             <template #default>
                 <span>
                     <span>{{ $t('home.entranceHelper') }}</span>
@@ -119,14 +124,14 @@
                                 <el-tag>{{ $t('monitor.write') }}: {{ currentChartInfo.ioWriteBytes }} MB</el-tag>
                                 <el-tag>
                                     {{ $t('home.rwPerSecond') }}: {{ currentChartInfo.ioCount }}
-                                    {{ $t('home.time') }}
+                                    {{ $t('commons.units.time') }}/s
                                 </el-tag>
                                 <el-tag>{{ $t('home.ioDelay') }}: {{ currentChartInfo.ioTime }} ms</el-tag>
                             </div>
 
                             <div v-if="chartOption === 'io'" style="margin-top: 40px" class="mobile-monitor-chart">
                                 <v-charts
-                                    height="305px"
+                                    height="383px"
                                     id="ioChart"
                                     type="line"
                                     :option="chartsOption['ioChart']"
@@ -136,7 +141,7 @@
                             </div>
                             <div v-if="chartOption === 'network'" style="margin-top: 40px" class="mobile-monitor-chart">
                                 <v-charts
-                                    height="305px"
+                                    height="383px"
                                     id="networkChart"
                                     type="line"
                                     :option="chartsOption['networkChart']"
@@ -151,56 +156,58 @@
             <el-col :xs="24" :sm="24" :md="8" :lg="8" :xl="8">
                 <CardWithHeader :header="$t('home.systemInfo')">
                     <template #body>
-                        <el-descriptions :column="1" class="h-systemInfo">
-                            <el-descriptions-item class-name="system-content">
-                                <template #label>
-                                    <span class="system-label">
-                                        {{ $t('home.hostname') }}
-                                    </span>
-                                </template>
-                                {{ baseInfo.hostname }}
-                            </el-descriptions-item>
-                            <el-descriptions-item class-name="system-content">
-                                <template #label>
-                                    <span class="system-label">
-                                        {{ $t('home.platformVersion') }}
-                                    </span>
-                                </template>
-                                {{ baseInfo.platform }}-{{ baseInfo.platformVersion }}
-                            </el-descriptions-item>
-                            <el-descriptions-item class-name="system-content">
-                                <template #label>
-                                    <span class="system-label">
-                                        {{ $t('home.kernelVersion') }}
-                                    </span>
-                                </template>
-                                {{ baseInfo.kernelVersion }}
-                            </el-descriptions-item>
-                            <el-descriptions-item class-name="system-content">
-                                <template #label>
-                                    <span class="system-label">
-                                        {{ $t('home.kernelArch') }}
-                                    </span>
-                                </template>
-                                {{ baseInfo.kernelArch }}
-                            </el-descriptions-item>
-                            <el-descriptions-item class-name="system-content">
-                                <template #label>
-                                    <span class="system-label">
-                                        {{ $t('home.uptime') }}
-                                    </span>
-                                </template>
-                                {{ currentInfo.timeSinceUptime }}
-                            </el-descriptions-item>
-                            <el-descriptions-item class-name="system-content">
-                                <template #label>
-                                    <span class="system-label">
-                                        {{ $t('home.runningTime') }}
-                                    </span>
-                                </template>
-                                {{ loadUpTime(currentInfo.uptime) }}
-                            </el-descriptions-item>
-                        </el-descriptions>
+                        <el-scrollbar>
+                            <el-descriptions :column="1" class="h-systemInfo">
+                                <el-descriptions-item class-name="system-content">
+                                    <template #label>
+                                        <span class="system-label">
+                                            {{ $t('home.hostname') }}
+                                        </span>
+                                    </template>
+                                    {{ baseInfo.hostname }}
+                                </el-descriptions-item>
+                                <el-descriptions-item class-name="system-content">
+                                    <template #label>
+                                        <span class="system-label">
+                                            {{ $t('home.platformVersion') }}
+                                        </span>
+                                    </template>
+                                    {{ baseInfo.platform }}-{{ baseInfo.platformVersion }}
+                                </el-descriptions-item>
+                                <el-descriptions-item class-name="system-content">
+                                    <template #label>
+                                        <span class="system-label">
+                                            {{ $t('home.kernelVersion') }}
+                                        </span>
+                                    </template>
+                                    {{ baseInfo.kernelVersion }}
+                                </el-descriptions-item>
+                                <el-descriptions-item class-name="system-content">
+                                    <template #label>
+                                        <span class="system-label">
+                                            {{ $t('home.kernelArch') }}
+                                        </span>
+                                    </template>
+                                    {{ baseInfo.kernelArch }}
+                                </el-descriptions-item>
+                                <el-descriptions-item class-name="system-content">
+                                    <template #label>
+                                        <span class="system-label">
+                                            {{ $t('home.uptime') }}
+                                        </span>
+                                    </template>
+                                    {{ currentInfo.timeSinceUptime }}
+                                </el-descriptions-item>
+                                <el-descriptions-item class-name="system-content">
+                                    <template #label>
+                                        <span class="system-label">
+                                            {{ $t('home.runningTime') }}
+                                        </span>
+                                    </template>
+                                    {{ loadUpTime(currentInfo.uptime) }}
+                                </el-descriptions-item>
+                            </el-descriptions>
+                        </el-scrollbar>
                     </template>
                 </CardWithHeader>
 
@@ -239,6 +246,7 @@ const isSafety = ref();
 const chartOption = ref('network');
 let timer: NodeJS.Timer | null = null;
 let isInit = ref<boolean>(true);
+let isStatusInit = ref<boolean>(true);
 let isActive = ref(true);
 
 const ioReadBytes = ref<Array<number>>([]);
@@ -332,7 +340,7 @@ const goRouter = async (path: string) => {
 const onLoadNetworkOptions = async () => {
     const res = await getNetworkOptions();
     netOptions.value = res.data;
-    searchInfo.netOption = netOptions.value && netOptions.value[0];
+    searchInfo.netOption = globalStore.defaultNetwork || (netOptions.value && netOptions.value[0]);
 };
 
 const onLoadIOOptions = async () => {
@@ -355,7 +363,8 @@ const onLoadBaseInfo = async (isInit: boolean, range: string) => {
     baseInfo.value = res.data;
     currentInfo.value = baseInfo.value.currentInfo;
     await onLoadCurrentInfo();
-    statuRef.value.acceptParams(currentInfo.value, baseInfo.value);
+    isStatusInit.value = false;
+    statuRef.value.acceptParams(currentInfo.value, baseInfo.value, isStatusInit.value);
     appRef.value.acceptParams();
     if (isInit) {
         timer = setInterval(async () => {
@@ -370,9 +379,10 @@ const onLoadCurrentInfo = async () => {
     const res = await loadCurrentInfo(searchInfo.ioOption, searchInfo.netOption);
     currentInfo.value.timeSinceUptime = res.data.timeSinceUptime;
 
+    let timeInterval = Number(res.data.uptime - currentInfo.value.uptime) || 3;
     currentChartInfo.netBytesSent =
         res.data.netBytesSent - currentInfo.value.netBytesSent > 0
-            ? Number(((res.data.netBytesSent - currentInfo.value.netBytesSent) / 1024 / 3).toFixed(2))
+            ? Number(((res.data.netBytesSent - currentInfo.value.netBytesSent) / 1024 / timeInterval).toFixed(2))
             : 0;
     netBytesSents.value.push(currentChartInfo.netBytesSent);
     if (netBytesSents.value.length > 20) {
@@ -381,7 +391,7 @@ const onLoadCurrentInfo = async () => {
 
     currentChartInfo.netBytesRecv =
         res.data.netBytesRecv - currentInfo.value.netBytesRecv > 0
-            ? Number(((res.data.netBytesRecv - currentInfo.value.netBytesRecv) / 1024 / 3).toFixed(2))
+            ? Number(((res.data.netBytesRecv - currentInfo.value.netBytesRecv) / 1024 / timeInterval).toFixed(2))
             : 0;
     netBytesRecvs.value.push(currentChartInfo.netBytesRecv);
     if (netBytesRecvs.value.length > 20) {
@@ -390,7 +400,7 @@ const onLoadCurrentInfo = async () => {
 
     currentChartInfo.ioReadBytes =
         res.data.ioReadBytes - currentInfo.value.ioReadBytes > 0
-            ? Number(((res.data.ioReadBytes - currentInfo.value.ioReadBytes) / 1024 / 1024 / 3).toFixed(2))
+            ? Number(((res.data.ioReadBytes - currentInfo.value.ioReadBytes) / 1024 / 1024 / timeInterval).toFixed(2))
             : 0;
     ioReadBytes.value.push(currentChartInfo.ioReadBytes);
     if (ioReadBytes.value.length > 20) {
@@ -399,17 +409,17 @@ const onLoadCurrentInfo = async () => {
 
     currentChartInfo.ioWriteBytes =
         res.data.ioWriteBytes - currentInfo.value.ioWriteBytes > 0
-            ? Number(((res.data.ioWriteBytes - currentInfo.value.ioWriteBytes) / 1024 / 1024 / 3).toFixed(2))
+            ? Number(((res.data.ioWriteBytes - currentInfo.value.ioWriteBytes) / 1024 / 1024 / timeInterval).toFixed(2))
             : 0;
     ioWriteBytes.value.push(currentChartInfo.ioWriteBytes);
     if (ioWriteBytes.value.length > 20) {
         ioWriteBytes.value.splice(0, 1);
     }
-    currentChartInfo.ioCount = Math.round(Number((res.data.ioCount - currentInfo.value.ioCount) / 3));
+    currentChartInfo.ioCount = Math.round(Number((res.data.ioCount - currentInfo.value.ioCount) / timeInterval));
     let ioReadTime = res.data.ioReadTime - currentInfo.value.ioReadTime;
     let ioWriteTime = res.data.ioWriteTime - currentInfo.value.ioWriteTime;
     let ioChoose = ioReadTime > ioWriteTime ? ioReadTime : ioWriteTime;
-    currentChartInfo.ioTime = Math.round(Number(ioChoose / 3));
+    currentChartInfo.ioTime = Math.round(Number(ioChoose / timeInterval));
 
     timeIODatas.value.push(dateFormatForSecond(res.data.shotTime));
     if (timeIODatas.value.length > 20) {
@@ -421,7 +431,7 @@ const onLoadCurrentInfo = async () => {
     }
     loadData();
     currentInfo.value = res.data;
-    statuRef.value.acceptParams(currentInfo.value, baseInfo.value);
+    statuRef.value.acceptParams(currentInfo.value, baseInfo.value, isStatusInit.value);
 };
 
 function loadUpTime(uptime: number) {
@@ -435,34 +445,34 @@ function loadUpTime(uptime: number) {
     if (days !== 0) {
         return (
             days +
-            i18n.global.t('home.Day') +
+            i18n.global.t('commons.units.day') +
             ' ' +
             hours +
-            i18n.global.t('home.Hour') +
+            i18n.global.t('commons.units.hour') +
             ' ' +
             minutes +
-            i18n.global.t('home.Minute') +
+            i18n.global.t('commons.units.minute') +
             ' ' +
             seconds +
-            i18n.global.t('home.Second')
+            i18n.global.t('commons.units.second')
         );
     }
     if (hours !== 0) {
         return (
             hours +
-            i18n.global.t('home.Hour') +
+            i18n.global.t('commons.units.hour') +
             ' ' +
             minutes +
-            i18n.global.t('home.Minute') +
+            i18n.global.t('commons.units.minute') +
             ' ' +
             seconds +
-            i18n.global.t('home.Second')
+            i18n.global.t('commons.units.second')
         );
     }
     if (minutes !== 0) {
-        return minutes + i18n.global.t('home.Minute') + ' ' + seconds + i18n.global.t('home.Second');
+        return minutes + i18n.global.t('commons.units.minute') + ' ' + seconds + i18n.global.t('commons.units.second');
     }
-    return seconds + i18n.global.t('home.Second');
+    return seconds + i18n.global.t('commons.units.second');
 }
 
 const loadData = async () => {
@@ -499,6 +509,10 @@ const loadData = async () => {
     }
 };
 
+const hideEntrance = () => {
+    globalStore.setShowEntranceWarn(false);
+};
+
 const loadUpgradeStatus = async () => {
     const res = await loadUpgradeInfo();
     if (res.data) {
@@ -513,13 +527,16 @@ const loadSafeStatus = async () => {
     isSafety.value = res.data.securityEntrance;
 };
 
+const onFocus = () => {
+    isActive.value = true;
+};
+const onBlur = () => {
+    isActive.value = false;
+};
+
 onMounted(() => {
-    window.addEventListener('focus', () => {
-        isActive.value = true;
-    });
-    window.addEventListener('blur', () => {
-        isActive.value = false;
-    });
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
     loadSafeStatus();
     loadUpgradeStatus();
     onLoadNetworkOptions();
@@ -528,6 +545,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    window.removeEventListener('focus', onFocus);
+    window.removeEventListener('blur', onBlur);
     clearInterval(Number(timer));
     timer = null;
 });
@@ -556,6 +575,12 @@ onBeforeUnmount(() => {
 
 .h-systemInfo {
     margin-left: 18px;
+    height: 216px;
+}
+@-moz-document url-prefix() {
+    .h-systemInfo {
+        height: auto;
+    }
 }
 
 .system-label {

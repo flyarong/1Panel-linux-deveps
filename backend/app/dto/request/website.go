@@ -7,6 +7,8 @@ import (
 type WebsiteSearch struct {
 	dto.PageInfo
 	Name           string `json:"name"`
+	OrderBy        string `json:"orderBy"`
+	Order          string `json:"order"`
 	WebsiteGroupID uint   `json:"websiteGroupId"`
 }
 
@@ -73,6 +75,12 @@ type WebsiteWafReq struct {
 	Rule      string `json:"rule" validate:"required"`
 }
 
+type WebsiteRedirectUpdate struct {
+	WebsiteID uint   `json:"websiteId" validate:"required"`
+	Key       string `json:"key" validate:"required"`
+	Enable    bool   `json:"enable" validate:"required"`
+}
+
 type WebsiteWafUpdate struct {
 	WebsiteID uint   `json:"websiteId" validate:"required"`
 	Key       string `json:"key" validate:"required"`
@@ -113,15 +121,18 @@ type WebsiteDomainDelete struct {
 }
 
 type WebsiteHTTPSOp struct {
-	WebsiteID    uint     `json:"websiteId" validate:"required"`
-	Enable       bool     `json:"enable" validate:"required"`
-	WebsiteSSLID uint     `json:"websiteSSLId"`
-	Type         string   `json:"type"  validate:"oneof=existed auto manual"`
-	PrivateKey   string   `json:"privateKey"`
-	Certificate  string   `json:"certificate"`
-	HttpConfig   string   `json:"HttpConfig"  validate:"oneof=HTTPSOnly HTTPAlso HTTPToHTTPS"`
-	SSLProtocol  []string `json:"SSLProtocol"`
-	Algorithm    string   `json:"algorithm"`
+	WebsiteID       uint     `json:"websiteId" validate:"required"`
+	Enable          bool     `json:"enable" validate:"required"`
+	WebsiteSSLID    uint     `json:"websiteSSLId"`
+	Type            string   `json:"type"  validate:"oneof=existed auto manual"`
+	PrivateKey      string   `json:"privateKey"`
+	Certificate     string   `json:"certificate"`
+	PrivateKeyPath  string   `json:"privateKeyPath"`
+	CertificatePath string   `json:"certificatePath"`
+	ImportType      string   `json:"importType"`
+	HttpConfig      string   `json:"httpConfig"  validate:"oneof=HTTPSOnly HTTPAlso HTTPToHTTPS"`
+	SSLProtocol     []string `json:"SSLProtocol"`
+	Algorithm       string   `json:"algorithm"`
 }
 
 type WebsiteNginxUpdate struct {
@@ -130,9 +141,11 @@ type WebsiteNginxUpdate struct {
 }
 
 type WebsiteLogReq struct {
-	ID      uint   `json:"id" validate:"required"`
-	Operate string `json:"operate" validate:"required"`
-	LogType string `json:"logType" validate:"required"`
+	ID       uint   `json:"id" validate:"required"`
+	Operate  string `json:"operate" validate:"required"`
+	LogType  string `json:"logType" validate:"required"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
 }
 
 type WebsiteDefaultUpdate struct {
@@ -151,6 +164,12 @@ type WebsitePHPFileUpdate struct {
 	ID      uint   `json:"id" validate:"required"`
 	Type    string `json:"type" validate:"required"`
 	Content string `json:"content" validate:"required"`
+}
+
+type WebsitePHPVersionReq struct {
+	WebsiteID    uint `json:"websiteID" validate:"required"`
+	RuntimeID    uint `json:"runtimeID" validate:"required"`
+	RetainConfig bool `json:"retainConfig" validate:"required"`
 }
 
 type WebsiteUpdateDir struct {
@@ -182,5 +201,19 @@ type WebsiteProxyConfig struct {
 }
 
 type WebsiteProxyReq struct {
+	ID uint `json:"id" validate:"required"`
+}
+
+type WebsiteRedirectReq struct {
+	WebsiteID uint `json:"websiteId" validate:"required"`
+}
+
+type WebsiteWafFileUpdate struct {
+	WebsiteID uint   `json:"websiteID" validate:"required"`
+	Content   string `json:"content" validate:"required"`
+	Type      string `json:"type" validate:"required,oneof=cc ip_white ip_block url_white url_block cookie_block args_check post_check ua_check file_ext_block"`
+}
+
+type WebsiteCommonReq struct {
 	ID uint `json:"id" validate:"required"`
 }

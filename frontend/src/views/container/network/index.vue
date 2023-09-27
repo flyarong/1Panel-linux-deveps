@@ -44,20 +44,22 @@
                     @search="search"
                 >
                     <el-table-column type="selection" :selectable="selectable" fix />
-                    <el-table-column :label="$t('commons.table.name')" min-width="80" prop="name" fix>
+                    <el-table-column :label="$t('commons.table.name')" width="130" prop="name" fix>
                         <template #default="{ row }">
                             <Tooltip @click="onInspect(row.id)" :text="row.name" />
                         </template>
                     </el-table-column>
-                    <el-table-column min-width="50">
+                    <el-table-column width="90">
                         <template #default="{ row }">
-                            <el-tag effect="dark" round v-if="row.isSystem">system</el-tag>
+                            <el-tag effect="dark" round v-if="row.isSystem || row.name === '1panel-network'">
+                                system
+                            </el-tag>
                         </template>
                     </el-table-column>
                     <el-table-column
                         :label="$t('container.driver')"
                         show-overflow-tooltip
-                        min-width="40"
+                        min-width="60"
                         prop="driver"
                     />
                     <el-table-column :label="$t('container.subnet')" min-width="80" prop="subnet" fix />
@@ -78,11 +80,12 @@
                     </el-table-column>
                     <el-table-column
                         prop="createdAt"
+                        show-overflow-tooltip
                         min-width="90"
                         :label="$t('commons.table.date')"
                         :formatter="dateFormat"
                     />
-                    <fu-table-operations :buttons="buttons" :label="$t('commons.table.operate')" fix />
+                    <fu-table-operations width="100" :buttons="buttons" :label="$t('commons.table.operate')" fix />
                 </ComplexTable>
             </template>
         </LayoutContent>
@@ -108,13 +111,12 @@ import { ElMessageBox } from 'element-plus';
 import { MsgSuccess } from '@/utils/message';
 
 const loading = ref();
-
-const detailInfo = ref();
 const codemirror = ref();
 
 const data = ref();
 const selects = ref<any>([]);
 const paginationConfig = reactive({
+    cacheSizeKey: 'container-network-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
@@ -213,16 +215,16 @@ const batchDelete = async (row: Container.NetworkInfo | null) => {
 
 const onInspect = async (id: string) => {
     const res = await inspect({ id: id, type: 'network' });
-    detailInfo.value = JSON.stringify(JSON.parse(res.data), null, 2);
+    let detailInfo = JSON.stringify(JSON.parse(res.data), null, 2);
     let param = {
         header: i18n.global.t('commons.button.view'),
-        detailInfo: detailInfo.value,
+        detailInfo: detailInfo,
     };
     codemirror.value!.acceptParams(param);
 };
 
 function isSystem(val: string) {
-    return val === 'bridge' || val === '1panel-network' || val === 'none' || val === 'host';
+    return val === 'bridge' || val === 'none' || val === 'host';
 }
 
 const buttons = [

@@ -1,9 +1,18 @@
 package service
 
 import (
+	"fmt"
+	"os"
+	"path"
+	"path/filepath"
+	"sort"
+	"strings"
+
 	"github.com/1Panel-dev/1Panel/backend/app/dto"
 	"github.com/1Panel-dev/1Panel/backend/app/model"
+	"github.com/1Panel-dev/1Panel/backend/buserr"
 	"github.com/1Panel-dev/1Panel/backend/constant"
+	"github.com/1Panel-dev/1Panel/backend/global"
 	"github.com/1Panel-dev/1Panel/backend/utils/cmd"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -14,11 +23,14 @@ type LogService struct{}
 const logs = "https://resource.fit2cloud.com/installation-log.sh"
 
 type ILogService interface {
+	ListSystemLogFile() ([]string, error)
 	CreateLoginLog(operation model.LoginLog) error
 	PageLoginLog(search dto.SearchLgLogWithPage) (int64, interface{}, error)
 
 	CreateOperationLog(operation model.OperationLog) error
 	PageOperationLog(search dto.SearchOpLogWithPage) (int64, interface{}, error)
+
+	LoadSystemLog(name string) (string, error)
 
 	CleanLogs(logtype string) error
 }
@@ -29,6 +41,32 @@ func NewILogService() ILogService {
 
 func (u *LogService) CreateLoginLog(operation model.LoginLog) error {
 	return logRepo.CreateLoginLog(&operation)
+}
+
+func (u *LogService) ListSystemLogFile() ([]string, error) {
+	logDir := path.Join(global.CONF.System.BaseDir, "1panel/log")
+	var files []string
+	if err := filepath.Walk(logDir, func(pathItem string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && (strings.HasSuffix(info.Name(), ".log") || strings.HasSuffix(info.Name(), ".log.gz")) {
+			files = append(files, strings.TrimSuffix(info.Name(), ".gz"))
+			return nil
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	if len(files) < 2 {
+		return files, nil
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i] > files[j]
+	})
+
+	return files, nil
 }
 
 func (u *LogService) PageLoginLog(req dto.SearchLgLogWithPage) (int64, interface{}, error) {
@@ -72,6 +110,24 @@ func (u *LogService) PageOperationLog(req dto.SearchOpLogWithPage) (int64, inter
 		dtoOps = append(dtoOps, item)
 	}
 	return total, dtoOps, err
+}
+
+func (u *LogService) LoadSystemLog(name string) (string, error) {
+	filePath := path.Join(global.CONF.System.DataDir, "log", name)
+	if _, err := os.Stat(filePath); err != nil {
+		fileGzPath := path.Join(global.CONF.System.DataDir, "log", name+".gz")
+		if _, err := os.Stat(fileGzPath); err != nil {
+			return "", buserr.New("ErrHttpReqNotFound")
+		}
+		if err := handleGunzip(fileGzPath); err != nil {
+			return "", fmt.Errorf("handle ungzip file %s falied, err: %v", fileGzPath, err)
+		}
+	}
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
 }
 
 func (u *LogService) CleanLogs(logtype string) error {

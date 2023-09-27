@@ -17,12 +17,15 @@
                         <el-form-item :label="$t('setting.entrance')" prop="securityEntrance">
                             <el-input clearable v-model="form.securityEntrance">
                                 <template #append>
-                                    <el-button @click="random" icon="RefreshRight"></el-button>
+                                    <el-button @click="random">{{ $t('setting.randomGenerate') }}</el-button>
                                 </template>
                             </el-input>
                             <span class="input-help">
                                 {{ $t('setting.entranceInputHelper') }}
                             </span>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-checkbox v-model="show" :label="$t('setting.showEntrance')" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -56,6 +59,7 @@ interface DialogProps {
 }
 const drawerVisiable = ref();
 const loading = ref();
+const show = ref();
 
 const form = reactive({
     securityEntrance: '',
@@ -78,6 +82,7 @@ function checkSecurityEntrance(rule: any, value: any, callback: any) {
 
 const acceptParams = (params: DialogProps): void => {
     form.securityEntrance = params.securityEntrance;
+    show.value = globalStore.showEntranceWarn;
     drawerVisiable.value = true;
 };
 
@@ -96,6 +101,7 @@ const submitEntrance = async (formEl: FormInstance | undefined) => {
         loading.value = true;
         await updateSetting(param)
             .then(() => {
+                globalStore.setShowEntranceWarn(show.value);
                 globalStore.entrance = form.securityEntrance;
                 loading.value = false;
                 drawerVisiable.value = false;

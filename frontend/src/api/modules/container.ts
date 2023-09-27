@@ -1,27 +1,37 @@
 import http from '@/api';
 import { ResPage, SearchWithPage } from '../interface';
 import { Container } from '../interface/container';
+import { TimeoutEnum } from '@/enums/http-enum';
 
 export const searchContainer = (params: Container.ContainerSearch) => {
-    return http.post<ResPage<Container.ContainerInfo>>(`/containers/search`, params, 400000);
+    return http.post<ResPage<Container.ContainerInfo>>(`/containers/search`, params, TimeoutEnum.T_40S);
+};
+export const listContainer = () => {
+    return http.post<Array<string>>(`/containers/list`, {});
 };
 export const loadResourceLimit = () => {
     return http.get<Container.ResourceLimit>(`/containers/limit`);
 };
 export const createContainer = (params: Container.ContainerHelper) => {
-    return http.post(`/containers`, params, 3000000);
+    return http.post(`/containers`, params, TimeoutEnum.T_10M);
 };
 export const updateContainer = (params: Container.ContainerHelper) => {
-    return http.post(`/containers/update`, params, 3000000);
+    return http.post(`/containers/update`, params, TimeoutEnum.T_10M);
 };
-export const upgradeContainer = (name: string, image: string) => {
-    return http.post(`/containers/upgrade`, { name: name, image: image }, 3000000);
+export const upgradeContainer = (name: string, image: string, forcePull: boolean) => {
+    return http.post(`/containers/upgrade`, { name: name, image: image, forcePull: forcePull }, TimeoutEnum.T_10M);
 };
 export const loadContainerInfo = (name: string) => {
     return http.post<Container.ContainerHelper>(`/containers/info`, { name: name });
 };
 export const cleanContainerLog = (containerName: string) => {
     return http.post(`/containers/clean/log`, { name: containerName });
+};
+export const loadContainerLog = (type: string, name: string) => {
+    return http.post<string>(`/containers/load/log`, { type: type, name: name });
+};
+export const containerListStats = () => {
+    return http.get<Array<Container.ContainerListStats>>(`/containers/list/stats`);
 };
 export const containerStats = (id: string) => {
     return http.get<Container.ContainerStats>(`/containers/stats/${id}`);
@@ -53,10 +63,10 @@ export const imagePush = (params: Container.ImagePush) => {
     return http.post<string>(`/containers/image/push`, params);
 };
 export const imageLoad = (params: Container.ImageLoad) => {
-    return http.post(`/containers/image/load`, params, 1200000);
+    return http.post(`/containers/image/load`, params, TimeoutEnum.T_10M);
 };
 export const imageSave = (params: Container.ImageSave) => {
-    return http.post(`/containers/image/save`, params, 1200000);
+    return http.post(`/containers/image/save`, params, TimeoutEnum.T_10M);
 };
 export const imageTag = (params: Container.ImageTag) => {
     return http.post(`/containers/image/tag`, params);
@@ -68,6 +78,9 @@ export const imageRemove = (params: Container.BatchDelete) => {
 // network
 export const searchNetwork = (params: SearchWithPage) => {
     return http.post<ResPage<Container.NetworkInfo>>(`/containers/network/search`, params);
+};
+export const listNetwork = () => {
+    return http.get<Array<Container.Options>>(`/containers/network`);
 };
 export const deleteNetwork = (params: Container.BatchDelete) => {
     return http.post(`/containers/network/del`, params);
@@ -92,7 +105,7 @@ export const createVolume = (params: Container.VolumeCreate) => {
 
 // repo
 export const checkRepoStatus = (id: number) => {
-    return http.post(`/containers/repo/status`, { id: id });
+    return http.post(`/containers/repo/status`, { id: id }, TimeoutEnum.T_40S);
 };
 export const searchImageRepo = (params: SearchWithPage) => {
     return http.post<ResPage<Container.RepoInfo>>(`/containers/repo/search`, params);
@@ -101,13 +114,13 @@ export const listImageRepo = () => {
     return http.get<Container.RepoOptions>(`/containers/repo`);
 };
 export const createImageRepo = (params: Container.RepoCreate) => {
-    return http.post(`/containers/repo`, params);
+    return http.post(`/containers/repo`, params, TimeoutEnum.T_40S);
 };
 export const updateImageRepo = (params: Container.RepoUpdate) => {
-    return http.post(`/containers/repo/update`, params);
+    return http.post(`/containers/repo/update`, params, TimeoutEnum.T_40S);
 };
 export const deleteImageRepo = (params: Container.RepoDelete) => {
-    return http.post(`/containers/repo/del`, params);
+    return http.post(`/containers/repo/del`, params, TimeoutEnum.T_40S);
 };
 
 // composeTemplate
@@ -141,7 +154,7 @@ export const composeOperator = (params: Container.ComposeOpration) => {
     return http.post(`/containers/compose/operate`, params);
 };
 export const composeUpdate = (params: Container.ComposeUpdate) => {
-    return http.post(`/containers/compose/update`, params, 600000);
+    return http.post(`/containers/compose/update`, params, TimeoutEnum.T_10M);
 };
 
 // docker
@@ -158,10 +171,10 @@ export const loadDockerStatus = () => {
     return http.get<string>(`/containers/docker/status`);
 };
 export const updateDaemonJson = (key: string, value: string) => {
-    return http.post(`/containers/daemonjson/update`, { key: key, value: value }, 60000);
+    return http.post(`/containers/daemonjson/update`, { key: key, value: value }, TimeoutEnum.T_60S);
 };
 export const updateLogOption = (maxSize: string, maxFile: string) => {
-    return http.post(`/containers/logoption/update`, { logMaxSize: maxSize, logMaxFile: maxFile }, 60000);
+    return http.post(`/containers/logoption/update`, { logMaxSize: maxSize, logMaxFile: maxFile }, TimeoutEnum.T_60S);
 };
 export const updateDaemonJsonByfile = (params: Container.DaemonJsonUpdateByFile) => {
     return http.post(`/containers/daemonjson/update/byfile`, params);

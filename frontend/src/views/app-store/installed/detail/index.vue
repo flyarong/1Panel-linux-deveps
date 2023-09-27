@@ -20,7 +20,7 @@
         </el-row>
         <el-row v-else v-loading="loading">
             <el-col :span="22" :offset="1">
-                <el-alert :title="$t('app.updateHelper')" type="warning" :closable="false" />
+                <el-alert :title="$t('app.updateHelper')" type="warning" :closable="false" class="common-prompt" />
                 <el-form @submit.prevent ref="paramForm" :model="paramModel" label-position="top" :rules="rules">
                     <div v-for="(p, index) in params" :key="index">
                         <el-form-item :prop="p.key" :label="getLabel(p)">
@@ -75,7 +75,7 @@
                             </el-input>
                             <span class="input-help">{{ $t('container.limitHelper') }}</span>
                         </el-form-item>
-                        <el-form-item prop="allowPort" v-if="canEditPort(paramData.app)">
+                        <el-form-item prop="allowPort" v-if="canEditPort(paramData.app.key)">
                             <el-checkbox v-model="paramModel.allowPort" :label="$t('app.allowPort')" size="large" />
                             <span class="input-help">{{ $t('app.allowPortHelper') }}</span>
                         </el-form-item>
@@ -223,7 +223,7 @@ const get = async () => {
 
 const getLabel = (row: EditForm): string => {
     const language = useI18n().locale.value;
-    if (language == 'zh') {
+    if (language == 'zh' || language == 'tw') {
         return row.labelZh;
     } else {
         return row.labelEn;

@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -102,6 +103,12 @@ func (u *SettingService) Update(key, value string) error {
 		if err := ntp.UpdateSystemTimeZone(value); err != nil {
 			return err
 		}
+	case "AppStoreLastModified":
+		exist, _ := settingRepo.Get(settingRepo.WithByKey("AppStoreLastModified"))
+		if exist.ID == 0 {
+			_ = settingRepo.Create("AppStoreLastModified", value)
+			return nil
+		}
 	}
 
 	if err := settingRepo.Update(key, value); err != nil {
@@ -127,6 +134,7 @@ func (u *SettingService) Update(key, value string) error {
 		}
 	case "UserName", "Password":
 		_ = global.SESSION.Clean()
+
 	}
 
 	return nil
@@ -172,7 +180,7 @@ func (u *SettingService) UpdatePort(port uint) error {
 }
 
 func (u *SettingService) UpdateSSL(c *gin.Context, req dto.SSLUpdate) error {
-	secretDir := global.CONF.System.BaseDir + "/1panel/secret/"
+	secretDir := path.Join(global.CONF.System.BaseDir, "1panel/secret")
 	if req.SSL == "disable" {
 		if err := settingRepo.Update("SSL", "disable"); err != nil {
 			return err
@@ -180,8 +188,8 @@ func (u *SettingService) UpdateSSL(c *gin.Context, req dto.SSLUpdate) error {
 		if err := settingRepo.Update("SSLType", "self"); err != nil {
 			return err
 		}
-		_ = os.Remove(secretDir + "server.crt")
-		_ = os.Remove(secretDir + "server.key")
+		_ = os.Remove(path.Join(secretDir, "server.crt"))
+		_ = os.Remove(path.Join(secretDir, "server.key"))
 		go func() {
 			_, err := cmd.Exec("systemctl restart 1panel.service")
 			if err != nil {
@@ -220,7 +228,7 @@ func (u *SettingService) UpdateSSL(c *gin.Context, req dto.SSLUpdate) error {
 		}
 	}
 	if req.SSLType == "import" {
-		cert, err := os.OpenFile(secretDir+"server.crt.tmp", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		cert, err := os.OpenFile(path.Join(secretDir, "server.crt.tmp"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			return err
 		}
@@ -228,7 +236,7 @@ func (u *SettingService) UpdateSSL(c *gin.Context, req dto.SSLUpdate) error {
 		if _, err := cert.WriteString(req.Cert); err != nil {
 			return err
 		}
-		key, err := os.OpenFile(secretDir+"server.key.tmp", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		key, err := os.OpenFile(path.Join(secretDir, "server.key.tmp"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
 			return err
 		}
@@ -242,10 +250,10 @@ func (u *SettingService) UpdateSSL(c *gin.Context, req dto.SSLUpdate) error {
 	}
 
 	fileOp := files.NewFileOp()
-	if err := fileOp.Rename(secretDir+"server.crt.tmp", secretDir+"server.crt"); err != nil {
+	if err := fileOp.Rename(path.Join(secretDir, "server.crt.tmp"), path.Join(secretDir, "server.crt")); err != nil {
 		return err
 	}
-	if err := fileOp.Rename(secretDir+"server.key.tmp", secretDir+"server.key"); err != nil {
+	if err := fileOp.Rename(path.Join(secretDir, "server.key.tmp"), path.Join(secretDir, "server.key")); err != nil {
 		return err
 	}
 	if err := settingRepo.Update("SSL", req.SSL); err != nil {
@@ -278,16 +286,16 @@ func (u *SettingService) LoadFromCert() (*dto.SSLInfo, error) {
 	}
 	switch sslType.Value {
 	case "import":
-		if _, err := os.Stat(global.CONF.System.BaseDir + "/1panel/secret/server.crt"); err != nil {
+		if _, err := os.Stat(path.Join(global.CONF.System.BaseDir, "1panel/secret/server.crt")); err != nil {
 			return nil, fmt.Errorf("load server.crt file failed, err: %v", err)
 		}
-		certFile, _ := os.ReadFile(global.CONF.System.BaseDir + "/1panel/secret/server.crt")
+		certFile, _ := os.ReadFile(path.Join(global.CONF.System.BaseDir, "1panel/secret/server.crt"))
 		data.Cert = string(certFile)
 
-		if _, err := os.Stat(global.CONF.System.BaseDir + "/1panel/secret/server.key"); err != nil {
+		if _, err := os.Stat(path.Join(global.CONF.System.BaseDir, "1panel/secret/server.key")); err != nil {
 			return nil, fmt.Errorf("load server.key file failed, err: %v", err)
 		}
-		keyFile, _ := os.ReadFile(global.CONF.System.BaseDir + "/1panel/secret/server.key")
+		keyFile, _ := os.ReadFile(path.Join(global.CONF.System.BaseDir, "1panel/secret/server.key"))
 		data.Key = string(keyFile)
 	case "select":
 		sslID, err := settingRepo.Get(settingRepo.WithByKey("SSLID"))
@@ -341,7 +349,7 @@ func (u *SettingService) UpdatePassword(c *gin.Context, old, new string) error {
 
 func loadInfoFromCert() (*dto.SSLInfo, error) {
 	var info dto.SSLInfo
-	certFile := global.CONF.System.BaseDir + "/1panel/secret/server.crt"
+	certFile := path.Join(global.CONF.System.BaseDir, "1panel/secret/server.crt")
 	if _, err := os.Stat(certFile); err != nil {
 		return &info, err
 	}
@@ -369,16 +377,16 @@ func loadInfoFromCert() (*dto.SSLInfo, error) {
 	return &dto.SSLInfo{
 		Domain:   strings.Join(domains, ","),
 		Timeout:  certObj.NotAfter.Format("2006-01-02 15:04:05"),
-		RootPath: global.CONF.System.BaseDir + "/1panel/secret/server.crt",
+		RootPath: path.Join(global.CONF.System.BaseDir, "1panel/secret/server.crt"),
 	}, nil
 }
 
 func checkCertValid(domain string) error {
-	certificate, err := os.ReadFile(global.CONF.System.BaseDir + "/1panel/secret/server.crt.tmp")
+	certificate, err := os.ReadFile(path.Join(global.CONF.System.BaseDir, "1panel/secret/server.crt.tmp"))
 	if err != nil {
 		return err
 	}
-	key, err := os.ReadFile(global.CONF.System.BaseDir + "/1panel/secret/server.key.tmp")
+	key, err := os.ReadFile(path.Join(global.CONF.System.BaseDir, "1panel/secret/server.key.tmp"))
 	if err != nil {
 		return err
 	}

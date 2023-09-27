@@ -13,6 +13,8 @@ type CronjobCreate struct {
 	Second   int    `json:"second" validate:"number"`
 
 	Script         string `json:"script"`
+	ContainerName  string `json:"containerName"`
+	AppID          string `json:"appID"`
 	Website        string `json:"website"`
 	ExclusionRules string `json:"exclusionRules"`
 	DBName         string `json:"dbName"`
@@ -34,6 +36,8 @@ type CronjobUpdate struct {
 	Second   int    `json:"second" validate:"number"`
 
 	Script         string `json:"script"`
+	ContainerName  string `json:"containerName"`
+	AppID          string `json:"appID"`
 	Website        string `json:"website"`
 	ExclusionRules string `json:"exclusionRules"`
 	DBName         string `json:"dbName"`
@@ -76,6 +80,8 @@ type CronjobInfo struct {
 	Second   int    `json:"second"`
 
 	Script         string `json:"script"`
+	ContainerName  string `json:"containerName"`
+	AppID          string `json:"appID"`
 	Website        string `json:"website"`
 	ExclusionRules string `json:"exclusionRules"`
 	DBName         string `json:"dbName"`

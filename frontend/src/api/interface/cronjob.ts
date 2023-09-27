@@ -13,6 +13,9 @@ export namespace Cronjob {
         second: number;
 
         script: string;
+        inContainer: boolean;
+        containerName: string;
+        appID: string;
         website: string;
         exclusionRules: string;
         dbName: string;
@@ -79,6 +82,7 @@ export namespace Cronjob {
     }
     export interface Record {
         id: number;
+        file: string;
         startTime: Date;
         endTime: Date;
         records: string;

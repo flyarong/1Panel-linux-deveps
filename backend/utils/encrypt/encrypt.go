@@ -11,10 +11,21 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/1Panel-dev/1Panel/backend/app/model"
 	"github.com/1Panel-dev/1Panel/backend/global"
 )
 
 func StringEncrypt(text string) (string, error) {
+	if len(text) == 0 {
+		return "", nil
+	}
+	if len(global.CONF.System.EncryptKey) == 0 {
+		var encryptSetting model.Setting
+		if err := global.DB.Where("key = ?", "EncryptKey").First(&encryptSetting).Error; err != nil {
+			return "", err
+		}
+		global.CONF.System.EncryptKey = encryptSetting.Value
+	}
 	key := global.CONF.System.EncryptKey
 	pass := []byte(text)
 	xpass, err := aesEncryptWithSalt([]byte(key), pass)
@@ -26,6 +37,16 @@ func StringEncrypt(text string) (string, error) {
 }
 
 func StringDecrypt(text string) (string, error) {
+	if len(text) == 0 {
+		return "", nil
+	}
+	if len(global.CONF.System.EncryptKey) == 0 {
+		var encryptSetting model.Setting
+		if err := global.DB.Where("key = ?", "EncryptKey").First(&encryptSetting).Error; err != nil {
+			return "", err
+		}
+		global.CONF.System.EncryptKey = encryptSetting.Value
+	}
 	key := global.CONF.System.EncryptKey
 	bytesPass, err := base64.StdEncoding.DecodeString(text)
 	if err != nil {

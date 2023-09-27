@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"runtime"
 	"strings"
 	"time"
@@ -86,8 +87,8 @@ func (u *UpgradeService) Upgrade(req dto.Upgrade) error {
 	global.LOG.Info("start to upgrade now...")
 	fileOp := files.NewFileOp()
 	timeStr := time.Now().Format("20060102150405")
-	rootDir := fmt.Sprintf("%s/upgrade_%s/downloads", global.CONF.System.TmpDir, timeStr)
-	originalDir := fmt.Sprintf("%s/upgrade_%s/original", global.CONF.System.TmpDir, timeStr)
+	rootDir := path.Join(global.CONF.System.TmpDir, fmt.Sprintf("upgrade/upgrade_%s/downloads", timeStr))
+	originalDir := path.Join(global.CONF.System.TmpDir, fmt.Sprintf("upgrade/upgrade_%s/original", timeStr))
 	if err := os.MkdirAll(rootDir, os.ModePerm); err != nil {
 		return err
 	}
@@ -103,6 +104,10 @@ func (u *UpgradeService) Upgrade(req dto.Upgrade) error {
 	fileName := fmt.Sprintf("1panel-%s-%s-%s.tar.gz", req.Version, "linux", itemArch)
 	_ = settingRepo.Update("SystemStatus", "Upgrading")
 	go func() {
+		_ = global.Cron.Stop()
+		defer func() {
+			global.Cron.Start()
+		}()
 		if err := fileOp.DownloadFile(downloadPath+"/"+fileName, rootDir+"/"+fileName); err != nil {
 			global.LOG.Errorf("download service file failed, err: %v", err)
 			_ = settingRepo.Update("SystemStatus", "Free")
@@ -126,26 +131,26 @@ func (u *UpgradeService) Upgrade(req dto.Upgrade) error {
 		}
 		global.LOG.Info("backup original data successful, now start to upgrade!")
 
-		if err := cpBinary(tmpDir+"/1panel", "/usr/local/bin/1panel"); err != nil {
-			u.handleRollback(fileOp, originalDir, 1)
+		if err := cpBinary([]string{tmpDir + "/1panel"}, "/usr/local/bin/1panel"); err != nil {
 			global.LOG.Errorf("upgrade 1panel failed, err: %v", err)
+			u.handleRollback(fileOp, originalDir, 1)
 			return
 		}
 
-		if err := cpBinary(tmpDir+"/1pctl", "/usr/local/bin/1pctl"); err != nil {
-			u.handleRollback(fileOp, originalDir, 2)
+		if err := cpBinary([]string{tmpDir + "/1pctl"}, "/usr/local/bin/1pctl"); err != nil {
 			global.LOG.Errorf("upgrade 1pctl failed, err: %v", err)
+			u.handleRollback(fileOp, originalDir, 2)
 			return
 		}
 		if _, err := cmd.Execf("sed -i -e 's#BASE_DIR=.*#BASE_DIR=%s#g' /usr/local/bin/1pctl", global.CONF.System.BaseDir); err != nil {
-			u.handleRollback(fileOp, originalDir, 2)
 			global.LOG.Errorf("upgrade basedir in 1pctl failed, err: %v", err)
+			u.handleRollback(fileOp, originalDir, 2)
 			return
 		}
 
-		if err := cpBinary(tmpDir+"/1panel.service", "/etc/systemd/system/1panel.service"); err != nil {
-			u.handleRollback(fileOp, originalDir, 3)
+		if err := cpBinary([]string{tmpDir + "/1panel.service"}, "/etc/systemd/system/1panel.service"); err != nil {
 			global.LOG.Errorf("upgrade 1panel.service failed, err: %v", err)
+			u.handleRollback(fileOp, originalDir, 3)
 			return
 		}
 
@@ -178,22 +183,22 @@ func (u *UpgradeService) handleBackup(fileOp files.FileOp, originalDir string) e
 func (u *UpgradeService) handleRollback(fileOp files.FileOp, originalDir string, errStep int) {
 	dbPath := global.CONF.System.DbPath + "/1Panel.db"
 	_ = settingRepo.Update("SystemStatus", "Free")
-	if err := cpBinary(originalDir+"/1Panel.db", dbPath); err != nil {
+	if err := cpBinary([]string{originalDir + "/1Panel.db"}, dbPath); err != nil {
 		global.LOG.Errorf("rollback 1panel failed, err: %v", err)
 	}
-	if err := cpBinary(originalDir+"/1panel", "/usr/local/bin/1panel"); err != nil {
+	if err := cpBinary([]string{originalDir + "/1panel"}, "/usr/local/bin/1panel"); err != nil {
 		global.LOG.Errorf("rollback 1pctl failed, err: %v", err)
 	}
 	if errStep == 1 {
 		return
 	}
-	if err := cpBinary(originalDir+"/1pctl", "/usr/local/bin/1pctl"); err != nil {
+	if err := cpBinary([]string{originalDir + "/1pctl"}, "/usr/local/bin/1pctl"); err != nil {
 		global.LOG.Errorf("rollback 1panel failed, err: %v", err)
 	}
 	if errStep == 2 {
 		return
 	}
-	if err := cpBinary(originalDir+"/1panel.service", "/etc/systemd/system/1panel.service"); err != nil {
+	if err := cpBinary([]string{originalDir + "/1panel.service"}, "/etc/systemd/system/1panel.service"); err != nil {
 		global.LOG.Errorf("rollback 1panel failed, err: %v", err)
 	}
 }

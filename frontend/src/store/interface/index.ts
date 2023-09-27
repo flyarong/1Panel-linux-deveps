@@ -13,7 +13,7 @@ export interface GlobalState {
     isLogin: boolean;
     entrance: string;
     csrfToken: string;
-    language: string; // zh | en
+    language: string; // zh | en | tw
     // assemblySize: string; // small | default | large
     themeConfig: ThemeConfigProp;
     isFullScreen: boolean;
@@ -21,6 +21,10 @@ export interface GlobalState {
     hasNewVersion: boolean;
     ignoreCaptcha: boolean;
     device: DeviceType;
+    lastFilePath: string;
+    currentDB: string;
+    showEntranceWarn: boolean;
+    defaultNetwork: string;
 }
 
 export interface MenuState {

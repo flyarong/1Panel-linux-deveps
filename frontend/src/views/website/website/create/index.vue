@@ -139,7 +139,7 @@
                                     </el-col>
                                 </el-row>
                             </el-form-item>
-                            <el-form-item :label="$t('app.name')" prop="appinstall.name">
+                            <el-form-item :label="$t('commons.table.name')" prop="appinstall.name">
                                 <el-input v-model.trim="website.appinstall.name"></el-input>
                             </el-form-item>
                             <Params
@@ -181,7 +181,11 @@
                                     <el-option :label="$t('website.unix')" :value="'unix'"></el-option>
                                 </el-select>
                             </el-form-item>
-                            <el-form-item v-if="website.proxyType === 'tcp'" :label="$t('website.port')" prop="port">
+                            <el-form-item
+                                v-if="website.proxyType === 'tcp'"
+                                :label="$t('commons.table.port')"
+                                prop="port"
+                            >
                                 <el-input v-model.number="website.port"></el-input>
                             </el-form-item>
                         </div>
@@ -219,7 +223,7 @@
                                     <el-select
                                         v-model="website.appinstall.memoryUnit"
                                         placeholder="Select"
-                                        style="width: 85px"
+                                        class="pre-select"
                                     >
                                         <el-option label="KB" value="K" />
                                         <el-option label="MB" value="M" />
@@ -264,8 +268,20 @@
                             </span>
                         </div>
                     </el-form-item>
-                    <el-form-item v-if="website.type === 'proxy'" :label="$t('website.proxyAddress')" prop="proxy">
-                        <el-input v-model="website.proxy" :placeholder="$t('website.proxyHelper')"></el-input>
+                    <el-form-item
+                        v-if="website.type === 'proxy'"
+                        :label="$t('website.proxyAddress')"
+                        prop="proxyAddress"
+                    >
+                        <el-input v-model="website.proxyAddress" :placeholder="$t('website.proxyHelper')">
+                            <template #prepend>
+                                <el-select v-model="website.proxyProtocol" class="pre-select">
+                                    <el-option label="http" value="http://" />
+                                    <el-option label="https" value="https://" />
+                                    <el-option :label="$t('website.other')" value="" />
+                                </el-select>
+                            </template>
+                        </el-input>
                     </el-form-item>
                     <el-form-item :label="$t('website.remark')" prop="remark">
                         <el-input v-model="website.remark"></el-input>
@@ -344,6 +360,8 @@ const website = ref({
     IPV6: false,
     proxyType: 'tcp',
     port: 9000,
+    proxyProtocol: 'http://',
+    proxyAddress: '',
 });
 const rules = ref<any>({
     primaryDomain: [Rules.domain],
@@ -352,7 +370,7 @@ const rules = ref<any>({
     webSiteGroupId: [Rules.requiredSelectBusiness],
     appInstallId: [Rules.requiredSelectBusiness],
     appType: [Rules.requiredInput],
-    proxy: [Rules.requiredInput],
+    proxyAddress: [Rules.requiredInput],
     runtimeID: [Rules.requiredSelectBusiness],
     appinstall: {
         name: [Rules.appName],
@@ -415,7 +433,7 @@ const changeType = (type: string) => {
 
 const checkNginxVersion = async () => {
     try {
-        const res = await CheckAppInstalled('openresty');
+        const res = await CheckAppInstalled('openresty', '');
         if (res.data && res.data.version) {
             if (!compareVersions(res.data.version, '1.21.4')) {
                 versionExist.value = false;
@@ -545,6 +563,9 @@ const submit = async (formEl: FormInstance | undefined) => {
                     loading.value = false;
                     preCheckRef.value.acceptParams({ items: res.data });
                 } else {
+                    if (website.value.type === 'proxy') {
+                        website.value.proxy = website.value.proxyProtocol + website.value.proxyAddress;
+                    }
                     CreateWebsite(website.value)
                         .then(() => {
                             MsgSuccess(i18n.global.t('commons.msg.createSuccess'));

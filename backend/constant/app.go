@@ -11,6 +11,8 @@ const (
 	DirNotFound = "DirNotFound"
 	Upgrading   = "Upgrading"
 	UpgradeErr  = "UpgradeErr"
+	PullErr     = "PullErr"
+	Rebuilding  = "Rebuilding"
 
 	ContainerPrefix = "1Panel-"
 
@@ -19,6 +21,7 @@ const (
 
 	AppOpenresty = "openresty"
 	AppMysql     = "mysql"
+	AppMariaDB   = "mariadb"
 	AppRedis     = "redis"
 
 	AppResourceLocal  = "local"

@@ -39,6 +39,8 @@ export namespace Website {
 
     export interface WebSiteSearch extends ReqPage {
         name: string;
+        orderBy: string;
+        order: string;
         websiteGroupId: number;
     }
 
@@ -80,11 +82,15 @@ export namespace Website {
         id: number;
         operate: string;
         logType: string;
+        page?: number;
+        pageSize?: number;
     }
 
     export interface WebSiteLog {
         enable: boolean;
         content: string;
+        end: boolean;
+        path: string;
     }
 
     export interface Domain {
@@ -158,6 +164,7 @@ export namespace Website {
         provider: string;
         websites?: Website.Website[];
         autoRenew: boolean;
+        acmeAccountId?: number;
     }
 
     export interface SSLCreate {
@@ -205,6 +212,7 @@ export namespace Website {
 
     export interface SSLReq {
         name?: string;
+        acmeAccountID?: string;
     }
 
     export interface HTTPSReq {
@@ -246,7 +254,6 @@ export namespace Website {
 
     export interface WafRes {
         enable: boolean;
-        filePath: string;
         content: string;
     }
 
@@ -254,6 +261,12 @@ export namespace Website {
         enable: boolean;
         websiteId: number;
         key: string;
+    }
+
+    export interface WafFileUpdate {
+        websiteId: number;
+        type: string;
+        content: string;
     }
 
     export interface DelReq {
@@ -334,6 +347,8 @@ export namespace Website {
         filePath?: string;
         replaces?: ProxReplace;
         content?: string;
+        proxyAddress?: string;
+        proxyProtocol?: string;
     }
 
     export interface ProxReplace {
@@ -384,5 +399,44 @@ export namespace Website {
 
     export interface LeechReq {
         websiteID: number;
+    }
+
+    export interface WebsiteReq {
+        websiteID: number;
+    }
+
+    export interface RedirectConfig {
+        operate: string;
+        websiteID: number;
+        domains?: string[];
+        enable: boolean;
+        name: string;
+        keepPath: boolean;
+        type: string;
+        redirect: string;
+        path?: string;
+        target: string;
+        redirectRoot?: boolean;
+        filePath?: string;
+        content?: string;
+    }
+
+    export interface RedirectFileUpdate {
+        websiteID: number;
+        name: string;
+        content: string;
+    }
+
+    export interface PHPVersionChange {
+        websiteID: number;
+        runtimeID: number;
+        retainConfig: boolean;
+    }
+
+    export interface DirConfig {
+        dirs: string[];
+        user: string;
+        userGroup: string;
+        msg: string;
     }
 }

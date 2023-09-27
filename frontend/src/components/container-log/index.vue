@@ -1,22 +1,22 @@
 <template>
     <div>
-        <div>
-            <el-select @change="searchLogs" style="width: 10%; float: left" v-model="logSearch.mode">
+        <div style="display: flex; flex-wrap: wrap">
+            <el-select @change="searchLogs" v-model="logSearch.mode" class="selectWidth">
                 <template #prefix>{{ $t('container.fetch') }}</template>
                 <el-option v-for="item in timeOptions" :key="item.label" :value="item.value" :label="item.label" />
             </el-select>
-            <el-input
-                @change="searchLogs"
-                class="margin-button"
-                style="width: 10%; float: left"
-                v-model.number="logSearch.tail"
-            >
-                <template #prefix>
-                    <div style="margin-left: 2px">{{ $t('container.lines') }}</div>
-                </template>
-            </el-input>
-            <div class="margin-button" style="float: left">
-                <el-checkbox border v-model="logSearch.isWatch">{{ $t('commons.button.watch') }}</el-checkbox>
+            <el-select @change="searchLogs" class="margin-button selectWidth" v-model.number="logSearch.tail">
+                <template #prefix>{{ $t('container.lines') }}</template>
+                <el-option :value="0" :label="$t('commons.table.all')" />
+                <el-option :value="100" :label="100" />
+                <el-option :value="200" :label="200" />
+                <el-option :value="500" :label="500" />
+                <el-option :value="1000" :label="1000" />
+            </el-select>
+            <div class="margin-button">
+                <el-checkbox border @change="searchLogs" v-model="logSearch.isWatch">
+                    {{ $t('commons.button.watch') }}
+                </el-checkbox>
             </div>
             <el-button class="margin-button" @click="onDownload" icon="Download">
                 {{ $t('file.download') }}
@@ -28,7 +28,7 @@
 
         <codemirror
             :autofocus="true"
-            placeholder="None data"
+            :placeholder="$t('commons.msg.noneData')"
             :indent-with-tab="true"
             :tabSize="4"
             style="margin-top: 10px; height: calc(100vh - 375px)"
@@ -47,7 +47,7 @@
 <script lang="ts" setup>
 import { cleanContainerLog } from '@/api/modules/container';
 import i18n from '@/lang';
-import { dateFormatForName } from '@/utils/util';
+import { dateFormatForName, downloadWithContent } from '@/utils/util';
 import { onBeforeUnmount, reactive, ref, shallowRef } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -92,7 +92,7 @@ const timeOptions = ref([
 ]);
 
 const searchLogs = async () => {
-    if (!Number(logSearch.tail) || Number(logSearch.tail) <= 0) {
+    if (Number(logSearch.tail) < 0) {
         MsgError(i18n.global.t('container.linesHelper'));
         return;
     }
@@ -115,13 +115,17 @@ const searchLogs = async () => {
 };
 
 const onDownload = async () => {
-    const downloadUrl = window.URL.createObjectURL(new Blob([logInfo.value]));
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = downloadUrl;
-    a.download = logSearch.container + '-' + dateFormatForName(new Date()) + '.log';
-    const event = new MouseEvent('click');
-    a.dispatchEvent(event);
+    let msg =
+        logSearch.tail === 0
+            ? i18n.global.t('container.downLogHelper1', [logSearch.container])
+            : i18n.global.t('container.downLogHelper2', [logSearch.container, logSearch.tail]);
+    ElMessageBox.confirm(msg, i18n.global.t('file.download'), {
+        confirmButtonText: i18n.global.t('commons.button.confirm'),
+        cancelButtonText: i18n.global.t('commons.button.cancel'),
+        type: 'info',
+    }).then(async () => {
+        downloadWithContent(logInfo.value, logSearch.container + '-' + dateFormatForName(new Date()) + '.log');
+    });
 };
 
 interface DialogProps {
@@ -139,7 +143,7 @@ const acceptParams = (props: DialogProps): void => {
 };
 
 const onClean = async () => {
-    ElMessageBox.confirm(i18n.global.t('commons.msg.clean'), i18n.global.t('container.cleanLog'), {
+    ElMessageBox.confirm(i18n.global.t('container.cleanLogHelper'), i18n.global.t('container.cleanLog'), {
         confirmButtonText: i18n.global.t('commons.button.confirm'),
         cancelButtonText: i18n.global.t('commons.button.cancel'),
         type: 'info',
@@ -162,5 +166,8 @@ defineExpose({
 <style scoped lang="scss">
 .margin-button {
     margin-left: 20px;
+}
+.selectWidth {
+    width: 150px;
 }
 </style>

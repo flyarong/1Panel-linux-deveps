@@ -23,12 +23,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func getDomain(domainStr string) (model.WebsiteDomain, error) {
+func getDomain(domainStr string, defaultPort int) (model.WebsiteDomain, error) {
 	domain := model.WebsiteDomain{}
 	domainArray := strings.Split(domainStr, ":")
 	if len(domainArray) == 1 {
 		domain.Domain = domainArray[0]
-		domain.Port = 80
+		domain.Port = defaultPort
 		return domain, nil
 	}
 	if len(domainArray) > 1 {
@@ -186,6 +186,7 @@ func configDefaultNginx(website *model.Website, domains []model.WebsiteDomain, a
 		return errors.New("nginx config is not valid")
 	}
 	server := servers[0]
+	server.DeleteListen("80")
 	var serverNames []string
 	for _, domain := range domains {
 		serverNames = append(serverNames, domain.Domain)
@@ -378,27 +379,33 @@ func applySSL(website model.Website, websiteSSL model.WebsiteSSL, req request.We
 	}
 	config := nginxFull.SiteConfig.Config
 	server := config.FindServers()[0]
-	server.UpdateListen("443", website.DefaultServer, "ssl")
+
+	httpPort := strconv.Itoa(nginxFull.Install.HttpPort)
+	httpsPort := strconv.Itoa(nginxFull.Install.HttpsPort)
+	httpPortIPV6 := "[::]:" + httpPort
+	httpsPortIPV6 := "[::]:" + httpsPort
+
+	server.UpdateListen(httpsPort, website.DefaultServer, "ssl", "http2")
 	if website.IPV6 {
-		server.UpdateListen("[::]:443", website.DefaultServer, "ssl")
+		server.UpdateListen(httpsPortIPV6, website.DefaultServer, "ssl", "http2")
 	}
 
 	switch req.HttpConfig {
 	case constant.HTTPSOnly:
-		server.RemoveListenByBind("80")
-		server.RemoveListenByBind("[::]:80")
+		server.RemoveListenByBind(httpPort)
+		server.RemoveListenByBind(httpPortIPV6)
 		server.RemoveDirective("if", []string{"($scheme"})
 	case constant.HTTPToHTTPS:
-		server.UpdateListen("80", website.DefaultServer)
+		server.UpdateListen(httpPort, website.DefaultServer)
 		if website.IPV6 {
-			server.UpdateListen("[::]:80", website.DefaultServer)
+			server.UpdateListen(httpPortIPV6, website.DefaultServer)
 		}
 		server.AddHTTP2HTTPS()
 	case constant.HTTPAlso:
-		server.UpdateListen("80", website.DefaultServer)
+		server.UpdateListen(httpPort, website.DefaultServer)
 		server.RemoveDirective("if", []string{"($scheme"})
 		if website.IPV6 {
-			server.UpdateListen("[::]:80", website.DefaultServer)
+			server.UpdateListen(httpPortIPV6, website.DefaultServer)
 		}
 	}
 
@@ -536,6 +543,10 @@ func opWebsite(website *model.Website, operate string) error {
 		if files.NewFileOp().Stat(absoluteRewritePath) {
 			server.UpdateDirective("include", []string{rewriteInclude})
 		}
+		rootIndex := path.Join("/www/sites", website.Alias, "index")
+		if website.SiteDir != "/" {
+			rootIndex = path.Join(rootIndex, website.SiteDir)
+		}
 		switch website.Type {
 		case constant.Deployment:
 			server.RemoveDirective("root", nil)
@@ -546,12 +557,11 @@ func opWebsite(website *model.Website, operate string) error {
 			proxy := fmt.Sprintf("http://127.0.0.1:%d", appInstall.HttpPort)
 			server.UpdateRootProxy([]string{proxy})
 		case constant.Static:
-			server.UpdateRoot(path.Join("/www/sites", website.Alias, "index"))
+			server.UpdateRoot(rootIndex)
 			server.UpdateRootLocation()
 		case constant.Proxy:
 			server.RemoveDirective("root", nil)
 		case constant.Runtime:
-			rootIndex := path.Join("/www/sites", website.Alias, "index")
 			server.UpdateRoot(rootIndex)
 			localPath := ""
 			if website.ProxyType == constant.RuntimeProxyUnix {
@@ -573,6 +583,44 @@ func opWebsite(website *model.Website, operate string) error {
 	return nginxCheckAndReload(nginxInstall.SiteConfig.OldContent, config.FilePath, nginxInstall.Install.ContainerName)
 }
 
+func changeIPV6(website model.Website, enable bool) error {
+	nginxFull, err := getNginxFull(&website)
+	if err != nil {
+		return nil
+	}
+	config := nginxFull.SiteConfig.Config
+	server := config.FindServers()[0]
+	listens := server.Listens
+	if enable {
+		for _, listen := range listens {
+			if strings.HasPrefix(listen.Bind, "[::]:") {
+				continue
+			}
+			exist := false
+			ipv6Bind := fmt.Sprintf("[::]:%s", listen.Bind)
+			for _, li := range listens {
+				if li.Bind == ipv6Bind {
+					exist = true
+					break
+				}
+			}
+			if !exist {
+				server.UpdateListen(ipv6Bind, false, listen.GetParameters()[1:]...)
+			}
+		}
+	} else {
+		for _, listen := range listens {
+			if strings.HasPrefix(listen.Bind, "[::]:") {
+				server.RemoveListenByBind(listen.Bind)
+			}
+		}
+	}
+	if err := nginx.WriteConfig(config, nginx.IndentedStyle); err != nil {
+		return err
+	}
+	return nginxCheckAndReload(nginxFull.SiteConfig.OldContent, config.FilePath, nginxFull.Install.ContainerName)
+}
+
 func checkIsLinkApp(website model.Website) bool {
 	if website.Type == constant.Deployment {
 		return true
@@ -585,7 +633,7 @@ func checkIsLinkApp(website model.Website) bool {
 }
 
 func chownRootDir(path string) error {
-	_, err := cmd.ExecWithTimeOut(fmt.Sprintf("chown -R 1000:1000 %s", path), 1*time.Second)
+	_, err := cmd.ExecWithTimeOut(fmt.Sprintf(`chown -R 1000:1000 "%s"`, path), 1*time.Second)
 	if err != nil {
 		return err
 	}

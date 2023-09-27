@@ -5,6 +5,7 @@ export namespace Setting {
         userName: string;
         password: string;
         email: string;
+        systemIP: string;
         systemVersion: string;
 
         sessionTimeout: number;
@@ -15,6 +16,7 @@ export namespace Setting {
         panelName: string;
         theme: string;
         language: string;
+        defaultNetwork: string;
 
         serverPort: number;
         ssl: string;
@@ -27,6 +29,7 @@ export namespace Setting {
         complexityVerification: string;
         mfaStatus: string;
         mfaSecret: string;
+        mfaInterval: string;
 
         monitorStatus: string;
         monitorInterval: number;
@@ -71,8 +74,10 @@ export namespace Setting {
     export interface MFABind {
         secret: string;
         code: string;
+        interval: string;
     }
     export interface SnapshotCreate {
+        id: number;
         from: string;
         description: string;
     }
@@ -102,6 +107,18 @@ export namespace Setting {
         rollbackStatus: string;
         rollbackMessage: string;
         lastRollbackedAt: string;
+    }
+    export interface SnapshotStatus {
+        panel: string;
+        panelInfo: string;
+        daemonJson: string;
+        appData: string;
+        panelData: string;
+        backupData: string;
+
+        compress: string;
+        size: string;
+        upload: string;
     }
     export interface UpgradeInfo {
         newVersion: string;

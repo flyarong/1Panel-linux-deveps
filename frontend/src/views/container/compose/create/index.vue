@@ -122,10 +122,10 @@ import { Rules } from '@/global/form-rules';
 import i18n from '@/lang';
 import { ElForm, ElMessageBox } from 'element-plus';
 import DrawerHeader from '@/components/drawer-header/index.vue';
-import { listComposeTemplate, testCompose, upCompose } from '@/api/modules/container';
+import { listComposeTemplate, loadContainerLog, testCompose, upCompose } from '@/api/modules/container';
 import { loadBaseDir } from '@/api/modules/setting';
-import { LoadFile } from '@/api/modules/files';
 import { formatImageStdout } from '@/utils/docker';
+import { MsgError } from '@/utils/message';
 
 const loading = ref();
 
@@ -157,7 +157,7 @@ const form = reactive({
 });
 const rules = reactive({
     name: [Rules.requiredInput, Rules.imageName],
-    path: [Rules.requiredSelect],
+    path: [Rules.requiredInput],
     template: [Rules.requiredSelect],
 });
 
@@ -238,6 +238,10 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     formEl.validate(async (valid) => {
         if (!valid) return;
+        if ((form.from === 'edit' || form.from === 'template') && form.file.length === 0) {
+            MsgError(i18n.global.t('container.contentEmpty'));
+            return;
+        }
         loading.value = true;
         logInfo.value = '';
         await testCompose(form)
@@ -246,9 +250,15 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
                 if (res.data) {
                     onCreating.value = true;
                     mode.value = 'log';
-                    const res = await upCompose(form);
-                    logInfo.value = '';
-                    loadLogs(res.data);
+                    await upCompose(form)
+                        .then((res) => {
+                            logInfo.value = '';
+                            loadLogs(res.data);
+                        })
+                        .catch(() => {
+                            loading.value = false;
+                            onCreating.value = false;
+                        });
                 }
             })
             .catch(() => {
@@ -257,9 +267,9 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
     });
 };
 
-const loadLogs = async (path: string) => {
+const loadLogs = async (name: string) => {
     timer = setInterval(async () => {
-        const res = await LoadFile({ path: path });
+        const res = await loadContainerLog('compose-create', name);
         logInfo.value = formatImageStdout(res.data);
         nextTick(() => {
             const state = view.value.state;

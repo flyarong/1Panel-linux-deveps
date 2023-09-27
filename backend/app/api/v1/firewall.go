@@ -38,6 +38,10 @@ func (b *BaseApi) SearchFirewallRule(c *gin.Context) {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
 	}
+	if err := global.VALID.Struct(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
 
 	total, list, err := firewallService.SearchWithPage(req)
 	if err != nil {
@@ -150,6 +154,31 @@ func (b *BaseApi) BatchOperateRule(c *gin.Context) {
 		return
 	}
 	if err := firewallService.BatchOperateRule(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Firewall
+// @Summary Update rule description
+// @Description 更新防火墙描述
+// @Accept json
+// @Param request body dto.UpdateFirewallDescription true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /hosts/firewall/update/description [post]
+func (b *BaseApi) UpdateFirewallDescription(c *gin.Context) {
+	var req dto.UpdateFirewallDescription
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := global.VALID.Struct(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := firewallService.UpdateDescription(req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
 	}

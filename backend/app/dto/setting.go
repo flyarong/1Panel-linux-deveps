@@ -5,6 +5,7 @@ import "time"
 type SettingInfo struct {
 	UserName      string `json:"userName"`
 	Email         string `json:"email"`
+	SystemIP      string `json:"systemIP"`
 	SystemVersion string `json:"systemVersion"`
 
 	SessionTimeout string `json:"sessionTimeout"`
@@ -12,10 +13,11 @@ type SettingInfo struct {
 	TimeZone       string `json:"timeZone"`
 	NtpSite        string `json:"ntpSite"`
 
-	Port      string `json:"port"`
-	PanelName string `json:"panelName"`
-	Theme     string `json:"theme"`
-	Language  string `json:"language"`
+	Port           string `json:"port"`
+	PanelName      string `json:"panelName"`
+	Theme          string `json:"theme"`
+	Language       string `json:"language"`
+	DefaultNetwork string `json:"defaultNetwork"`
 
 	ServerPort             string `json:"serverPort"`
 	SSL                    string `json:"ssl"`
@@ -28,6 +30,7 @@ type SettingInfo struct {
 	ComplexityVerification string `json:"complexityVerification"`
 	MFAStatus              string `json:"mfaStatus"`
 	MFASecret              string `json:"mfaSecret"`
+	MFAInterval            string `json:"mfaInterval"`
 
 	MonitorStatus    string `json:"monitorStatus"`
 	MonitorInterval  string `json:"monitorInterval"`
@@ -73,8 +76,22 @@ type PortUpdate struct {
 	ServerPort uint `json:"serverPort" validate:"required,number,max=65535,min=1"`
 }
 
+type SnapshotStatus struct {
+	Panel      string `json:"panel"`
+	PanelInfo  string `json:"panelInfo"`
+	DaemonJson string `json:"daemonJson"`
+	AppData    string `json:"appData"`
+	PanelData  string `json:"panelData"`
+	BackupData string `json:"backupData"`
+
+	Compress string `json:"compress"`
+	Size     string `json:"size"`
+	Upload   string `json:"upload"`
+}
+
 type SnapshotCreate struct {
-	From        string `json:"from" validate:"required,oneof=OSS S3 SFTP MINIO COS KODO"`
+	ID          uint   `json:"id"`
+	From        string `json:"from" validate:"required,oneof=OSS S3 SFTP MINIO COS KODO OneDrive"`
 	Description string `json:"description" validate:"max=256"`
 }
 type SnapshotRecover struct {

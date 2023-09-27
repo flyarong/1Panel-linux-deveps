@@ -42,7 +42,10 @@ func (c Client) ListAllContainers() ([]types.Container, error) {
 }
 
 func (c Client) ListContainersByName(names []string) ([]types.Container, error) {
-	var options types.ContainerListOptions
+	var (
+		options types.ContainerListOptions
+		res     []types.Container
+	)
 	options.All = true
 	if len(names) > 0 {
 		var array []filters.KeyValuePair
@@ -55,7 +58,12 @@ func (c Client) ListContainersByName(names []string) ([]types.Container, error) 
 	if err != nil {
 		return nil, err
 	}
-	return containers, nil
+	for _, container := range containers {
+		if container.Names[0] == "/"+names[0] {
+			res = append(res, container)
+		}
+	}
+	return res, nil
 }
 
 func (c Client) CreateNetwork(name string) error {
@@ -67,6 +75,26 @@ func (c Client) CreateNetwork(name string) error {
 
 func (c Client) DeleteImage(imageID string) error {
 	if _, err := c.cli.ImageRemove(context.Background(), imageID, types.ImageRemoveOptions{Force: true}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c Client) InspectContainer(containerID string) (types.ContainerJSON, error) {
+	return c.cli.ContainerInspect(context.Background(), containerID)
+}
+
+func (c Client) PullImage(imageName string, force bool) error {
+	if !force {
+		exist, err := c.CheckImageExist(imageName)
+		if err != nil {
+			return err
+		}
+		if exist {
+			return nil
+		}
+	}
+	if _, err := c.cli.ImagePull(context.Background(), imageName, types.ImagePullOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -85,6 +113,18 @@ func (c Client) GetImageIDByName(imageName string) (string, error) {
 		return list[0].ID, nil
 	}
 	return "", nil
+}
+
+func (c Client) CheckImageExist(imageName string) (bool, error) {
+	filter := filters.NewArgs()
+	filter.Add("reference", imageName)
+	list, err := c.cli.ImageList(context.Background(), types.ImageListOptions{
+		Filters: filter,
+	})
+	if err != nil {
+		return false, err
+	}
+	return len(list) > 0, nil
 }
 
 func (c Client) NetworkExist(name string) bool {

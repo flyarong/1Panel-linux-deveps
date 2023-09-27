@@ -53,6 +53,7 @@ func (u *ImageService) Page(req dto.SearchWithPage) (int64, interface{}, error) 
 	if err != nil {
 		return 0, nil, err
 	}
+	containers, _ := client.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if len(req.Info) != 0 {
 		length, count := len(list), 0
 		for count < length {
@@ -77,6 +78,7 @@ func (u *ImageService) Page(req dto.SearchWithPage) (int64, interface{}, error) 
 		records = append(records, dto.ImageInfo{
 			ID:        image.ID,
 			Tags:      image.RepoTags,
+			IsUsed:    checkUsed(image.ID, containers),
 			CreatedAt: time.Unix(image.Created, 0),
 			Size:      size,
 		})
@@ -156,10 +158,15 @@ func (u *ImageService) ImageBuild(req dto.ImageBuild) (string, error) {
 		Remove:     true,
 		Labels:     stringsToMap(req.Tags),
 	}
-	logName := fmt.Sprintf("%s/build.log", req.Dockerfile)
 
-	pathItem := logName
-	file, err := os.OpenFile(pathItem, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	dockerLogDir := path.Join(global.CONF.System.TmpDir, "docker_logs")
+	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
+		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
+			return "", err
+		}
+	}
+	logItem := fmt.Sprintf("%s/image_build_%s_%s.log", dockerLogDir, strings.ReplaceAll(req.Name, ":", "_"), time.Now().Format("20060102150405"))
+	file, err := os.OpenFile(logItem, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return "", err
 	}
@@ -192,7 +199,7 @@ func (u *ImageService) ImageBuild(req dto.ImageBuild) (string, error) {
 		_, _ = file.WriteString("image build successful!")
 	}()
 
-	return logName, nil
+	return path.Base(logItem), nil
 }
 
 func (u *ImageService) ImagePull(req dto.ImagePull) (string, error) {
@@ -200,15 +207,15 @@ func (u *ImageService) ImagePull(req dto.ImagePull) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dockerLogDir := global.CONF.System.TmpDir + "/docker_logs"
+	dockerLogDir := path.Join(global.CONF.System.TmpDir, "docker_logs")
 	if _, err := os.Stat(dockerLogDir); err != nil && os.IsNotExist(err) {
 		if err = os.MkdirAll(dockerLogDir, os.ModePerm); err != nil {
 			return "", err
 		}
 	}
 	imageItemName := strings.ReplaceAll(path.Base(req.ImageName), ":", "_")
-	pathItem := fmt.Sprintf("%s/image_pull_%s_%s.log", dockerLogDir, imageItemName, time.Now().Format("20060102150405"))
-	file, err := os.OpenFile(pathItem, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	logItem := fmt.Sprintf("%s/image_pull_%s_%s.log", dockerLogDir, imageItemName, time.Now().Format("20060102150405"))
+	file, err := os.OpenFile(logItem, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return "", err
 	}
@@ -224,7 +231,7 @@ func (u *ImageService) ImagePull(req dto.ImagePull) (string, error) {
 			global.LOG.Infof("pull image %s successful!", req.ImageName)
 			_, _ = io.Copy(file, out)
 		}()
-		return pathItem, nil
+		return path.Base(logItem), nil
 	}
 	repo, err := imageRepoRepo.Get(commonRepo.WithByID(req.RepoID))
 	if err != nil {
@@ -257,7 +264,7 @@ func (u *ImageService) ImagePull(req dto.ImagePull) (string, error) {
 		_, _ = io.Copy(file, out)
 		_, _ = file.WriteString("image pull successful!")
 	}()
-	return pathItem, nil
+	return path.Base(logItem), nil
 }
 
 func (u *ImageService) ImageLoad(req dto.ImageLoad) error {
@@ -354,8 +361,8 @@ func (u *ImageService) ImagePush(req dto.ImagePush) (string, error) {
 		}
 	}
 	imageItemName := strings.ReplaceAll(path.Base(req.Name), ":", "_")
-	pathItem := fmt.Sprintf("%s/image_push_%s_%s.log", dockerLogDir, imageItemName, time.Now().Format("20060102150405"))
-	file, err := os.OpenFile(pathItem, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+	logItem := fmt.Sprintf("%s/image_push_%s_%s.log", dockerLogDir, imageItemName, time.Now().Format("20060102150405"))
+	file, err := os.OpenFile(logItem, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return "", err
 	}
@@ -373,7 +380,7 @@ func (u *ImageService) ImagePush(req dto.ImagePush) (string, error) {
 		_, _ = file.WriteString("image push successful!")
 	}()
 
-	return pathItem, nil
+	return path.Base(logItem), nil
 }
 
 func (u *ImageService) ImageRemove(req dto.BatchDelete) error {
@@ -409,4 +416,13 @@ func formatFileSize(fileSize int64) (size string) {
 	} else {
 		return fmt.Sprintf("%.2fEB", float64(fileSize)/float64(1024*1024*1024*1024*1024))
 	}
+}
+
+func checkUsed(imageID string, containers []types.Container) bool {
+	for _, container := range containers {
+		if container.ImageID == imageID {
+			return true
+		}
+	}
+	return false
 }

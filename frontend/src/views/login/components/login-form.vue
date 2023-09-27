@@ -39,8 +39,26 @@
         <div v-else>
             <div class="login-form">
                 <el-form ref="loginFormRef" :model="loginForm" size="default" :rules="loginRules">
-                    <div class="login-title">{{ $t('commons.button.login') }}</div>
-
+                    <div class="login-form-header">
+                        <div class="title">{{ $t('commons.button.login') }}</div>
+                        <div>
+                            <el-dropdown @command="handleCommand">
+                                <span>
+                                    {{ dropdownText }}
+                                    <el-icon>
+                                        <arrow-down />
+                                    </el-icon>
+                                </span>
+                                <template #dropdown>
+                                    <el-dropdown-menu>
+                                        <el-dropdown-item command="zh">中文(简体)</el-dropdown-item>
+                                        <el-dropdown-item command="tw">中文(繁體)</el-dropdown-item>
+                                        <el-dropdown-item command="en">English</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </template>
+                            </el-dropdown>
+                        </div>
+                    </div>
                     <el-form-item prop="name" class="no-border">
                         <el-input
                             v-model.trim="loginForm.name"
@@ -130,17 +148,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import type { ElForm } from 'element-plus';
-import { loginApi, getCaptcha, mfaLoginApi, checkIsDemo } from '@/api/modules/auth';
+import { loginApi, getCaptcha, mfaLoginApi, checkIsDemo, getLanguage } from '@/api/modules/auth';
 import { GlobalStore } from '@/store';
 import { MenuStore } from '@/store/modules/menu';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
+import { useI18n } from 'vue-i18n';
 
 const globalStore = GlobalStore();
 const menuStore = MenuStore();
+const usei18n = useI18n();
 
 const errAuthInfo = ref(false);
 const errCaptcha = ref(false);
@@ -160,10 +180,12 @@ const loginForm = reactive({
     captchaID: '',
     authMethod: '',
     agreeLicense: false,
+    language: 'zh',
 });
+
 const loginRules = reactive({
-    name: [{ required: true, message: i18n.global.t('commons.rule.username'), trigger: 'blur' }],
-    password: [{ required: true, message: i18n.global.t('commons.rule.password'), trigger: 'blur' }],
+    name: computed(() => [{ required: true, message: i18n.global.t('commons.rule.username'), trigger: 'blur' }]),
+    password: computed(() => [{ required: true, message: i18n.global.t('commons.rule.password'), trigger: 'blur' }]),
 });
 
 const mfaButtonFocused = ref();
@@ -183,8 +205,21 @@ const captcha = reactive({
 
 const loading = ref<boolean>(false);
 const mfaShow = ref<boolean>(false);
-
 const router = useRouter();
+const dropdownText = ref('中文(简体)');
+
+function handleCommand(command: string) {
+    loginForm.language = command;
+    usei18n.locale.value = command;
+    globalStore.updateLanguage(command);
+    if (command === 'zh') {
+        dropdownText.value = '中文(简体)';
+    } else if (command === 'en') {
+        dropdownText.value = 'English';
+    } else if (command === 'tw') {
+        dropdownText.value = '中文(繁體)';
+    }
+}
 
 const login = (formEl: FormInstance | undefined) => {
     if (!formEl) return;
@@ -197,6 +232,7 @@ const login = (formEl: FormInstance | undefined) => {
             captcha: loginForm.captcha,
             captchaID: captcha.captchaID,
             authMethod: '',
+            language: loginForm.language,
         };
         if (!globalStore.ignoreCaptcha && requestLoginForm.captcha == '') {
             errCaptcha.value = true;
@@ -269,8 +305,17 @@ const checkIsSystemDemo = async () => {
     isDemo.value = res.data;
 };
 
+const loadLanguage = async () => {
+    try {
+        const res = await getLanguage();
+        loginForm.language = res.data;
+        handleCommand(res.data);
+    } catch (error) {}
+};
+
 onMounted(() => {
     loginVerify();
+    loadLanguage();
     document.title = globalStore.themeConfig.panelName;
     loginForm.agreeLicense = globalStore.agreeLicense;
     checkIsSystemDemo();
@@ -378,6 +423,24 @@ onMounted(() => {
         text-align: center;
         span {
             color: red;
+        }
+    }
+
+    .login-form-header {
+        display: flex;
+        margin-bottom: 30px;
+        justify-content: space-between;
+        align-items: center;
+        .title {
+            color: #646a73;
+            font-size: 25px;
+        }
+    }
+
+    .l-select {
+        :deep(.el-input__wrapper) {
+            background: none !important;
+            box-shadow: none !important;
         }
     }
 }

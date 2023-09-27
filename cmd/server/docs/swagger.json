@@ -62,7 +62,7 @@
                 "summary": "Get app list update",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -144,6 +144,31 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/response.AppDetailDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/apps/ingored": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取忽略的应用版本",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "App"
+                ],
+                "summary": "Get Ignore App",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.IgnoredApp"
                         }
                     }
                 }
@@ -238,14 +263,17 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.AppVersion"
+                            }
                         }
                     }
                 }
             }
         },
-        "/apps/installed/check/:key": {
-            "get": {
+        "/apps/installed/check": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -261,11 +289,13 @@
                 "summary": "Check app installed",
                 "parameters": [
                     {
-                        "type": "string",
                         "description": "request",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.AppInstalledInfo"
+                        }
                     }
                 ],
                 "responses": {
@@ -278,8 +308,8 @@
                 }
             }
         },
-        "/apps/installed/conf/:key": {
-            "get": {
+        "/apps/installed/conf": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -295,11 +325,13 @@
                 "summary": "Search default config by key",
                 "parameters": [
                     {
-                        "type": "string",
                         "description": "request",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
                     }
                 ],
                 "responses": {
@@ -329,11 +361,13 @@
                 "summary": "Search app password by key",
                 "parameters": [
                     {
-                        "type": "string",
                         "description": "request",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
                     }
                 ],
                 "responses": {
@@ -374,14 +408,87 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.AppResource"
+                            }
                         }
                     }
                 }
             }
         },
-        "/apps/installed/loadport/:key": {
+        "/apps/installed/ignore": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "忽略应用升级版本",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "App"
+                ],
+                "summary": "ignore App Update",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.AppInstalledIgnoreUpgrade"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "installId"
+                    ],
+                    "formatEN": "Application param update [installId]",
+                    "formatZH": "忽略应用 [installId] 版本升级",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/apps/installed/list": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取已安装应用列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "App"
+                ],
+                "summary": "List app installed",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.AppInstallInfo"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/apps/installed/loadport": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -397,11 +504,13 @@
                 "summary": "Search app port by key",
                 "parameters": [
                     {
-                        "type": "string",
                         "description": "request",
-                        "name": "key",
-                        "in": "path",
-                        "required": true
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
                     }
                 ],
                 "responses": {
@@ -442,7 +551,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -544,7 +653,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -586,7 +695,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -609,14 +718,14 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "获取已安装应用列表",
+                "description": "分页获取已安装应用列表",
                 "consumes": [
                     "application/json"
                 ],
                 "tags": [
                     "App"
                 ],
-                "summary": "List app installed",
+                "summary": "Page app installed",
                 "parameters": [
                     {
                         "description": "request",
@@ -630,7 +739,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -649,7 +758,7 @@
                 "summary": "Sync app installed",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -689,7 +798,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -722,7 +831,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.AppService"
+                            }
                         }
                     }
                 }
@@ -742,7 +854,7 @@
                 "summary": "Sync app list",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -780,7 +892,7 @@
                 "summary": "Check System isDemo",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -794,7 +906,21 @@
                 "summary": "Load safety status",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/auth/language": {
+            "get": {
+                "description": "获取系统语言设置",
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Load System Language",
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -810,6 +936,13 @@
                 ],
                 "summary": "User login",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "安全入口 base64 加密串",
+                        "name": "EntranceCode",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "request",
                         "name": "request",
@@ -844,7 +977,7 @@
                 "summary": "User logout",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -875,6 +1008,12 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.UserLoginInfo"
+                        },
+                        "headers": {
+                            "EntranceCode": {
+                                "type": "string",
+                                "description": "安全入口"
+                            }
                         }
                     }
                 }
@@ -908,7 +1047,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -951,7 +1090,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -993,7 +1132,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1035,7 +1174,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1114,7 +1253,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1156,7 +1295,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1248,7 +1387,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1288,7 +1427,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1328,7 +1467,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1386,7 +1525,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Options"
+                            }
                         }
                     }
                 }
@@ -1465,7 +1607,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1618,7 +1760,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1660,7 +1802,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1743,7 +1885,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1858,7 +2000,116 @@
                 }
             }
         },
+        "/containers/list": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取容器名称",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Container"
+                ],
+                "summary": "List containers",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/containers/list/stats": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取容器列表资源占用",
+                "summary": "Load container stats",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ContainerListStats"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/containers/load/log": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取容器操作日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Container"
+                ],
+                "summary": "Load container log",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/containers/network": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取容器网络列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Container Network"
+                ],
+                "summary": "List networks",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Options"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -1886,7 +2137,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -1928,7 +2179,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2009,7 +2260,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2089,7 +2340,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ImageRepoOption"
+                            }
                         }
                     }
                 }
@@ -2124,7 +2378,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2169,7 +2423,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2262,7 +2516,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -2298,7 +2552,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2426,7 +2680,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.ContainterStats"
+                            "$ref": "#/definitions/dto.ContainerStats"
                         }
                     }
                 }
@@ -2451,7 +2705,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ComposeTemplateInfo"
+                            }
                         }
                     }
                 }
@@ -2483,7 +2740,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2525,7 +2782,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2615,7 +2872,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2666,7 +2923,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2709,7 +2966,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2725,6 +2982,35 @@
             }
         },
         "/containers/volume": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取容器存储卷列表",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Container Volume"
+                ],
+                "summary": "List volumes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Options"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -2752,7 +3038,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2794,7 +3080,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2809,43 +3095,6 @@
             }
         },
         "/containers/volume/search": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "获取容器存储卷列表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Container Volume"
-                ],
-                "summary": "List volumes",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.PageInfo"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.PageResult"
-                        }
-                    }
-                }
-            },
             "post": {
                 "security": [
                     {
@@ -2884,6 +3133,39 @@
                 }
             }
         },
+        "/cronjob/record/log": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取计划任务记录日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cronjob"
+                ],
+                "summary": "Load Cronjob record log",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperateByID"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/cronjobs": {
             "post": {
                 "security": [
@@ -2912,7 +3194,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -2955,7 +3237,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3006,7 +3288,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3057,7 +3339,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3108,7 +3390,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3231,7 +3513,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3283,7 +3565,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3416,7 +3698,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3431,17 +3713,31 @@
             }
         },
         "/databases/baseinfo": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
                 "description": "获取 mysql 基础信息",
+                "consumes": [
+                    "application/json"
+                ],
                 "tags": [
                     "Database Mysql"
                 ],
                 "summary": "Load mysql base info",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -3480,7 +3776,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3531,7 +3827,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3582,7 +3878,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3590,6 +3886,268 @@
                     "bodyKeys": [],
                     "formatEN": "update the mysql database configuration information",
                     "formatZH": "更新 mysql 数据库配置信息",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/databases/db": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建远程数据库",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Create database",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DatabaseCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "name",
+                        "type"
+                    ],
+                    "formatEN": "create database [name][type]",
+                    "formatZH": "创建远程数据库 [name][type]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/databases/db/:name": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取远程数据库",
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Get databases",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DatabaseInfo"
+                        }
+                    }
+                }
+            }
+        },
+        "/databases/db/check": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "检测远程数据库连接性",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Check database",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DatabaseCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "name",
+                        "type"
+                    ],
+                    "formatEN": "check if database [name][type] is connectable",
+                    "formatZH": "检测远程数据库 [name][type] 连接性",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/databases/db/del": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除远程数据库",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Delete database",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperateByID"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [
+                        {
+                            "db": "databases",
+                            "input_column": "id",
+                            "input_value": "ids",
+                            "isList": true,
+                            "output_column": "name",
+                            "output_value": "names"
+                        }
+                    ],
+                    "bodyKeys": [
+                        "ids"
+                    ],
+                    "formatEN": "delete database [names]",
+                    "formatZH": "删除远程数据库 [names]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/databases/db/list/:type": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取远程数据库列表",
+                "tags": [
+                    "Database"
+                ],
+                "summary": "List databases",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.DatabaseOption"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/databases/db/search": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取远程数据库列表分页",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Page databases",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DatabaseSearch"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PageResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/databases/db/update": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新远程数据库",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Update database",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DatabaseUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "name"
+                    ],
+                    "formatEN": "update database [name]",
+                    "formatZH": "更新远程数据库 [name]",
                     "paramKeys": []
                 }
             }
@@ -3622,7 +4180,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3667,7 +4225,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.OperateByID"
+                            "$ref": "#/definitions/dto.MysqlDBDeleteCheck"
                         }
                     }
                 ],
@@ -3675,7 +4233,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -3709,7 +4270,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3730,6 +4291,68 @@
                     "formatEN": "The description of the mysql database [name] is modified =\u003e [description]",
                     "formatZH": "mysql 数据库 [name] 描述信息修改 [description]",
                     "paramKeys": []
+                }
+            }
+        },
+        "/databases/load": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "从服务器获取",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database Mysql"
+                ],
+                "summary": "Load mysql database from remote",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.MysqlLoadDB"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/databases/load/file": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取数据库文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Database"
+                ],
+                "summary": "Load Database file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
                 }
             }
         },
@@ -3763,7 +4386,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.MysqlOption"
+                            }
                         }
                     }
                 }
@@ -3855,7 +4481,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3895,7 +4521,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3929,13 +4555,13 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ChangeDBInfo"
+                            "$ref": "#/definitions/dto.ChangeRedisPass"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -3997,7 +4623,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4032,17 +4658,31 @@
             }
         },
         "/databases/remote": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
                 "description": "获取 mysql 远程访问权限",
+                "consumes": [
+                    "application/json"
+                ],
                 "tags": [
                     "Database Mysql"
                 ],
                 "summary": "Load mysql remote access",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -4075,7 +4715,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.SearchWithPage"
+                            "$ref": "#/definitions/dto.MysqlDBSearch"
                         }
                     }
                 ],
@@ -4090,17 +4730,31 @@
             }
         },
         "/databases/status": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
                 "description": "获取 mysql 状态信息",
+                "consumes": [
+                    "application/json"
+                ],
                 "tags": [
                     "Database Mysql"
                 ],
                 "summary": "Load mysql status info",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -4112,17 +4766,31 @@
             }
         },
         "/databases/variables": {
-            "get": {
+            "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
                 "description": "获取 mysql 性能参数信息",
+                "consumes": [
+                    "application/json"
+                ],
                 "tags": [
                     "Database Mysql"
                 ],
                 "summary": "Load mysql variables info",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperationWithNameAndType"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -4161,7 +4829,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4201,7 +4869,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4243,7 +4911,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4285,7 +4953,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4327,7 +4995,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4364,7 +5032,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -4397,7 +5065,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4484,7 +5152,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4526,7 +5194,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4568,7 +5236,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4579,84 +5247,6 @@
                     "formatEN": "Download file [name]",
                     "formatZH": "下载文件 [name]",
                     "paramKeys": []
-                }
-            }
-        },
-        "/files/download/bypath": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "下载指定文件",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Download file with path",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.FilePath"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": ""
-                    }
-                },
-                "x-panel-log": {
-                    "BeforeFuntions": [],
-                    "bodyKeys": [
-                        "path"
-                    ],
-                    "formatEN": "Download file [path]",
-                    "formatZH": "下载文件 [path]",
-                    "paramKeys": []
-                }
-            }
-        },
-        "/files/loadfile": {
-            "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "读取文件",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "File"
-                ],
-                "summary": "Read file",
-                "parameters": [
-                    {
-                        "description": "request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.FilePath"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
                 }
             }
         },
@@ -4688,7 +5278,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4731,7 +5321,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4774,7 +5364,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4818,7 +5408,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4861,7 +5451,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4939,7 +5529,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -4983,7 +5573,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.FileTree"
+                            }
                         }
                     }
                 }
@@ -5012,7 +5605,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5056,7 +5649,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.FileInfo"
+                            }
                         }
                     }
                 }
@@ -5090,7 +5686,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5134,7 +5730,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5177,7 +5773,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5275,7 +5871,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5304,7 +5900,7 @@
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Update host ssh setting by file",
+                "summary": "Update host SSH setting by file",
                 "parameters": [
                     {
                         "description": "request",
@@ -5318,7 +5914,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5330,6 +5926,25 @@
                 }
             }
         },
+        "/host/ssh/conf": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取 SSH 配置文件",
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Load host SSH conf",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/host/ssh/generate": {
             "post": {
                 "security": [
@@ -5337,14 +5952,14 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "生成 ssh 密钥",
+                "description": "生成 SSH 密钥",
                 "consumes": [
                     "application/json"
                 ],
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Generate host ssh secret",
+                "summary": "Generate host SSH secret",
                 "parameters": [
                     {
                         "description": "request",
@@ -5358,7 +5973,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5370,21 +5985,21 @@
                 }
             }
         },
-        "/host/ssh/logs": {
+        "/host/ssh/log": {
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "获取 ssh 登录日志",
+                "description": "获取 SSH 登录日志",
                 "consumes": [
                     "application/json"
                 ],
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Load host ssh logs",
+                "summary": "Load host SSH logs",
                 "parameters": [
                     {
                         "description": "request",
@@ -5406,6 +6021,45 @@
                 }
             }
         },
+        "/host/ssh/log/analysis": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "分析 SSH 登录日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SSH"
+                ],
+                "summary": "Analysis host SSH logs",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SearchForAnalysis"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.SSHLogAnalysis"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/host/ssh/operate": {
             "post": {
                 "security": [
@@ -5420,7 +6074,7 @@
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Operate ssh",
+                "summary": "Operate SSH",
                 "parameters": [
                     {
                         "description": "request",
@@ -5455,7 +6109,7 @@
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Load host ssh setting info",
+                "summary": "Load host SSH setting info",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -5473,14 +6127,14 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "获取 ssh 密钥",
+                "description": "获取 SSH 密钥",
                 "consumes": [
                     "application/json"
                 ],
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Load host ssh secret",
+                "summary": "Load host SSH secret",
                 "parameters": [
                     {
                         "description": "request",
@@ -5494,7 +6148,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -5513,7 +6167,7 @@
                 "tags": [
                     "SSH"
                 ],
-                "summary": "Update host ssh setting",
+                "summary": "Update host SSH setting",
                 "parameters": [
                     {
                         "description": "request",
@@ -5527,7 +6181,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5538,6 +6192,303 @@
                     ],
                     "formatEN": "update SSH setting [key] =\u003e [value]",
                     "formatZH": "修改 SSH 配置 [key] =\u003e [value]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/host/tool": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取主机工具状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Get tool",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.HostToolReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/tool/config": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "操作主机工具配置文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Get tool config",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.HostToolConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "operate"
+                    ],
+                    "formatEN": "[operate] tool config",
+                    "formatZH": "[operate] 主机工具配置文件 ",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/host/tool/create": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "创建主机工具配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Create Host tool Config",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.HostToolCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "type"
+                    ],
+                    "formatEN": "create [type] config",
+                    "formatZH": "创建 [type] 配置",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/host/tool/log": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取主机工具日志",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Get tool",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.HostToolLogReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/host/tool/operate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "操作主机工具",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Operate tool",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.HostToolReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "operate",
+                        "type"
+                    ],
+                    "formatEN": "[operate] [type]",
+                    "formatZH": "[operate] [type] ",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/host/tool/supervisor/process": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取 Supervisor 进程配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Get Supervisor process config",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "操作守护进程",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Create Supervisor process",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.SupervisorProcessConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "operate"
+                    ],
+                    "formatEN": "[operate] process",
+                    "formatZH": "[operate] 守护进程 ",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/host/tool/supervisor/process/file": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "操作 Supervisor 进程文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Host tool"
+                ],
+                "summary": "Get Supervisor process config",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.SupervisorProcessFileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "operate"
+                    ],
+                    "formatEN": "[operate] Supervisor Process Config file",
+                    "formatZH": "[operate] Supervisor 进程文件 ",
                     "paramKeys": []
                 }
             }
@@ -5570,7 +6521,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5582,40 +6533,6 @@
                     "formatEN": "create host [name][addr]",
                     "formatZH": "创建主机 [name][addr]",
                     "paramKeys": []
-                }
-            }
-        },
-        "/hosts/:id": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "加载主机信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Host"
-                ],
-                "summary": "Load host info",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "request",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.HostInfo"
-                        }
-                    }
                 }
             }
         },
@@ -5667,7 +6584,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5710,7 +6627,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5797,7 +6714,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5839,7 +6756,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -5912,7 +6829,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -5945,7 +6862,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6033,7 +6950,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6112,7 +7029,40 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/hosts/firewall/update/description": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新防火墙描述",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Firewall"
+                ],
+                "summary": "Update rule description",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateFirewallDescription"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -6145,7 +7095,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -6180,7 +7130,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.HostTree"
+                            }
                         }
                     }
                 }
@@ -6248,7 +7201,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -6283,7 +7236,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.HostTree"
+                            }
                         }
                     }
                 }
@@ -6317,7 +7273,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6360,7 +7316,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6501,6 +7457,44 @@
                 }
             }
         },
+        "/logs/system": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取系统日志",
+                "tags": [
+                    "Logs"
+                ],
+                "summary": "Load system logs",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/logs/system/files": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取系统日志文件列表",
+                "tags": [
+                    "Logs"
+                ],
+                "summary": "Load system log files",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/openResty": {
             "get": {
                 "security": [
@@ -6551,7 +7545,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6593,7 +7587,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.NginxParam"
+                            }
                         }
                     }
                 }
@@ -6649,7 +7646,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6668,6 +7665,45 @@
                     ],
                     "formatEN": "Update nginx conf [domain]",
                     "formatZH": "更新 nginx 配置 [domain]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/process/stop": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "停止进程",
+                "tags": [
+                    "Process"
+                ],
+                "summary": "Stop Process",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.ProcessReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "PID"
+                    ],
+                    "formatEN": "结束进程 [PID]",
+                    "formatZH": "结束进程 [PID]",
                     "paramKeys": []
                 }
             }
@@ -6700,7 +7736,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6740,7 +7776,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -6773,7 +7809,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6783,6 +7819,81 @@
                     ],
                     "formatEN": "Delete website [name]",
                     "formatZH": "删除网站 [name]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/runtimes/node/package": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取 Node 项目的 scripts",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Runtime"
+                ],
+                "summary": "Get Node package scripts",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.NodePackageReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/runtimes/operate": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "操作运行环境",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Runtime"
+                ],
+                "summary": "Operate runtime",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.RuntimeOperate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [],
+                    "bodyKeys": [
+                        "id"
+                    ],
+                    "formatEN": "Operate runtime [name]",
+                    "formatZH": "操作运行环境 [name]",
                     "paramKeys": []
                 }
             }
@@ -6815,7 +7926,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -6848,7 +7959,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6890,7 +8001,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6932,7 +8043,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6976,7 +8087,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -6996,6 +8107,31 @@
                     "formatEN": "delete backup account [types]",
                     "formatZH": "删除备份账号 [types]",
                     "paramKeys": []
+                }
+            }
+        },
+        "/settings/backup/onedrive": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取 OneDrive 信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Backup Account"
+                ],
+                "summary": "Load OneDrive info",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
@@ -7027,7 +8163,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7078,7 +8214,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7121,7 +8257,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -7154,7 +8290,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7199,7 +8335,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7232,7 +8368,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.BackupInfo"
+                            }
                         }
                     }
                 }
@@ -7266,7 +8405,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -7302,7 +8444,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -7336,7 +8481,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7400,7 +8545,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7412,7 +8557,7 @@
                 }
             }
         },
-        "/settings/mfa": {
+        "/settings/mfa/:interval": {
             "get": {
                 "security": [
                     {
@@ -7424,6 +8569,15 @@
                     "System Setting"
                 ],
                 "summary": "Load mfa info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "request",
+                        "name": "interval",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -7462,7 +8616,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7488,7 +8642,7 @@
                 "summary": "Clean monitor datas",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7528,7 +8682,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7568,7 +8722,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7618,7 +8772,7 @@
                 "summary": "Load system available status",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -7651,7 +8805,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7694,7 +8848,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7745,7 +8899,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7797,7 +8951,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7840,7 +8994,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7891,7 +9045,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -7950,6 +9104,58 @@
                 }
             }
         },
+        "/settings/snapshot/status": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取快照状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System Setting"
+                ],
+                "summary": "Load Snapshot status",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.OperateByID"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/settings/ssl/download": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "下载证书",
+                "tags": [
+                    "System Setting"
+                ],
+                "summary": "Download system cert",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/settings/ssl/info": {
             "get": {
                 "security": [
@@ -8000,7 +9206,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8028,7 +9234,7 @@
                 "summary": "Load time zone options",
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -8106,7 +9312,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8149,7 +9355,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             },
@@ -8180,7 +9386,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8222,7 +9428,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8463,7 +9669,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8550,7 +9756,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -8583,7 +9789,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -8618,7 +9824,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.WebsitePreInstallCheck"
+                            }
                         }
                     }
                 }
@@ -8688,7 +9897,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8739,7 +9948,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8791,7 +10000,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8811,6 +10020,39 @@
                     "formatEN": "Delete website [domain]",
                     "formatZH": "删除网站 [domain]",
                     "paramKeys": []
+                }
+            }
+        },
+        "/websites/dir": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取网站目录配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Website"
+                ],
+                "summary": "Get website dir",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.WebsiteCommonReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
                 }
             }
         },
@@ -8842,7 +10084,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8893,7 +10135,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8944,7 +10186,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -8986,7 +10228,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9073,7 +10315,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9160,7 +10402,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.WebsiteDomain"
+                            }
                         }
                     }
                 }
@@ -9194,7 +10439,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9245,7 +10490,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -9278,7 +10523,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -9299,7 +10544,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.WebsiteDTO"
+                            }
                         }
                     }
                 }
@@ -9388,7 +10636,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9439,7 +10687,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9479,7 +10727,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -9513,7 +10764,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9577,7 +10828,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "更新 php 配置",
+                "description": "更新 php 配置文件",
                 "consumes": [
                     "application/json"
                 ],
@@ -9598,7 +10849,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9617,6 +10868,57 @@
                     ],
                     "formatEN": "Nginx conf update [domain]",
                     "formatZH": "php 配置修改 [domain]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/websites/php/version": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "变更 php 版本",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Website PHP"
+                ],
+                "summary": "Update php version",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.WebsitePHPVersionReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [
+                        {
+                            "db": "websites",
+                            "input_column": "id",
+                            "input_value": "websiteId",
+                            "isList": false,
+                            "output_column": "primary_domain",
+                            "output_value": "domain"
+                        }
+                    ],
+                    "bodyKeys": [
+                        "websiteId"
+                    ],
+                    "formatEN": "php version update [domain]",
+                    "formatZH": "php 版本变更 [domain]",
                     "paramKeys": []
                 }
             }
@@ -9649,7 +10951,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -9682,7 +10984,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9733,7 +11035,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9752,6 +11054,141 @@
                     ],
                     "formatEN": "Nginx conf proxy file update [domain]",
                     "formatZH": "更新反向代理文件 [domain]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/websites/redirect": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取重定向配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Website"
+                ],
+                "summary": "Get redirect conf",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.WebsiteProxyReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/websites/redirect/file": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新重定向文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Website"
+                ],
+                "summary": "Update redirect file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.NginxRedirectUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [
+                        {
+                            "db": "websites",
+                            "input_column": "id",
+                            "input_value": "websiteID",
+                            "isList": false,
+                            "output_column": "primary_domain",
+                            "output_value": "domain"
+                        }
+                    ],
+                    "bodyKeys": [
+                        "websiteID"
+                    ],
+                    "formatEN": "Nginx conf redirect file update [domain]",
+                    "formatZH": "更新重定向文件 [domain]",
+                    "paramKeys": []
+                }
+            }
+        },
+        "/websites/redirect/update": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "修改重定向配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Website"
+                ],
+                "summary": "Update redirect conf",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.NginxRedirectReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [
+                        {
+                            "db": "websites",
+                            "input_column": "id",
+                            "input_value": "websiteID",
+                            "isList": false,
+                            "output_column": "primary_domain",
+                            "output_value": "domain"
+                        }
+                    ],
+                    "bodyKeys": [
+                        "websiteID"
+                    ],
+                    "formatEN": "Update domain [domain] redirect config",
+                    "formatZH": "修改网站 [domain] 重定向理配置 ",
                     "paramKeys": []
                 }
             }
@@ -9784,7 +11221,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -9817,7 +11254,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -9947,7 +11384,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -9980,7 +11417,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -10031,7 +11468,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -10084,7 +11521,10 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "anrry"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response.WebsiteDNSRes"
+                            }
                         }
                     }
                 }
@@ -10118,7 +11558,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -10151,7 +11591,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -10200,7 +11640,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 }
             }
@@ -10233,7 +11673,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -10283,6 +11723,57 @@
                 }
             }
         },
+        "/websites/waf/file/update": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "更新 网站 waf 配置文件",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Website WAF"
+                ],
+                "summary": "Update website waf  file",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request.WebsiteWafUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "x-panel-log": {
+                    "BeforeFuntions": [
+                        {
+                            "db": "websites",
+                            "input_column": "id",
+                            "input_value": "websiteId",
+                            "isList": false,
+                            "output_column": "primary_domain",
+                            "output_value": "domain"
+                        }
+                    ],
+                    "bodyKeys": [
+                        "websiteId"
+                    ],
+                    "formatEN": "WAF conf file update [domain]",
+                    "formatZH": "WAF 配置文件修改 [domain]",
+                    "paramKeys": []
+                }
+            }
+        },
         "/websites/waf/update": {
             "post": {
                 "security": [
@@ -10311,7 +11802,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "OK"
                     }
                 },
                 "x-panel-log": {
@@ -10347,6 +11838,9 @@
                 "address": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "operation": {
                     "type": "string",
                     "enum": [
@@ -10374,6 +11868,65 @@
                 }
             }
         },
+        "dto.AppInstallInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AppResource": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AppVersion": {
+            "type": "object",
+            "properties": {
+                "detailId": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BackupInfo": {
+            "type": "object",
+            "properties": {
+                "backupPath": {
+                    "type": "string"
+                },
+                "bucket": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "vars": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.BackupOperate": {
             "type": "object",
             "required": [
@@ -10382,6 +11935,9 @@
             ],
             "properties": {
                 "accessKey": {
+                    "type": "string"
+                },
+                "backupPath": {
                     "type": "string"
                 },
                 "bucket": {
@@ -10471,11 +12027,31 @@
         "dto.ChangeDBInfo": {
             "type": "object",
             "required": [
+                "database",
+                "from",
+                "type",
                 "value"
             ],
             "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string",
+                    "enum": [
+                        "local",
+                        "remote"
+                    ]
+                },
                 "id": {
                     "type": "integer"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "mariadb"
+                    ]
                 },
                 "value": {
                     "type": "string"
@@ -10494,6 +12070,17 @@
                 },
                 "id": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.ChangeRedisPass": {
+            "type": "object",
+            "required": [
+                "value"
+            ],
+            "properties": {
+                "value": {
+                    "type": "string"
                 }
             }
         },
@@ -10561,6 +12148,7 @@
                     "enum": [
                         "app",
                         "mysql",
+                        "mariadb",
                         "redis",
                         "website"
                     ]
@@ -10592,7 +12180,8 @@
                         "MINIO",
                         "LOCAL",
                         "COS",
-                        "KODO"
+                        "KODO",
+                        "OneDrive"
                     ]
                 },
                 "type": {
@@ -10600,6 +12189,7 @@
                     "enum": [
                         "app",
                         "mysql",
+                        "mariadb",
                         "redis",
                         "website"
                     ]
@@ -10678,6 +12268,26 @@
                 }
             }
         },
+        "dto.ComposeTemplateInfo": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ComposeTemplateUpdate": {
             "type": "object",
             "properties": {
@@ -10711,6 +12321,38 @@
                 }
             }
         },
+        "dto.ContainerListStats": {
+            "type": "object",
+            "properties": {
+                "containerID": {
+                    "type": "string"
+                },
+                "cpuPercent": {
+                    "type": "number"
+                },
+                "cpuTotalUsage": {
+                    "type": "integer"
+                },
+                "memoryCache": {
+                    "type": "integer"
+                },
+                "memoryLimit": {
+                    "type": "integer"
+                },
+                "memoryPercent": {
+                    "type": "number"
+                },
+                "memoryUsage": {
+                    "type": "integer"
+                },
+                "percpuUsage": {
+                    "type": "integer"
+                },
+                "systemUsage": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.ContainerOperate": {
             "type": "object",
             "properties": {
@@ -10723,8 +12365,17 @@
                         "type": "string"
                     }
                 },
+                "containerID": {
+                    "type": "string"
+                },
                 "cpuShares": {
                     "type": "integer"
+                },
+                "entrypoint": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "env": {
                     "type": "array",
@@ -10738,6 +12389,9 @@
                         "$ref": "#/definitions/dto.PortHelper"
                     }
                 },
+                "forcePull": {
+                    "type": "boolean"
+                },
                 "image": {
                     "type": "string"
                 },
@@ -10748,13 +12402,16 @@
                     }
                 },
                 "memory": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "name": {
                     "type": "string"
                 },
                 "nanoCPUs": {
-                    "type": "integer"
+                    "type": "number"
+                },
+                "network": {
+                    "type": "string"
                 },
                 "publishAllPorts": {
                     "type": "boolean"
@@ -10829,22 +12486,7 @@
                 }
             }
         },
-        "dto.ContainerUpgrade": {
-            "type": "object",
-            "required": [
-                "image",
-                "name"
-            ],
-            "properties": {
-                "image": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.ContainterStats": {
+        "dto.ContainerStats": {
             "type": "object",
             "properties": {
                 "cache": {
@@ -10869,6 +12511,24 @@
                     "type": "number"
                 },
                 "shotTime": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ContainerUpgrade": {
+            "type": "object",
+            "required": [
+                "image",
+                "name"
+            ],
+            "properties": {
+                "forcePull": {
+                    "type": "boolean"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
@@ -10909,6 +12569,12 @@
                 "type"
             ],
             "properties": {
+                "appID": {
+                    "type": "string"
+                },
+                "containerName": {
+                    "type": "string"
+                },
                 "day": {
                     "type": "integer"
                 },
@@ -10988,6 +12654,12 @@
                 "specType"
             ],
             "properties": {
+                "appID": {
+                    "type": "string"
+                },
+                "containerName": {
+                    "type": "string"
+                },
                 "day": {
                     "type": "integer"
                 },
@@ -11258,6 +12930,175 @@
                 }
             }
         },
+        "dto.DatabaseCreate": {
+            "type": "object",
+            "required": [
+                "from",
+                "name",
+                "password",
+                "type",
+                "username",
+                "version"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string",
+                    "enum": [
+                        "local",
+                        "remote"
+                    ]
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 256
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DatabaseInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 256
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DatabaseOption": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "database": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DatabaseSearch": {
+            "type": "object",
+            "required": [
+                "page",
+                "pageSize"
+            ],
+            "properties": {
+                "info": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "string"
+                },
+                "orderBy": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DatabaseUpdate": {
+            "type": "object",
+            "required": [
+                "password",
+                "type",
+                "username",
+                "version"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.DiskInfo": {
             "type": "object",
             "properties": {
@@ -11335,19 +13176,9 @@
                         "MINIO",
                         "LOCAL",
                         "COS",
-                        "KODO"
+                        "KODO",
+                        "OneDrive"
                     ]
-                }
-            }
-        },
-        "dto.FilePath": {
-            "type": "object",
-            "required": [
-                "path"
-            ],
-            "properties": {
-                "path": {
-                    "type": "string"
                 }
             }
         },
@@ -11547,53 +13378,6 @@
                 }
             }
         },
-        "dto.HostInfo": {
-            "type": "object",
-            "properties": {
-                "addr": {
-                    "type": "string"
-                },
-                "authMode": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "groupBelong": {
-                    "type": "string"
-                },
-                "groupID": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "passPhrase": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "port": {
-                    "type": "integer"
-                },
-                "privateKey": {
-                    "type": "string"
-                },
-                "rememberPassword": {
-                    "type": "boolean"
-                },
-                "user": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.HostOperate": {
             "type": "object",
             "required": [
@@ -11642,6 +13426,23 @@
                     "type": "boolean"
                 },
                 "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.HostTree": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TreeChild"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
                     "type": "string"
                 }
             }
@@ -11729,6 +13530,20 @@
                 }
             }
         },
+        "dto.ImageRepoOption": {
+            "type": "object",
+            "properties": {
+                "downloadUrl": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ImageRepoUpdate": {
             "type": "object",
             "properties": {
@@ -11742,13 +13557,15 @@
                     "type": "integer"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 256
                 },
                 "protocol": {
                     "type": "string"
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 256
                 }
             }
         },
@@ -11826,6 +13643,9 @@
                 "ignoreCaptcha": {
                     "type": "boolean"
                 },
+                "language": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -11857,6 +13677,9 @@
                 "code": {
                     "type": "string"
                 },
+                "interval": {
+                    "type": "string"
+                },
                 "secret": {
                     "type": "string"
                 }
@@ -11865,27 +13688,40 @@
         "dto.MysqlConfUpdateByFile": {
             "type": "object",
             "required": [
-                "mysqlName"
+                "database",
+                "type"
             ],
             "properties": {
+                "database": {
+                    "type": "string"
+                },
                 "file": {
                     "type": "string"
                 },
-                "mysqlName": {
-                    "type": "string"
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "mariadb"
+                    ]
                 }
             }
         },
         "dto.MysqlDBCreate": {
             "type": "object",
             "required": [
+                "database",
                 "format",
+                "from",
                 "name",
                 "password",
                 "permission",
                 "username"
             ],
             "properties": {
+                "database": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -11896,6 +13732,13 @@
                         "utf8",
                         "gbk",
                         "big5"
+                    ]
+                },
+                "from": {
+                    "type": "string",
+                    "enum": [
+                        "local",
+                        "remote"
                     ]
                 },
                 "name": {
@@ -11915,9 +13758,14 @@
         "dto.MysqlDBDelete": {
             "type": "object",
             "required": [
-                "id"
+                "database",
+                "id",
+                "type"
             ],
             "properties": {
+                "database": {
+                    "type": "string"
+                },
                 "deleteBackup": {
                     "type": "boolean"
                 },
@@ -11926,6 +13774,111 @@
                 },
                 "id": {
                     "type": "integer"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "mariadb"
+                    ]
+                }
+            }
+        },
+        "dto.MysqlDBDeleteCheck": {
+            "type": "object",
+            "required": [
+                "database",
+                "id",
+                "type"
+            ],
+            "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "mariadb"
+                    ]
+                }
+            }
+        },
+        "dto.MysqlDBSearch": {
+            "type": "object",
+            "required": [
+                "database",
+                "page",
+                "pageSize"
+            ],
+            "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "info": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "string"
+                },
+                "orderBy": {
+                    "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.MysqlLoadDB": {
+            "type": "object",
+            "required": [
+                "database",
+                "from",
+                "type"
+            ],
+            "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string",
+                    "enum": [
+                        "local",
+                        "remote"
+                    ]
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "mariadb"
+                    ]
+                }
+            }
+        },
+        "dto.MysqlOption": {
+            "type": "object",
+            "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -12100,6 +14053,31 @@
         },
         "dto.MysqlVariablesUpdate": {
             "type": "object",
+            "required": [
+                "database",
+                "type"
+            ],
+            "properties": {
+                "database": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "mariadb"
+                    ]
+                },
+                "variables": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MysqlVariablesUpdateHelper"
+                    }
+                }
+            }
+        },
+        "dto.MysqlVariablesUpdateHelper": {
+            "type": "object",
             "properties": {
                 "param": {
                     "type": "string"
@@ -12139,6 +14117,25 @@
                 }
             }
         },
+        "dto.NginxKey": {
+            "type": "string",
+            "enum": [
+                "index",
+                "limit-conn",
+                "ssl",
+                "cache",
+                "http-per",
+                "proxy-cache"
+            ],
+            "x-enum-varnames": [
+                "Index",
+                "LimitConn",
+                "SSL",
+                "CACHE",
+                "HttpPer",
+                "ProxyCache"
+            ]
+        },
         "dto.Operate": {
             "type": "object",
             "required": [
@@ -12172,6 +14169,29 @@
                 }
             }
         },
+        "dto.OperationWithNameAndType": {
+            "type": "object",
+            "required": [
+                "name",
+                "type"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Options": {
+            "type": "object",
+            "properties": {
+                "option": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.PageContainer": {
             "type": "object",
             "required": [
@@ -12183,6 +14203,12 @@
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "string"
+                },
+                "orderBy": {
                     "type": "string"
                 },
                 "page": {
@@ -12259,6 +14285,9 @@
             ],
             "properties": {
                 "address": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "operation": {
@@ -12571,6 +14600,26 @@
                 }
             }
         },
+        "dto.SSHLogAnalysis": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "area": {
+                    "type": "string"
+                },
+                "failedCount": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "successfulCount": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.SSLUpdate": {
             "type": "object",
             "required": [
@@ -12598,6 +14647,21 @@
                 },
                 "sslType": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.SearchForAnalysis": {
+            "type": "object",
+            "required": [
+                "orderBy"
+            ],
+            "properties": {
+                "orderBy": {
+                    "type": "string",
+                    "enum": [
+                        "Success",
+                        "Failed"
+                    ]
                 }
             }
         },
@@ -12739,6 +14803,12 @@
                 "info": {
                     "type": "string"
                 },
+                "order": {
+                    "type": "string"
+                },
+                "orderBy": {
+                    "type": "string"
+                },
                 "page": {
                     "type": "integer"
                 },
@@ -12765,6 +14835,9 @@
                 "complexityVerification": {
                     "type": "string"
                 },
+                "defaultNetwork": {
+                    "type": "string"
+                },
                 "dingVars": {
                     "type": "string"
                 },
@@ -12787,6 +14860,9 @@
                     "type": "string"
                 },
                 "messageType": {
+                    "type": "string"
+                },
+                "mfaInterval": {
                     "type": "string"
                 },
                 "mfaSecret": {
@@ -12826,6 +14902,9 @@
                     "type": "string"
                 },
                 "sslType": {
+                    "type": "string"
+                },
+                "systemIP": {
                     "type": "string"
                 },
                 "systemVersion": {
@@ -12877,8 +14956,12 @@
                         "SFTP",
                         "MINIO",
                         "COS",
-                        "KODO"
+                        "KODO",
+                        "OneDrive"
                     ]
+                },
+                "id": {
+                    "type": "integer"
                 }
             }
         },
@@ -12925,6 +15008,17 @@
                 }
             }
         },
+        "dto.TreeChild": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.UpdateDescription": {
             "type": "object",
             "required": [
@@ -12937,6 +15031,36 @@
                 },
                 "id": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateFirewallDescription": {
+            "type": "object",
+            "required": [
+                "strategy"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "protocol": {
+                    "type": "string"
+                },
+                "strategy": {
+                    "type": "string",
+                    "enum": [
+                        "accept",
+                        "drop"
+                    ]
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -13022,6 +15146,9 @@
                 "extension": {
                     "type": "string"
                 },
+                "gid": {
+                    "type": "string"
+                },
                 "group": {
                     "type": "string"
                 },
@@ -13065,6 +15192,9 @@
                     "type": "integer"
                 },
                 "type": {
+                    "type": "string"
+                },
+                "uid": {
                     "type": "string"
                 },
                 "updateTime": {
@@ -13479,6 +15609,39 @@
                 }
             }
         },
+        "request.AppInstalledIgnoreUpgrade": {
+            "type": "object",
+            "required": [
+                "detailID",
+                "operate"
+            ],
+            "properties": {
+                "detailID": {
+                    "type": "integer"
+                },
+                "operate": {
+                    "type": "string",
+                    "enum": [
+                        "cancel",
+                        "ignore"
+                    ]
+                }
+            }
+        },
+        "request.AppInstalledInfo": {
+            "type": "object",
+            "required": [
+                "key"
+            ],
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "request.AppInstalledOperate": {
             "type": "object",
             "required": [
@@ -13486,6 +15649,9 @@
                 "operate"
             ],
             "properties": {
+                "backup": {
+                    "type": "boolean"
+                },
                 "backupId": {
                     "type": "integer"
                 },
@@ -13600,6 +15766,9 @@
                 },
                 "recommend": {
                     "type": "boolean"
+                },
+                "resource": {
+                    "type": "string"
                 },
                 "tags": {
                     "type": "array",
@@ -13895,6 +16064,84 @@
                 }
             }
         },
+        "request.HostToolConfig": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "operate": {
+                    "type": "string",
+                    "enum": [
+                        "get",
+                        "set"
+                    ]
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "supervisord"
+                    ]
+                }
+            }
+        },
+        "request.HostToolCreate": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "configPath": {
+                    "type": "string"
+                },
+                "serviceName": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.HostToolLogReq": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "supervisord"
+                    ]
+                }
+            }
+        },
+        "request.HostToolReq": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "operate": {
+                    "type": "string",
+                    "enum": [
+                        "status",
+                        "restart",
+                        "start",
+                        "stop"
+                    ]
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "supervisord"
+                    ]
+                }
+            }
+        },
         "request.NewAppInstall": {
             "type": "object",
             "properties": {
@@ -14033,17 +16280,13 @@
             "type": "object",
             "required": [
                 "backup",
-                "content",
-                "filePath"
+                "content"
             ],
             "properties": {
                 "backup": {
                     "type": "boolean"
                 },
                 "content": {
-                    "type": "string"
-                },
-                "filePath": {
                     "type": "string"
                 }
             }
@@ -14059,7 +16302,7 @@
                 },
                 "params": {},
                 "scope": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.NginxKey"
                 },
                 "websiteId": {
                     "type": "integer"
@@ -14067,6 +16310,76 @@
             }
         },
         "request.NginxProxyUpdate": {
+            "type": "object",
+            "required": [
+                "content",
+                "name",
+                "websiteID"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "websiteID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "request.NginxRedirectReq": {
+            "type": "object",
+            "required": [
+                "enable",
+                "keepPath",
+                "name",
+                "operate",
+                "redirect",
+                "target",
+                "type",
+                "websiteID"
+            ],
+            "properties": {
+                "domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "enable": {
+                    "type": "boolean"
+                },
+                "keepPath": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operate": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "redirect": {
+                    "type": "string"
+                },
+                "redirectRoot": {
+                    "type": "boolean"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "websiteID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "request.NginxRedirectUpdate": {
             "type": "object",
             "required": [
                 "content",
@@ -14126,10 +16439,18 @@
             ],
             "properties": {
                 "scope": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.NginxKey"
                 },
                 "websiteId": {
                     "type": "integer"
+                }
+            }
+        },
+        "request.NodePackageReq": {
+            "type": "object",
+            "properties": {
+                "codeDir": {
+                    "type": "string"
                 }
             }
         },
@@ -14147,14 +16468,34 @@
                 }
             }
         },
+        "request.ProcessReq": {
+            "type": "object",
+            "required": [
+                "PID"
+            ],
+            "properties": {
+                "PID": {
+                    "type": "integer"
+                }
+            }
+        },
         "request.RuntimeCreate": {
             "type": "object",
             "properties": {
                 "appDetailId": {
                     "type": "integer"
                 },
+                "clean": {
+                    "type": "boolean"
+                },
+                "codeDir": {
+                    "type": "string"
+                },
                 "image": {
                     "type": "string"
+                },
+                "install": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -14164,6 +16505,9 @@
                     "additionalProperties": true
                 },
                 "resource": {
+                    "type": "string"
+                },
+                "source": {
                     "type": "string"
                 },
                 "type": {
@@ -14177,8 +16521,22 @@
         "request.RuntimeDelete": {
             "type": "object",
             "properties": {
+                "forceDelete": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
+                }
+            }
+        },
+        "request.RuntimeOperate": {
+            "type": "object",
+            "properties": {
+                "ID": {
+                    "type": "integer"
+                },
+                "operate": {
+                    "type": "string"
                 }
             }
         },
@@ -14209,11 +16567,20 @@
         "request.RuntimeUpdate": {
             "type": "object",
             "properties": {
+                "clean": {
+                    "type": "boolean"
+                },
+                "codeDir": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
                 "image": {
                     "type": "string"
+                },
+                "install": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -14221,6 +16588,12 @@
                 "params": {
                     "type": "object",
                     "additionalProperties": true
+                },
+                "rebuild": {
+                    "type": "boolean"
+                },
+                "source": {
+                    "type": "string"
                 },
                 "version": {
                     "type": "string"
@@ -14246,6 +16619,61 @@
                 }
             }
         },
+        "request.SupervisorProcessConfig": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "dir": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "numprocs": {
+                    "type": "string"
+                },
+                "operate": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "request.SupervisorProcessFileReq": {
+            "type": "object",
+            "required": [
+                "file",
+                "name",
+                "operate"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "file": {
+                    "type": "string",
+                    "enum": [
+                        "out.log",
+                        "err.log",
+                        "config"
+                    ]
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operate": {
+                    "type": "string",
+                    "enum": [
+                        "get",
+                        "clear",
+                        "update"
+                    ]
+                }
+            }
+        },
         "request.WebsiteAcmeAccountCreate": {
             "type": "object",
             "required": [
@@ -14254,6 +16682,17 @@
             "properties": {
                 "email": {
                     "type": "string"
+                }
+            }
+        },
+        "request.WebsiteCommonReq": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
                 }
             }
         },
@@ -14451,14 +16890,6 @@
                 "websiteId"
             ],
             "properties": {
-                "HttpConfig": {
-                    "type": "string",
-                    "enum": [
-                        "HTTPSOnly",
-                        "HTTPAlso",
-                        "HTTPToHTTPS"
-                    ]
-                },
                 "SSLProtocol": {
                     "type": "array",
                     "items": {
@@ -14471,10 +16902,27 @@
                 "certificate": {
                     "type": "string"
                 },
+                "certificatePath": {
+                    "type": "string"
+                },
                 "enable": {
                     "type": "boolean"
                 },
+                "httpConfig": {
+                    "type": "string",
+                    "enum": [
+                        "HTTPSOnly",
+                        "HTTPAlso",
+                        "HTTPToHTTPS"
+                    ]
+                },
+                "importType": {
+                    "type": "string"
+                },
                 "privateKey": {
+                    "type": "string"
+                },
+                "privateKeyPath": {
                     "type": "string"
                 },
                 "type": {
@@ -14523,6 +16971,12 @@
                 },
                 "operate": {
                     "type": "string"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "pageSize": {
+                    "type": "integer"
                 }
             }
         },
@@ -14601,6 +17055,25 @@
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "request.WebsitePHPVersionReq": {
+            "type": "object",
+            "required": [
+                "retainConfig",
+                "runtimeID",
+                "websiteID"
+            ],
+            "properties": {
+                "retainConfig": {
+                    "type": "boolean"
+                },
+                "runtimeID": {
+                    "type": "integer"
+                },
+                "websiteID": {
+                    "type": "integer"
                 }
             }
         },
@@ -14736,6 +17209,9 @@
                 "pageSize"
             ],
             "properties": {
+                "acmeAccountID": {
+                    "type": "string"
+                },
                 "page": {
                     "type": "integer"
                 },
@@ -14767,6 +17243,12 @@
             ],
             "properties": {
                 "name": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "string"
+                },
+                "orderBy": {
                     "type": "string"
                 },
                 "page": {
@@ -14984,6 +17466,9 @@
                 "id": {
                     "type": "integer"
                 },
+                "ignoreUpgrade": {
+                    "type": "boolean"
+                },
                 "image": {
                     "type": "string"
                 },
@@ -15022,6 +17507,12 @@
                 },
                 "createdAt": {
                     "type": "string"
+                },
+                "httpPort": {
+                    "type": "integer"
+                },
+                "httpsPort": {
+                    "type": "integer"
                 },
                 "installPath": {
                     "type": "string"
@@ -15077,6 +17568,18 @@
                 "values": {}
             }
         },
+        "response.AppService": {
+            "type": "object",
+            "properties": {
+                "config": {},
+                "label": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
         "response.FileInfo": {
             "type": "object",
             "properties": {
@@ -15084,6 +17587,9 @@
                     "type": "string"
                 },
                 "extension": {
+                    "type": "string"
+                },
+                "gid": {
                     "type": "string"
                 },
                 "group": {
@@ -15131,10 +17637,50 @@
                 "type": {
                     "type": "string"
                 },
+                "uid": {
+                    "type": "string"
+                },
                 "updateTime": {
                     "type": "string"
                 },
                 "user": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.FileTree": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.FileTree"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.IgnoredApp": {
+            "type": "object",
+            "properties": {
+                "detailID": {
+                    "type": "integer"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "version": {
                     "type": "string"
                 }
             }
@@ -15215,6 +17761,23 @@
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.WebsiteDNSRes": {
+            "type": "object",
+            "properties": {
+                "domain": {
+                    "type": "string"
+                },
+                "err": {
+                    "type": "string"
+                },
+                "resolve": {
+                    "type": "string"
+                },
+                "value": {
                     "type": "string"
                 }
             }
@@ -15354,6 +17917,12 @@
                 },
                 "enable": {
                     "type": "boolean"
+                },
+                "end": {
+                    "type": "boolean"
+                },
+                "path": {
+                    "type": "string"
                 }
             }
         },
@@ -15371,6 +17940,23 @@
                 }
             }
         },
+        "response.WebsitePreInstallCheck": {
+            "type": "object",
+            "properties": {
+                "appName": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                }
+            }
+        },
         "response.WebsiteWafConfig": {
             "type": "object",
             "properties": {
@@ -15379,9 +17965,6 @@
                 },
                 "enable": {
                     "type": "boolean"
-                },
-                "filePath": {
-                    "type": "string"
                 }
             }
         }

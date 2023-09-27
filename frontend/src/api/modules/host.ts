@@ -4,15 +4,13 @@ import { Command } from '../interface/command';
 import { Host } from '../interface/host';
 import { Base64 } from 'js-base64';
 import { deepCopy } from '@/utils/util';
+import { TimeoutEnum } from '@/enums/http-enum';
 
 export const searchHosts = (params: Host.SearchWithPage) => {
     return http.post<ResPage<Host.Host>>(`/hosts/search`, params);
 };
 export const getHostTree = (params: Host.ReqSearch) => {
     return http.post<Array<Host.HostTree>>(`/hosts/tree`, params);
-};
-export const getHostInfo = (id: number) => {
-    return http.get<Host.Host>(`/hosts/` + id);
 };
 export const addHost = (params: Host.HostOperate) => {
     let reqest = deepCopy(params) as Host.HostOperate;
@@ -76,30 +74,36 @@ export const loadFireBaseInfo = () => {
     return http.get<Host.FirewallBase>(`/hosts/firewall/base`);
 };
 export const searchFireRule = (params: Host.RuleSearch) => {
-    return http.post<ResPage<Host.RuleInfo>>(`/hosts/firewall/search`, params);
+    return http.post<ResPage<Host.RuleInfo>>(`/hosts/firewall/search`, params, TimeoutEnum.T_40S);
 };
 export const operateFire = (operation: string) => {
-    return http.post(`/hosts/firewall/operate`, { operation: operation });
+    return http.post(`/hosts/firewall/operate`, { operation: operation }, TimeoutEnum.T_40S);
 };
 export const operatePortRule = (params: Host.RulePort) => {
-    return http.post<Host.RulePort>(`/hosts/firewall/port`, params);
+    return http.post<Host.RulePort>(`/hosts/firewall/port`, params, TimeoutEnum.T_40S);
 };
 export const operateIPRule = (params: Host.RuleIP) => {
-    return http.post<Host.RuleIP>(`/hosts/firewall/ip`, params);
+    return http.post<Host.RuleIP>(`/hosts/firewall/ip`, params, TimeoutEnum.T_40S);
 };
 export const updatePortRule = (params: Host.UpdatePortRule) => {
-    return http.post(`/hosts/firewall/update/port`, params);
+    return http.post(`/hosts/firewall/update/port`, params, TimeoutEnum.T_40S);
 };
 export const updateAddrRule = (params: Host.UpdateAddrRule) => {
-    return http.post(`/hosts/firewall/update/addr`, params);
+    return http.post(`/hosts/firewall/update/addr`, params, TimeoutEnum.T_40S);
+};
+export const updateFirewallDescription = (params: Host.UpdateDescription) => {
+    return http.post(`/hosts/firewall/update/description`, params);
 };
 export const batchOperateRule = (params: Host.BatchRule) => {
-    return http.post(`/hosts/firewall/batch`, params);
+    return http.post(`/hosts/firewall/batch`, params, TimeoutEnum.T_60S);
 };
 
 // ssh
 export const getSSHInfo = () => {
     return http.post<Host.SSHInfo>(`/hosts/ssh/search`);
+};
+export const getSSHConf = () => {
+    return http.get<string>(`/hosts/ssh/conf`);
 };
 export const operateSSH = (operation: string) => {
     return http.post(`/hosts/ssh/operate`, { operation: operation });
@@ -118,4 +122,7 @@ export const loadSecret = (mode: string) => {
 };
 export const loadSSHLogs = (params: Host.searchSSHLog) => {
     return http.post<Host.sshLog>(`/hosts/ssh/log`, params);
+};
+export const loadAnalysis = (orderBy: string) => {
+    return http.post<Array<Host.logAnalysis>>(`/hosts/ssh/log/analysis`, { orderBy: orderBy }, TimeoutEnum.T_40S);
 };

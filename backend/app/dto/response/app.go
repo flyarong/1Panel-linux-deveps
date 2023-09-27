@@ -39,6 +39,8 @@ type AppInstalledCheck struct {
 	AppInstallID  uint      `json:"appInstallId"`
 	ContainerName string    `json:"containerName"`
 	InstallPath   string    `json:"installPath"`
+	HttpPort      int       `json:"httpPort"`
+	HttpsPort     int       `json:"httpsPort"`
 }
 
 type AppDetailDTO struct {
@@ -46,6 +48,13 @@ type AppDetailDTO struct {
 	Enable bool        `json:"enable"`
 	Params interface{} `json:"params"`
 	Image  string      `json:"image"`
+}
+
+type IgnoredApp struct {
+	Icon     string `json:"icon"`
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+	DetailID uint   `json:"detailID"`
 }
 
 type AppInstalledDTO struct {

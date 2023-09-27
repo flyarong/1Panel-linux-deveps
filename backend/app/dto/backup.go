@@ -21,25 +21,18 @@ type BackupInfo struct {
 	Vars       string    `json:"vars"`
 }
 
-type BackupSearch struct {
-	PageInfo
-	Type       string `json:"type" validate:"required,oneof=website mysql"`
-	Name       string `json:"name" validate:"required"`
-	DetailName string `json:"detailName"`
-}
-
 type BackupSearchFile struct {
 	Type string `json:"type" validate:"required"`
 }
 
 type CommonBackup struct {
-	Type       string `json:"type" validate:"required,oneof=app mysql redis website"`
+	Type       string `json:"type" validate:"required,oneof=app mysql mariadb redis website"`
 	Name       string `json:"name"`
 	DetailName string `json:"detailName"`
 }
 type CommonRecover struct {
-	Source     string `json:"source" validate:"required,oneof=OSS S3 SFTP MINIO LOCAL COS KODO"`
-	Type       string `json:"type" validate:"required,oneof=app mysql redis website"`
+	Source     string `json:"source" validate:"required,oneof=OSS S3 SFTP MINIO LOCAL COS KODO OneDrive"`
+	Type       string `json:"type" validate:"required,oneof=app mysql mariadb redis website"`
 	Name       string `json:"name"`
 	DetailName string `json:"detailName"`
 	File       string `json:"file"`
@@ -62,7 +55,7 @@ type BackupRecords struct {
 }
 
 type DownloadRecord struct {
-	Source   string `json:"source" validate:"required,oneof=OSS S3 SFTP MINIO LOCAL COS KODO"`
+	Source   string `json:"source" validate:"required,oneof=OSS S3 SFTP MINIO LOCAL COS KODO OneDrive"`
 	FileDir  string `json:"fileDir" validate:"required"`
 	FileName string `json:"fileName" validate:"required"`
 }

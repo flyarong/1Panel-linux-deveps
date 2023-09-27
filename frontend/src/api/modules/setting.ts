@@ -4,6 +4,7 @@ import { Base64 } from 'js-base64';
 import { ResPage, SearchWithPage, DescriptionUpdate } from '../interface';
 import { Backup } from '../interface/backup';
 import { Setting } from '../interface/setting';
+import { TimeoutEnum } from '@/enums/http-enum';
 
 export const getSettingInfo = () => {
     return http.post<Setting.SettingInfo>(`/settings/search`);
@@ -30,6 +31,9 @@ export const updateSSL = (param: Setting.SSLUpdate) => {
 export const loadSSLInfo = () => {
     return http.get<Setting.SSLInfo>(`/settings/ssl/info`);
 };
+export const downloadSSL = () => {
+    return http.download<any>(`settings/ssl/download`);
+};
 
 export const handleExpired = (param: Setting.PasswordUpdate) => {
     return http.post(`/settings/expired/handle`, param);
@@ -46,8 +50,8 @@ export const cleanMonitors = () => {
     return http.post(`/settings/monitor/clean`, {});
 };
 
-export const getMFA = () => {
-    return http.get<Setting.MFAInfo>(`/settings/mfa`, {});
+export const getMFA = (interval: number) => {
+    return http.get<Setting.MFAInfo>(`/settings/mfa/${interval}`, {});
 };
 
 export const loadDaemonJsonPath = () => {
@@ -64,16 +68,16 @@ export const loadBaseDir = () => {
 
 // backup
 export const handleBackup = (params: Backup.Backup) => {
-    return http.post(`/settings/backup/backup`, params, 600000);
+    return http.post(`/settings/backup/backup`, params, TimeoutEnum.T_1H);
 };
 export const handleRecover = (params: Backup.Recover) => {
-    return http.post(`/settings/backup/recover`, params, 600000);
+    return http.post(`/settings/backup/recover`, params, TimeoutEnum.T_1D);
 };
 export const handleRecoverByUpload = (params: Backup.Recover) => {
-    return http.post(`/settings/backup/recover/byupload`, params, 600000);
+    return http.post(`/settings/backup/recover/byupload`, params, TimeoutEnum.T_1D);
 };
 export const downloadBackupRecord = (params: Backup.RecordDownload) => {
-    return http.post<string>(`/settings/backup/record/download`, params, 600000);
+    return http.post<string>(`/settings/backup/record/download`, params, TimeoutEnum.T_10M);
 };
 export const deleteBackupRecord = (params: { ids: number[] }) => {
     return http.post(`/settings/backup/record/del`, params);
@@ -84,6 +88,9 @@ export const searchBackupRecords = (params: Backup.SearchBackupRecord) => {
 
 export const getBackupList = () => {
     return http.get<Array<Backup.BackupInfo>>(`/settings/backup/search`);
+};
+export const getOneDriveInfo = () => {
+    return http.get<string>(`/settings/backup/onedrive`);
 };
 export const getFilesFromBackup = (type: string) => {
     return http.post<Array<any>>(`/settings/backup/search/files`, { type: type });
@@ -125,6 +132,9 @@ export const listBucket = (params: Backup.ForBucket) => {
 // snapshot
 export const snapshotCreate = (param: Setting.SnapshotCreate) => {
     return http.post(`/settings/snapshot`, param);
+};
+export const loadSnapStatus = (id: number) => {
+    return http.post<Setting.SnapshotStatus>(`/settings/snapshot/status`, { id: id });
 };
 export const snapshotImport = (param: Setting.SnapshotImport) => {
     return http.post(`/settings/snapshot/import`, param);

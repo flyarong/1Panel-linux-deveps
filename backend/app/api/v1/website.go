@@ -36,7 +36,7 @@ func (b *BaseApi) PageWebsite(c *gin.Context) {
 // @Tags Website
 // @Summary List websites
 // @Description 获取网站列表
-// @Success 200 {anrry} response.WebsiteDTO
+// @Success 200 {array} response.WebsiteDTO
 // @Security ApiKeyAuth
 // @Router /websites/list [get]
 func (b *BaseApi) GetWebsites(c *gin.Context) {
@@ -51,7 +51,7 @@ func (b *BaseApi) GetWebsites(c *gin.Context) {
 // @Tags Website
 // @Summary List website names
 // @Description 获取网站列表
-// @Success 200 {anrry} string
+// @Success 200 {array} string
 // @Security ApiKeyAuth
 // @Router /websites/options [get]
 func (b *BaseApi) GetWebsiteOptions(c *gin.Context) {
@@ -207,7 +207,7 @@ func (b *BaseApi) GetWebsiteNginx(c *gin.Context) {
 // @Description 通过网站 id 查询域名
 // @Accept json
 // @Param websiteId path integer true "request"
-// @Success 200 {anrry} model.WebsiteDomain
+// @Success 200 {array} model.WebsiteDomain
 // @Security ApiKeyAuth
 // @Router /websites/domains/:websiteId [get]
 func (b *BaseApi) GetWebDomains(c *gin.Context) {
@@ -367,7 +367,7 @@ func (b *BaseApi) UpdateHTTPSConfig(c *gin.Context) {
 // @Description 网站创建前检查
 // @Accept json
 // @Param request body request.WebsiteInstallCheckReq true "request"
-// @Success 200 {anrry} request.WebsitePreInstallCheck
+// @Success 200 {array} response.WebsitePreInstallCheck
 // @Security ApiKeyAuth
 // @Router /websites/check [post]
 func (b *BaseApi) CreateWebsiteCheck(c *gin.Context) {
@@ -422,6 +422,28 @@ func (b *BaseApi) UpdateWebsiteWafConfig(c *gin.Context) {
 		return
 	}
 	if err := websiteService.UpdateWafConfig(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Website WAF
+// @Summary Update website waf  file
+// @Description 更新 网站 waf 配置文件
+// @Accept json
+// @Param request body request.WebsiteWafUpdate true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /websites/waf/file/update [post]
+// @x-panel-log {"bodyKeys":["websiteId"],"paramKeys":[],"BeforeFuntions":[{"input_column":"id","input_value":"websiteId","isList":false,"db":"websites","output_column":"primary_domain","output_value":"domain"}],"formatZH":"WAF 配置文件修改 [domain]","formatEN":"WAF conf file update [domain]"}
+func (b *BaseApi) UpdateWebsiteWafFile(c *gin.Context) {
+	var req request.WebsiteWafFileUpdate
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := websiteService.UpdateWafFile(req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
 	}
@@ -541,7 +563,7 @@ func (b *BaseApi) UpdateWebsitePHPConfig(c *gin.Context) {
 
 // @Tags Website PHP
 // @Summary Update php conf
-// @Description 更新 php 配置
+// @Description 更新 php 配置文件
 // @Accept json
 // @Param request body request.WebsitePHPFileUpdate true "request"
 // @Success 200
@@ -559,6 +581,28 @@ func (b *BaseApi) UpdatePHPFile(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Website PHP
+// @Summary Update php version
+// @Description 变更 php 版本
+// @Accept json
+// @Param request body request.WebsitePHPVersionReq true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /websites/php/version [post]
+// @x-panel-log {"bodyKeys":["websiteId"],"paramKeys":[],"BeforeFuntions":[{"input_column":"id","input_value":"websiteId","isList":false,"db":"websites","output_column":"primary_domain","output_value":"domain"}],"formatZH":"php 版本变更 [domain]","formatEN":"php version update [domain]"}
+func (b *BaseApi) ChangePHPVersion(c *gin.Context) {
+	var req request.WebsitePHPVersionReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := websiteService.ChangePHPVersion(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithOutData(c)
 }
 
 // @Tags Website
@@ -800,4 +844,93 @@ func (b *BaseApi) UpdateAntiLeech(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithOutData(c)
+}
+
+// @Tags Website
+// @Summary Update redirect conf
+// @Description 修改重定向配置
+// @Accept json
+// @Param request body request.NginxRedirectReq true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /websites/redirect/update [post]
+// @x-panel-log {"bodyKeys":["websiteID"],"paramKeys":[],"BeforeFuntions":[{"input_column":"id","input_value":"websiteID","isList":false,"db":"websites","output_column":"primary_domain","output_value":"domain"}],"formatZH":"修改网站 [domain] 重定向理配置 ","formatEN":"Update domain [domain] redirect config"}
+func (b *BaseApi) UpdateRedirectConfig(c *gin.Context) {
+	var req request.NginxRedirectReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	err := websiteService.OperateRedirect(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithOutData(c)
+}
+
+// @Tags Website
+// @Summary Get redirect conf
+// @Description 获取重定向配置
+// @Accept json
+// @Param request body request.WebsiteProxyReq true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /websites/redirect [post]
+func (b *BaseApi) GetRedirectConfig(c *gin.Context) {
+	var req request.WebsiteRedirectReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	res, err := websiteService.GetRedirect(req.WebsiteID)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, res)
+}
+
+// @Tags Website
+// @Summary Update redirect file
+// @Description 更新重定向文件
+// @Accept json
+// @Param request body request.NginxRedirectUpdate true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /websites/redirect/file [post]
+// @x-panel-log {"bodyKeys":["websiteID"],"paramKeys":[],"BeforeFuntions":[{"input_column":"id","input_value":"websiteID","isList":false,"db":"websites","output_column":"primary_domain","output_value":"domain"}],"formatZH":"更新重定向文件 [domain]","formatEN":"Nginx conf redirect file update [domain]"}
+func (b *BaseApi) UpdateRedirectConfigFile(c *gin.Context) {
+	var req request.NginxRedirectUpdate
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := websiteService.UpdateRedirectFile(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithOutData(c)
+}
+
+// @Tags Website
+// @Summary Get website dir
+// @Description 获取网站目录配置
+// @Accept json
+// @Param request body request.WebsiteCommonReq true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /websites/dir [post]
+func (b *BaseApi) GetDirConfig(c *gin.Context) {
+	var req request.WebsiteCommonReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	res, err := websiteService.LoadWebsiteDirConfig(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, res)
 }

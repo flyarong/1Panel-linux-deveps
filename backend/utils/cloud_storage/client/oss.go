@@ -6,6 +6,7 @@ import (
 )
 
 type ossClient struct {
+	scType string
 	Vars   map[string]interface{}
 	client osssdk.Client
 }
@@ -14,6 +15,7 @@ func NewOssClient(vars map[string]interface{}) (*ossClient, error) {
 	var endpoint string
 	var accessKey string
 	var secretKey string
+	var scType string
 	if _, ok := vars["endpoint"]; ok {
 		endpoint = vars["endpoint"].(string)
 	} else {
@@ -23,6 +25,11 @@ func NewOssClient(vars map[string]interface{}) (*ossClient, error) {
 		accessKey = vars["accessKey"].(string)
 	} else {
 		return nil, constant.ErrInvalidParams
+	}
+	if _, ok := vars["scType"]; ok {
+		scType = vars["scType"].(string)
+	} else {
+		scType = "Standard"
 	}
 	if _, ok := vars["secretKey"]; ok {
 		secretKey = vars["secretKey"].(string)
@@ -34,6 +41,7 @@ func NewOssClient(vars map[string]interface{}) (*ossClient, error) {
 		return nil, err
 	}
 	return &ossClient{
+		scType: scType,
 		Vars:   vars,
 		client: *client,
 	}, nil
@@ -77,7 +85,7 @@ func (oss ossClient) Upload(src, target string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	err = bucket.UploadFile(target, src, 200*1024*1024, osssdk.Routines(5), osssdk.Checkpoint(true, ""))
+	err = bucket.UploadFile(target, src, 200*1024*1024, osssdk.Routines(5), osssdk.Checkpoint(true, ""), osssdk.ObjectStorageClass(osssdk.StorageClassType(oss.scType)))
 	if err != nil {
 		return false, err
 	}
@@ -108,7 +116,7 @@ func (oss *ossClient) GetBucket() (*osssdk.Bucket, error) {
 	}
 }
 
-func (oss *ossClient) ListObjects(prefix string) ([]interface{}, error) {
+func (oss *ossClient) ListObjects(prefix string) ([]string, error) {
 	bucket, err := oss.GetBucket()
 	if err != nil {
 		return nil, constant.ErrInvalidParams
@@ -117,7 +125,7 @@ func (oss *ossClient) ListObjects(prefix string) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result []interface{}
+	var result []string
 	for _, obj := range lor.Objects {
 		result = append(result, obj.Key)
 	}

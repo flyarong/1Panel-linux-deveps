@@ -17,10 +17,19 @@ type RuntimeCreate struct {
 	Image       string                 `json:"image"`
 	Type        string                 `json:"type"`
 	Version     string                 `json:"version"`
+	Source      string                 `json:"source"`
+	CodeDir     string                 `json:"codeDir"`
+	NodeConfig
+}
+
+type NodeConfig struct {
+	Install bool `json:"install"`
+	Clean   bool `json:"clean"`
 }
 
 type RuntimeDelete struct {
-	ID uint `json:"id"`
+	ID          uint `json:"id"`
+	ForceDelete bool `json:"forceDelete"`
 }
 
 type RuntimeUpdate struct {
@@ -29,4 +38,17 @@ type RuntimeUpdate struct {
 	Params  map[string]interface{} `json:"params"`
 	Image   string                 `json:"image"`
 	Version string                 `json:"version"`
+	Rebuild bool                   `json:"rebuild"`
+	Source  string                 `json:"source"`
+	CodeDir string                 `json:"codeDir"`
+	NodeConfig
+}
+
+type NodePackageReq struct {
+	CodeDir string `json:"codeDir"`
+}
+
+type RuntimeOperate struct {
+	Operate string `json:"operate"`
+	ID      uint   `json:"ID"`
 }

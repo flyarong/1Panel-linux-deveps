@@ -1,6 +1,6 @@
 <template>
     <div v-show="settingShow" v-loading="loading">
-        <LayoutContent :title="'Redis ' + $t('database.setting')" :reload="true">
+        <LayoutContent :title="'Redis ' + $t('commons.button.set')" :reload="true">
             <template #buttons>
                 <el-button type="primary" :plain="activeName !== 'conf'" @click="changeTab('conf')">
                     {{ $t('database.confChange') }}
@@ -11,7 +11,7 @@
                     :plain="activeName !== 'status'"
                     @click="changeTab('status')"
                 >
-                    {{ $t('database.status') }}
+                    {{ $t('database.currentStatus') }}
                 </el-button>
                 <el-button
                     type="primary"
@@ -22,7 +22,7 @@
                     {{ $t('database.performanceTuning') }}
                 </el-button>
                 <el-button type="primary" :plain="activeName !== 'port'" @click="changeTab('port')">
-                    {{ $t('database.portSetting') }}
+                    {{ $t('commons.table.port') }}
                 </el-button>
                 <el-button
                     type="primary"
@@ -37,7 +37,7 @@
                 <div v-if="activeName === 'conf'">
                     <codemirror
                         :autofocus="true"
-                        placeholder="None data"
+                        :placeholder="$t('commons.msg.noneData')"
                         :indent-with-tab="true"
                         :tabSize="4"
                         style="margin-top: 10px; height: calc(100vh - 380px)"
@@ -75,7 +75,7 @@
                             <el-col :span="10">
                                 <el-form-item :label="$t('database.timeout')" prop="timeout">
                                     <el-input clearable type="number" v-model.number="form.timeout">
-                                        <template #append>{{ $t('home.Second') }}</template>
+                                        <template #append>{{ $t('commons.units.second') }}</template>
                                     </el-input>
                                     <span class="input-help">{{ $t('database.timeoutHelper') }}</span>
                                 </el-form-item>
@@ -103,7 +103,7 @@
                         <el-row>
                             <el-col :span="1"><br /></el-col>
                             <el-col :span="10">
-                                <el-form-item :label="$t('setting.port')" prop="port" :rules="Rules.port">
+                                <el-form-item :label="$t('commons.table.port')" prop="port" :rules="Rules.port">
                                     <el-input clearable type="number" v-model.number="form.port" />
                                 </el-form-item>
                                 <el-form-item>
@@ -132,15 +132,13 @@ import { nextTick, reactive, ref, shallowRef } from 'vue';
 import { Codemirror } from 'vue-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { LoadFile } from '@/api/modules/files';
 import ConfirmDialog from '@/components/confirm-dialog/index.vue';
 import Status from '@/views/database/redis/setting/status/index.vue';
 import Persistence from '@/views/database/redis/setting/persistence/index.vue';
-import { loadRedisConf, updateRedisConf, updateRedisConfByFile } from '@/api/modules/database';
+import { loadDatabaseFile, loadRedisConf, updateRedisConf, updateRedisConfByFile } from '@/api/modules/database';
 import i18n from '@/lang';
 import { checkNumberRange, Rules } from '@/global/form-rules';
 import { ChangePort, GetAppDefaultConfig } from '@/api/modules/app';
-import { loadBaseDir } from '@/api/modules/setting';
 import { MsgSuccess } from '@/utils/message';
 
 const extensions = [javascript(), oneDark];
@@ -294,10 +292,15 @@ const submtiForm = async () => {
 
 const getDefaultConfig = async () => {
     loading.value = true;
-    const res = await GetAppDefaultConfig('redis');
-    redisConf.value = res.data;
-    useOld.value = true;
-    loading.value = false;
+    await GetAppDefaultConfig('redis', '')
+        .then((res) => {
+            redisConf.value = res.data;
+            useOld.value = true;
+            loading.value = false;
+        })
+        .catch(() => {
+            loading.value = false;
+        });
 };
 
 const onSaveFile = async () => {
@@ -321,7 +324,7 @@ const submtiFile = async () => {
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
         })
         .catch(() => {
-            loading.value = true;
+            loading.value = false;
         });
 };
 
@@ -335,11 +338,9 @@ const loadform = async () => {
 };
 
 const loadConfFile = async () => {
-    const pathRes = await loadBaseDir();
-    let path = `${pathRes.data}/apps/redis/${redisName.value}/conf/redis.conf`;
     useOld.value = false;
     loading.value = true;
-    await LoadFile({ path: path })
+    await loadDatabaseFile('redis-conf', redisName.value)
         .then((res) => {
             loading.value = false;
             redisConf.value = res.data;

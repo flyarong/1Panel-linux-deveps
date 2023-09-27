@@ -12,7 +12,7 @@
         <el-row type="flex" justify="center">
             <el-col :span="22">
                 <el-form ref="formRef" label-position="top" :model="form" label-width="80px" :rules="rules">
-                    <el-form-item :label="$t('container.name')" prop="name">
+                    <el-form-item :label="$t('commons.table.name')" prop="name">
                         <el-input :placeholder="$t('container.imageNameHelper')" v-model.trim="form.name" clearable />
                     </el-form-item>
                     <el-form-item label="Dockerfile" prop="from">
@@ -93,8 +93,7 @@ import { nextTick, onBeforeUnmount, reactive, ref, shallowRef } from 'vue';
 import { Rules } from '@/global/form-rules';
 import i18n from '@/lang';
 import { ElForm, ElMessage } from 'element-plus';
-import { imageBuild } from '@/api/modules/container';
-import { LoadFile } from '@/api/modules/files';
+import { imageBuild, loadContainerLog } from '@/api/modules/container';
 import { formatImageStdout } from '@/utils/docker';
 import DrawerHeader from '@/components/drawer-header/index.vue';
 
@@ -163,7 +162,7 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
 const loadLogs = async (path: string) => {
     timer = setInterval(async () => {
         if (logVisiable.value) {
-            const res = await LoadFile({ path: path });
+            const res = await loadContainerLog('image-build', path);
             logInfo.value = formatImageStdout(res.data);
             nextTick(() => {
                 const state = view.value.state;

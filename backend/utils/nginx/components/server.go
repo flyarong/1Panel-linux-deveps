@@ -127,13 +127,27 @@ func (s *Server) RemoveDirective(key string, params []string) {
 	var newDirectives []IDirective
 	for _, dir := range directives {
 		if dir.GetName() == key {
-			if len(params) > 0 {
-				oldParams := dir.GetParameters()
+			if len(params) == 0 {
+				continue
+			}
+			oldParams := dir.GetParameters()
+			if key == "location" {
+				if len(params) == len(oldParams) {
+					exist := true
+					for i := range params {
+						if params[i] != oldParams[i] {
+							exist = false
+							break
+						}
+					}
+					if exist {
+						continue
+					}
+				}
+			} else {
 				if oldParams[0] == params[0] {
 					continue
 				}
-			} else {
-				continue
 			}
 		}
 		newDirectives = append(newDirectives, dir)
@@ -301,7 +315,7 @@ func (s *Server) UpdateDirectiveBySecondKey(name string, key string, directive D
 func (s *Server) RemoveListenByBind(bind string) {
 	var listens []*ServerListen
 	for _, listen := range s.Listens {
-		if listen.Bind != bind || len(listen.Parameters) > 0 {
+		if listen.Bind != bind {
 			listens = append(listens, listen)
 		}
 	}

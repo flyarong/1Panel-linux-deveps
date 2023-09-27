@@ -2,7 +2,7 @@
     <div v-loading="loading">
         <FireRouter />
 
-        <div class="a-card" style="margin-top: 20px">
+        <div class="app-status" style="margin-top: 20px">
             <el-card>
                 <div>
                     <el-tag style="float: left" effect="dark" type="success">SSH</el-tag>
@@ -44,7 +44,7 @@
             </el-card>
         </div>
 
-        <LayoutContent style="margin-top: 20px" :title="$t('menu.ssh')" :divider="true">
+        <LayoutContent style="margin-top: 20px" :title="$t('menu.config')" :divider="true">
             <template #main>
                 <el-radio-group v-model="confShowType" @change="changeMode">
                     <el-radio-button label="base">{{ $t('database.baseConf') }}</el-radio-button>
@@ -54,7 +54,7 @@
                     <el-col :span="1"><br /></el-col>
                     <el-col :xs="24" :sm="20" :md="20" :lg="10" :xl="10">
                         <el-form :model="form" label-position="left" ref="formRef" label-width="120px">
-                            <el-form-item :label="$t('ssh.port')" prop="port">
+                            <el-form-item :label="$t('commons.table.port')" prop="port">
                                 <el-input disabled v-model.number="form.port">
                                     <template #append>
                                         <el-button @click="onChangePort" icon="Setting">
@@ -158,8 +158,7 @@ import Port from '@/views/host/ssh/ssh/port/index.vue';
 import Address from '@/views/host/ssh/ssh/address/index.vue';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
-import { getSSHInfo, operateSSH, updateSSH, updateSSHByfile } from '@/api/modules/host';
-import { LoadFile } from '@/api/modules/files';
+import { getSSHConf, getSSHInfo, operateSSH, updateSSH, updateSSHByfile } from '@/api/modules/host';
 import { ElMessageBox, FormInstance } from 'element-plus';
 
 const loading = ref(false);
@@ -289,7 +288,7 @@ const changei18n = (value: string) => {
 };
 
 const loadSSHConf = async () => {
-    const res = await LoadFile({ path: '/etc/ssh/sshd_config' });
+    const res = await getSSHConf();
     sshConf.value = res.data || '';
 };
 
@@ -330,19 +329,3 @@ onMounted(() => {
     search();
 });
 </script>
-
-<style lang="scss" scoped>
-.a-card {
-    font-size: 17px;
-    .el-card {
-        --el-card-padding: 12px;
-        .buttons {
-            margin-left: 100px;
-        }
-    }
-}
-.status-content {
-    float: left;
-    margin-left: 50px;
-}
-</style>

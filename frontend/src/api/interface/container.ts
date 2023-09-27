@@ -9,17 +9,25 @@ export namespace Container {
     export interface ContainerSearch extends ReqPage {
         name: string;
         filters: string;
+        orderBy: string;
+        order: string;
     }
     export interface ResourceLimit {
         cpu: number;
         memory: number;
     }
     export interface ContainerHelper {
+        containerID: string;
         name: string;
         image: string;
+        imageInput: boolean;
+        forcePull: boolean;
+        network: string;
         cmdStr: string;
+        entrypointStr: string;
         memoryItem: number;
         cmd: Array<string>;
+        entrypoint: Array<string>;
         publishAllPorts: boolean;
         exposedPorts: Array<Port>;
         nanoCPUs: number;
@@ -44,6 +52,7 @@ export namespace Container {
         sourceDir: string;
         containerDir: string;
         mode: string;
+        isVolume: boolean;
     }
     export interface ContainerInfo {
         containerID: string;
@@ -52,11 +61,25 @@ export namespace Container {
         createTime: string;
         state: string;
         runTime: string;
-        cpuPercent: number;
-        memoryPercent: number;
+        network: Array<string>;
         ports: Array<string>;
         isFromApp: boolean;
         isFromCompose: boolean;
+
+        hasLoad: boolean;
+        cpuPercent: number;
+        memoryPercent: number;
+    }
+    export interface ContainerListStats {
+        containerID: string;
+        cpuTotalUsage: number;
+        systemUsage: number;
+        cpuPercent: number;
+        percpuUsage: number;
+        memoryCache: number;
+        memoryUsage: number;
+        memoryLimit: number;
+        memoryPercent: number;
     }
     export interface ContainerStats {
         cpuPercent: number;

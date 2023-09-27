@@ -4,6 +4,8 @@ definitions:
     properties:
       address:
         type: string
+      description:
+        type: string
       operation:
         enum:
         - add
@@ -26,9 +28,49 @@ definitions:
       oldRule:
         $ref: '#/definitions/dto.AddrRuleOperate'
     type: object
+  dto.AppInstallInfo:
+    properties:
+      id:
+        type: integer
+      key:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.AppResource:
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AppVersion:
+    properties:
+      detailId:
+        type: integer
+      version:
+        type: string
+    type: object
+  dto.BackupInfo:
+    properties:
+      backupPath:
+        type: string
+      bucket:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: integer
+      type:
+        type: string
+      vars:
+        type: string
+    type: object
   dto.BackupOperate:
     properties:
       accessKey:
+        type: string
+      backupPath:
         type: string
       bucket:
         type: string
@@ -89,11 +131,26 @@ definitions:
     type: object
   dto.ChangeDBInfo:
     properties:
+      database:
+        type: string
+      from:
+        enum:
+        - local
+        - remote
+        type: string
       id:
         type: integer
+      type:
+        enum:
+        - mysql
+        - mariadb
+        type: string
       value:
         type: string
     required:
+    - database
+    - from
+    - type
     - value
     type: object
   dto.ChangeHostGroup:
@@ -105,6 +162,13 @@ definitions:
     required:
     - groupID
     - id
+    type: object
+  dto.ChangeRedisPass:
+    properties:
+      value:
+        type: string
+    required:
+    - value
     type: object
   dto.CleanLog:
     properties:
@@ -147,6 +211,7 @@ definitions:
         enum:
         - app
         - mysql
+        - mariadb
         - redis
         - website
         type: string
@@ -170,11 +235,13 @@ definitions:
         - LOCAL
         - COS
         - KODO
+        - OneDrive
         type: string
       type:
         enum:
         - app
         - mysql
+        - mariadb
         - redis
         - website
         type: string
@@ -231,6 +298,19 @@ definitions:
     required:
     - name
     type: object
+  dto.ComposeTemplateInfo:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   dto.ComposeTemplateUpdate:
     properties:
       content:
@@ -253,6 +333,27 @@ definitions:
     - name
     - path
     type: object
+  dto.ContainerListStats:
+    properties:
+      containerID:
+        type: string
+      cpuPercent:
+        type: number
+      cpuTotalUsage:
+        type: integer
+      memoryCache:
+        type: integer
+      memoryLimit:
+        type: integer
+      memoryPercent:
+        type: number
+      memoryUsage:
+        type: integer
+      percpuUsage:
+        type: integer
+      systemUsage:
+        type: integer
+    type: object
   dto.ContainerOperate:
     properties:
       autoRemove:
@@ -261,8 +362,14 @@ definitions:
         items:
           type: string
         type: array
+      containerID:
+        type: string
       cpuShares:
         type: integer
+      entrypoint:
+        items:
+          type: string
+        type: array
       env:
         items:
           type: string
@@ -271,6 +378,8 @@ definitions:
         items:
           $ref: '#/definitions/dto.PortHelper'
         type: array
+      forcePull:
+        type: boolean
       image:
         type: string
       labels:
@@ -278,11 +387,13 @@ definitions:
           type: string
         type: array
       memory:
-        type: integer
+        type: number
       name:
         type: string
       nanoCPUs:
-        type: integer
+        type: number
+      network:
+        type: string
       publishAllPorts:
         type: boolean
       restartPolicy:
@@ -334,17 +445,7 @@ definitions:
       spaceReclaimed:
         type: integer
     type: object
-  dto.ContainerUpgrade:
-    properties:
-      image:
-        type: string
-      name:
-        type: string
-    required:
-    - image
-    - name
-    type: object
-  dto.ContainterStats:
+  dto.ContainerStats:
     properties:
       cache:
         type: number
@@ -362,6 +463,18 @@ definitions:
         type: number
       shotTime:
         type: string
+    type: object
+  dto.ContainerUpgrade:
+    properties:
+      forcePull:
+        type: boolean
+      image:
+        type: string
+      name:
+        type: string
+    required:
+    - image
+    - name
     type: object
   dto.CronjobBatchDelete:
     properties:
@@ -383,6 +496,10 @@ definitions:
     type: object
   dto.CronjobCreate:
     properties:
+      appID:
+        type: string
+      containerName:
+        type: string
       day:
         type: integer
       dbName:
@@ -437,6 +554,10 @@ definitions:
     type: object
   dto.CronjobUpdate:
     properties:
+      appID:
+        type: string
+      containerName:
+        type: string
       day:
         type: integer
       dbName:
@@ -620,6 +741,121 @@ definitions:
       uptime:
         type: integer
     type: object
+  dto.DatabaseCreate:
+    properties:
+      address:
+        type: string
+      description:
+        type: string
+      from:
+        enum:
+        - local
+        - remote
+        type: string
+      name:
+        maxLength: 256
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      type:
+        type: string
+      username:
+        type: string
+      version:
+        type: string
+    required:
+    - from
+    - name
+    - password
+    - type
+    - username
+    - version
+    type: object
+  dto.DatabaseInfo:
+    properties:
+      address:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      from:
+        type: string
+      id:
+        type: integer
+      name:
+        maxLength: 256
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      type:
+        type: string
+      username:
+        type: string
+      version:
+        type: string
+    type: object
+  dto.DatabaseOption:
+    properties:
+      address:
+        type: string
+      database:
+        type: string
+      from:
+        type: string
+      id:
+        type: integer
+      type:
+        type: string
+      version:
+        type: string
+    type: object
+  dto.DatabaseSearch:
+    properties:
+      info:
+        type: string
+      order:
+        type: string
+      orderBy:
+        type: string
+      page:
+        type: integer
+      pageSize:
+        type: integer
+      type:
+        type: string
+    required:
+    - page
+    - pageSize
+    type: object
+  dto.DatabaseUpdate:
+    properties:
+      address:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      port:
+        type: integer
+      type:
+        type: string
+      username:
+        type: string
+      version:
+        type: string
+    required:
+    - password
+    - type
+    - username
+    - version
+    type: object
   dto.DiskInfo:
     properties:
       device:
@@ -671,18 +907,12 @@ definitions:
         - LOCAL
         - COS
         - KODO
+        - OneDrive
         type: string
     required:
     - fileDir
     - fileName
     - source
-    type: object
-  dto.FilePath:
-    properties:
-      path:
-        type: string
-    required:
-    - path
     type: object
   dto.FirewallBaseInfo:
     properties:
@@ -817,37 +1047,6 @@ definitions:
     - port
     - user
     type: object
-  dto.HostInfo:
-    properties:
-      addr:
-        type: string
-      authMode:
-        type: string
-      createdAt:
-        type: string
-      description:
-        type: string
-      groupBelong:
-        type: string
-      groupID:
-        type: integer
-      id:
-        type: integer
-      name:
-        type: string
-      passPhrase:
-        type: string
-      password:
-        type: string
-      port:
-        type: integer
-      privateKey:
-        type: string
-      rememberPassword:
-        type: boolean
-      user:
-        type: string
-    type: object
   dto.HostOperate:
     properties:
       addr:
@@ -883,6 +1082,17 @@ definitions:
     - addr
     - port
     - user
+    type: object
+  dto.HostTree:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/dto.TreeChild'
+        type: array
+      id:
+        type: integer
+      label:
+        type: string
     type: object
   dto.ImageBuild:
     properties:
@@ -939,6 +1149,15 @@ definitions:
     required:
     - ids
     type: object
+  dto.ImageRepoOption:
+    properties:
+      downloadUrl:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   dto.ImageRepoUpdate:
     properties:
       auth:
@@ -948,10 +1167,12 @@ definitions:
       id:
         type: integer
       password:
+        maxLength: 256
         type: string
       protocol:
         type: string
       username:
+        maxLength: 256
         type: string
     type: object
   dto.ImageSave:
@@ -1003,6 +1224,8 @@ definitions:
         type: string
       ignoreCaptcha:
         type: boolean
+      language:
+        type: string
       name:
         type: string
       password:
@@ -1023,20 +1246,30 @@ definitions:
     properties:
       code:
         type: string
+      interval:
+        type: string
       secret:
         type: string
     type: object
   dto.MysqlConfUpdateByFile:
     properties:
+      database:
+        type: string
       file:
         type: string
-      mysqlName:
+      type:
+        enum:
+        - mysql
+        - mariadb
         type: string
     required:
-    - mysqlName
+    - database
+    - type
     type: object
   dto.MysqlDBCreate:
     properties:
+      database:
+        type: string
       description:
         type: string
       format:
@@ -1045,6 +1278,11 @@ definitions:
         - utf8
         - gbk
         - big5
+        type: string
+      from:
+        enum:
+        - local
+        - remote
         type: string
       name:
         type: string
@@ -1055,7 +1293,9 @@ definitions:
       username:
         type: string
     required:
+    - database
     - format
+    - from
     - name
     - password
     - permission
@@ -1063,14 +1303,90 @@ definitions:
     type: object
   dto.MysqlDBDelete:
     properties:
+      database:
+        type: string
       deleteBackup:
         type: boolean
       forceDelete:
         type: boolean
       id:
         type: integer
+      type:
+        enum:
+        - mysql
+        - mariadb
+        type: string
     required:
+    - database
     - id
+    - type
+    type: object
+  dto.MysqlDBDeleteCheck:
+    properties:
+      database:
+        type: string
+      id:
+        type: integer
+      type:
+        enum:
+        - mysql
+        - mariadb
+        type: string
+    required:
+    - database
+    - id
+    - type
+    type: object
+  dto.MysqlDBSearch:
+    properties:
+      database:
+        type: string
+      info:
+        type: string
+      order:
+        type: string
+      orderBy:
+        type: string
+      page:
+        type: integer
+      pageSize:
+        type: integer
+    required:
+    - database
+    - page
+    - pageSize
+    type: object
+  dto.MysqlLoadDB:
+    properties:
+      database:
+        type: string
+      from:
+        enum:
+        - local
+        - remote
+        type: string
+      type:
+        enum:
+        - mysql
+        - mariadb
+        type: string
+    required:
+    - database
+    - from
+    - type
+    type: object
+  dto.MysqlOption:
+    properties:
+      database:
+        type: string
+      from:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
     type: object
   dto.MysqlStatus:
     properties:
@@ -1186,6 +1502,23 @@ definitions:
     type: object
   dto.MysqlVariablesUpdate:
     properties:
+      database:
+        type: string
+      type:
+        enum:
+        - mysql
+        - mariadb
+        type: string
+      variables:
+        items:
+          $ref: '#/definitions/dto.MysqlVariablesUpdateHelper'
+        type: array
+    required:
+    - database
+    - type
+    type: object
+  dto.MysqlVariablesUpdateHelper:
+    properties:
       param:
         type: string
       value: {}
@@ -1211,6 +1544,22 @@ definitions:
       subnet:
         type: string
     type: object
+  dto.NginxKey:
+    enum:
+    - index
+    - limit-conn
+    - ssl
+    - cache
+    - http-per
+    - proxy-cache
+    type: string
+    x-enum-varnames:
+    - Index
+    - LimitConn
+    - SSL
+    - CACHE
+    - HttpPer
+    - ProxyCache
   dto.Operate:
     properties:
       operation:
@@ -1232,11 +1581,30 @@ definitions:
     required:
     - name
     type: object
+  dto.OperationWithNameAndType:
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - type
+    type: object
+  dto.Options:
+    properties:
+      option:
+        type: string
+    type: object
   dto.PageContainer:
     properties:
       filters:
         type: string
       name:
+        type: string
+      order:
+        type: string
+      orderBy:
         type: string
       page:
         type: integer
@@ -1286,6 +1654,8 @@ definitions:
   dto.PortRuleOperate:
     properties:
       address:
+        type: string
+      description:
         type: string
       operation:
         enum:
@@ -1497,6 +1867,19 @@ definitions:
       totalCount:
         type: integer
     type: object
+  dto.SSHLogAnalysis:
+    properties:
+      address:
+        type: string
+      area:
+        type: string
+      failedCount:
+        type: integer
+      status:
+        type: string
+      successfulCount:
+        type: integer
+    type: object
   dto.SSLUpdate:
     properties:
       cert:
@@ -1516,6 +1899,16 @@ definitions:
         type: string
     required:
     - ssl
+    type: object
+  dto.SearchForAnalysis:
+    properties:
+      orderBy:
+        enum:
+        - Success
+        - Failed
+        type: string
+    required:
+    - orderBy
     type: object
   dto.SearchForTree:
     properties:
@@ -1607,6 +2000,10 @@ definitions:
     properties:
       info:
         type: string
+      order:
+        type: string
+      orderBy:
+        type: string
       page:
         type: integer
       pageSize:
@@ -1627,6 +2024,8 @@ definitions:
         type: string
       complexityVerification:
         type: string
+      defaultNetwork:
+        type: string
       dingVars:
         type: string
       email:
@@ -1642,6 +2041,8 @@ definitions:
       localTime:
         type: string
       messageType:
+        type: string
+      mfaInterval:
         type: string
       mfaSecret:
         type: string
@@ -1668,6 +2069,8 @@ definitions:
       ssl:
         type: string
       sslType:
+        type: string
+      systemIP:
         type: string
       systemVersion:
         type: string
@@ -1702,7 +2105,10 @@ definitions:
         - MINIO
         - COS
         - KODO
+        - OneDrive
         type: string
+      id:
+        type: integer
     required:
     - from
     type: object
@@ -1734,6 +2140,13 @@ definitions:
       ntpSite:
         type: string
     type: object
+  dto.TreeChild:
+    properties:
+      id:
+        type: integer
+      label:
+        type: string
+    type: object
   dto.UpdateDescription:
     properties:
       description:
@@ -1743,6 +2156,26 @@ definitions:
         type: integer
     required:
     - id
+    type: object
+  dto.UpdateFirewallDescription:
+    properties:
+      address:
+        type: string
+      description:
+        type: string
+      port:
+        type: string
+      protocol:
+        type: string
+      strategy:
+        enum:
+        - accept
+        - drop
+        type: string
+      type:
+        type: string
+    required:
+    - strategy
     type: object
   dto.Upgrade:
     properties:
@@ -1797,6 +2230,8 @@ definitions:
         type: string
       extension:
         type: string
+      gid:
+        type: string
       group:
         type: string
       isDir:
@@ -1826,6 +2261,8 @@ definitions:
       size:
         type: integer
       type:
+        type: string
+      uid:
         type: string
       updateTime:
         type: string
@@ -2099,8 +2536,32 @@ definitions:
     - appDetailId
     - name
     type: object
+  request.AppInstalledIgnoreUpgrade:
+    properties:
+      detailID:
+        type: integer
+      operate:
+        enum:
+        - cancel
+        - ignore
+        type: string
+    required:
+    - detailID
+    - operate
+    type: object
+  request.AppInstalledInfo:
+    properties:
+      key:
+        type: string
+      name:
+        type: string
+    required:
+    - key
+    type: object
   request.AppInstalledOperate:
     properties:
+      backup:
+        type: boolean
       backupId:
         type: integer
       deleteBackup:
@@ -2178,6 +2639,8 @@ definitions:
         type: integer
       recommend:
         type: boolean
+      resource:
+        type: string
       tags:
         items:
           type: string
@@ -2378,6 +2841,58 @@ definitions:
     - path
     - url
     type: object
+  request.HostToolConfig:
+    properties:
+      content:
+        type: string
+      operate:
+        enum:
+        - get
+        - set
+        type: string
+      type:
+        enum:
+        - supervisord
+        type: string
+    required:
+    - type
+    type: object
+  request.HostToolCreate:
+    properties:
+      configPath:
+        type: string
+      serviceName:
+        type: string
+      type:
+        type: string
+    required:
+    - type
+    type: object
+  request.HostToolLogReq:
+    properties:
+      type:
+        enum:
+        - supervisord
+        type: string
+    required:
+    - type
+    type: object
+  request.HostToolReq:
+    properties:
+      operate:
+        enum:
+        - status
+        - restart
+        - start
+        - stop
+        type: string
+      type:
+        enum:
+        - supervisord
+        type: string
+    required:
+    - type
+    type: object
   request.NewAppInstall:
     properties:
       advanced:
@@ -2474,12 +2989,9 @@ definitions:
         type: boolean
       content:
         type: string
-      filePath:
-        type: string
     required:
     - backup
     - content
-    - filePath
     type: object
   request.NginxConfigUpdate:
     properties:
@@ -2487,13 +2999,62 @@ definitions:
         type: string
       params: {}
       scope:
-        type: string
+        $ref: '#/definitions/dto.NginxKey'
       websiteId:
         type: integer
     required:
     - websiteId
     type: object
   request.NginxProxyUpdate:
+    properties:
+      content:
+        type: string
+      name:
+        type: string
+      websiteID:
+        type: integer
+    required:
+    - content
+    - name
+    - websiteID
+    type: object
+  request.NginxRedirectReq:
+    properties:
+      domains:
+        items:
+          type: string
+        type: array
+      enable:
+        type: boolean
+      keepPath:
+        type: boolean
+      name:
+        type: string
+      operate:
+        type: string
+      path:
+        type: string
+      redirect:
+        type: string
+      redirectRoot:
+        type: boolean
+      target:
+        type: string
+      type:
+        type: string
+      websiteID:
+        type: integer
+    required:
+    - enable
+    - keepPath
+    - name
+    - operate
+    - redirect
+    - target
+    - type
+    - websiteID
+    type: object
+  request.NginxRedirectUpdate:
     properties:
       content:
         type: string
@@ -2532,11 +3093,16 @@ definitions:
   request.NginxScopeReq:
     properties:
       scope:
-        type: string
+        $ref: '#/definitions/dto.NginxKey'
       websiteId:
         type: integer
     required:
     - scope
+    type: object
+  request.NodePackageReq:
+    properties:
+      codeDir:
+        type: string
     type: object
   request.PortUpdate:
     properties:
@@ -2547,18 +3113,33 @@ definitions:
       port:
         type: integer
     type: object
+  request.ProcessReq:
+    properties:
+      PID:
+        type: integer
+    required:
+    - PID
+    type: object
   request.RuntimeCreate:
     properties:
       appDetailId:
         type: integer
+      clean:
+        type: boolean
+      codeDir:
+        type: string
       image:
         type: string
+      install:
+        type: boolean
       name:
         type: string
       params:
         additionalProperties: true
         type: object
       resource:
+        type: string
+      source:
         type: string
       type:
         type: string
@@ -2567,8 +3148,17 @@ definitions:
     type: object
   request.RuntimeDelete:
     properties:
+      forceDelete:
+        type: boolean
       id:
         type: integer
+    type: object
+  request.RuntimeOperate:
+    properties:
+      ID:
+        type: integer
+      operate:
+        type: string
     type: object
   request.RuntimeSearch:
     properties:
@@ -2588,15 +3178,25 @@ definitions:
     type: object
   request.RuntimeUpdate:
     properties:
+      clean:
+        type: boolean
+      codeDir:
+        type: string
       id:
         type: integer
       image:
         type: string
+      install:
+        type: boolean
       name:
         type: string
       params:
         additionalProperties: true
         type: object
+      rebuild:
+        type: boolean
+      source:
+        type: string
       version:
         type: string
     type: object
@@ -2613,12 +3213,57 @@ definitions:
     - pageSize
     - path
     type: object
+  request.SupervisorProcessConfig:
+    properties:
+      command:
+        type: string
+      dir:
+        type: string
+      name:
+        type: string
+      numprocs:
+        type: string
+      operate:
+        type: string
+      user:
+        type: string
+    type: object
+  request.SupervisorProcessFileReq:
+    properties:
+      content:
+        type: string
+      file:
+        enum:
+        - out.log
+        - err.log
+        - config
+        type: string
+      name:
+        type: string
+      operate:
+        enum:
+        - get
+        - clear
+        - update
+        type: string
+    required:
+    - file
+    - name
+    - operate
+    type: object
   request.WebsiteAcmeAccountCreate:
     properties:
       email:
         type: string
     required:
     - email
+    type: object
+  request.WebsiteCommonReq:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
     type: object
   request.WebsiteCreate:
     properties:
@@ -2748,12 +3393,6 @@ definitions:
     type: object
   request.WebsiteHTTPSOp:
     properties:
-      HttpConfig:
-        enum:
-        - HTTPSOnly
-        - HTTPAlso
-        - HTTPToHTTPS
-        type: string
       SSLProtocol:
         items:
           type: string
@@ -2762,9 +3401,21 @@ definitions:
         type: string
       certificate:
         type: string
+      certificatePath:
+        type: string
       enable:
         type: boolean
+      httpConfig:
+        enum:
+        - HTTPSOnly
+        - HTTPAlso
+        - HTTPToHTTPS
+        type: string
+      importType:
+        type: string
       privateKey:
+        type: string
+      privateKeyPath:
         type: string
       type:
         enum:
@@ -2797,6 +3448,10 @@ definitions:
         type: string
       operate:
         type: string
+      page:
+        type: integer
+      pageSize:
+        type: integer
     required:
     - id
     - logType
@@ -2853,6 +3508,19 @@ definitions:
     - content
     - id
     - type
+    type: object
+  request.WebsitePHPVersionReq:
+    properties:
+      retainConfig:
+        type: boolean
+      runtimeID:
+        type: integer
+      websiteID:
+        type: integer
+    required:
+    - retainConfig
+    - runtimeID
+    - websiteID
     type: object
   request.WebsiteProxyConfig:
     properties:
@@ -2942,6 +3610,8 @@ definitions:
     type: object
   request.WebsiteSSLSearch:
     properties:
+      acmeAccountID:
+        type: string
       page:
         type: integer
       pageSize:
@@ -2963,6 +3633,10 @@ definitions:
   request.WebsiteSearch:
     properties:
       name:
+        type: string
+      order:
+        type: string
+      orderBy:
         type: string
       page:
         type: integer
@@ -3111,6 +3785,8 @@ definitions:
         type: boolean
       id:
         type: integer
+      ignoreUpgrade:
+        type: boolean
       image:
         type: string
       lastModified:
@@ -3137,6 +3813,10 @@ definitions:
         type: string
       createdAt:
         type: string
+      httpPort:
+        type: integer
+      httpsPort:
+        type: integer
       installPath:
         type: string
       isExist:
@@ -3173,11 +3853,21 @@ definitions:
       value: {}
       values: {}
     type: object
+  response.AppService:
+    properties:
+      config: {}
+      label:
+        type: string
+      value:
+        type: string
+    type: object
   response.FileInfo:
     properties:
       content:
         type: string
       extension:
+        type: string
+      gid:
         type: string
       group:
         type: string
@@ -3209,9 +3899,35 @@ definitions:
         type: integer
       type:
         type: string
+      uid:
+        type: string
       updateTime:
         type: string
       user:
+        type: string
+    type: object
+  response.FileTree:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/response.FileTree'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+    type: object
+  response.IgnoredApp:
+    properties:
+      detailID:
+        type: integer
+      icon:
+        type: string
+      name:
+        type: string
+      version:
         type: string
     type: object
   response.NginxParam:
@@ -3264,6 +3980,17 @@ definitions:
       updatedAt:
         type: string
       url:
+        type: string
+    type: object
+  response.WebsiteDNSRes:
+    properties:
+      domain:
+        type: string
+      err:
+        type: string
+      resolve:
+        type: string
+      value:
         type: string
     type: object
   response.WebsiteDTO:
@@ -3356,6 +4083,10 @@ definitions:
         type: string
       enable:
         type: boolean
+      end:
+        type: boolean
+      path:
+        type: string
     type: object
   response.WebsiteNginxConfig:
     properties:
@@ -3366,14 +4097,23 @@ definitions:
           $ref: '#/definitions/response.NginxParam'
         type: array
     type: object
+  response.WebsitePreInstallCheck:
+    properties:
+      appName:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      version:
+        type: string
+    type: object
   response.WebsiteWafConfig:
     properties:
       content:
         type: string
       enable:
         type: boolean
-      filePath:
-        type: string
     type: object
 host: localhost
 info:
@@ -3412,7 +4152,7 @@ paths:
       description: 获取应用更新版本
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get app list update
@@ -3470,6 +4210,21 @@ paths:
       summary: Get app detail by id
       tags:
       - App
+  /apps/ingored:
+    get:
+      consumes:
+      - application/json
+      description: 获取忽略的应用版本
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.IgnoredApp'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Ignore App
+      tags:
+      - App
   /apps/install:
     post:
       consumes:
@@ -3525,23 +4280,26 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.AppVersion'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Search app update version by install id
       tags:
       - App
-  /apps/installed/check/:key:
-    get:
+  /apps/installed/check:
+    post:
       consumes:
       - application/json
       description: 检查应用安装情况
       parameters:
       - description: request
-        in: path
-        name: key
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/request.AppInstalledInfo'
       responses:
         "200":
           description: OK
@@ -3552,17 +4310,18 @@ paths:
       summary: Check app installed
       tags:
       - App
-  /apps/installed/conf/:key:
-    get:
+  /apps/installed/conf:
+    post:
       consumes:
       - application/json
       description: 通过 key 获取应用默认配置
       parameters:
       - description: request
-        in: path
-        name: key
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -3580,10 +4339,11 @@ paths:
       description: 获取应用连接信息
       parameters:
       - description: request
-        in: path
-        name: key
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -3609,23 +4369,70 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.AppResource'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Check before delete
       tags:
       - App
-  /apps/installed/loadport/:key:
+  /apps/installed/ignore:
+    post:
+      consumes:
+      - application/json
+      description: 忽略应用升级版本
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.AppInstalledIgnoreUpgrade'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: ignore App Update
+      tags:
+      - App
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - installId
+        formatEN: Application param update [installId]
+        formatZH: 忽略应用 [installId] 版本升级
+        paramKeys: []
+  /apps/installed/list:
     get:
+      consumes:
+      - application/json
+      description: 获取已安装应用列表
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.AppInstallInfo'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List app installed
+      tags:
+      - App
+  /apps/installed/loadport:
+    post:
       consumes:
       - application/json
       description: 获取应用端口
       parameters:
       - description: request
-        in: path
-        name: key
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -3650,7 +4457,7 @@ paths:
           $ref: '#/definitions/request.AppInstalledOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Operate installed app
@@ -3717,7 +4524,7 @@ paths:
           $ref: '#/definitions/request.AppInstalledUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change app params
@@ -3744,7 +4551,7 @@ paths:
           $ref: '#/definitions/request.PortUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change app port
@@ -3763,7 +4570,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 获取已安装应用列表
+      description: 分页获取已安装应用列表
       parameters:
       - description: request
         in: body
@@ -3773,10 +4580,10 @@ paths:
           $ref: '#/definitions/request.AppInstalledSearch'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
-      summary: List app installed
+      summary: Page app installed
       tags:
       - App
   /apps/installed/sync:
@@ -3784,7 +4591,7 @@ paths:
       description: 同步已安装应用列表
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Sync app installed
@@ -3810,7 +4617,7 @@ paths:
           $ref: '#/definitions/request.AppSearch'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: List apps
@@ -3831,7 +4638,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.AppService'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Search app service by key
@@ -3842,7 +4651,7 @@ paths:
       description: 同步应用列表
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Sync app list
@@ -3870,7 +4679,7 @@ paths:
       description: 判断是否为demo环境
       responses:
         "200":
-          description: ""
+          description: OK
       summary: Check System isDemo
       tags:
       - Auth
@@ -3879,8 +4688,17 @@ paths:
       description: 获取系统安全登录状态
       responses:
         "200":
-          description: ""
+          description: OK
       summary: Load safety status
+      tags:
+      - Auth
+  /auth/language:
+    get:
+      description: 获取系统语言设置
+      responses:
+        "200":
+          description: OK
+      summary: Load System Language
       tags:
       - Auth
   /auth/login:
@@ -3889,6 +4707,11 @@ paths:
       - application/json
       description: 用户登录
       parameters:
+      - description: 安全入口 base64 加密串
+        in: header
+        name: EntranceCode
+        required: true
+        type: string
       - description: request
         in: body
         name: request
@@ -3908,7 +4731,7 @@ paths:
       description: 用户登出
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: User logout
@@ -3929,6 +4752,10 @@ paths:
       responses:
         "200":
           description: OK
+          headers:
+            EntranceCode:
+              description: 安全入口
+              type: string
           schema:
             $ref: '#/definitions/dto.UserLoginInfo'
       summary: User login with mfa
@@ -3948,7 +4775,7 @@ paths:
           $ref: '#/definitions/dto.ContainerOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create container
@@ -3976,7 +4803,7 @@ paths:
           $ref: '#/definitions/dto.OperationWithName'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Clean container log
@@ -4003,7 +4830,7 @@ paths:
           $ref: '#/definitions/dto.ComposeCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create compose
@@ -4030,7 +4857,7 @@ paths:
           $ref: '#/definitions/dto.ComposeOperation'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Operate compose
@@ -4080,7 +4907,7 @@ paths:
           $ref: '#/definitions/dto.ComposeCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Test compose
@@ -4107,7 +4934,7 @@ paths:
           $ref: '#/definitions/dto.ComposeUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update compose
@@ -4164,7 +4991,7 @@ paths:
           $ref: '#/definitions/dto.LogOption'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update docker daemon.json log option
@@ -4190,7 +5017,7 @@ paths:
           $ref: '#/definitions/dto.DaemonJsonUpdateByFile'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update docker daemon.json by upload file
@@ -4216,7 +5043,7 @@ paths:
           $ref: '#/definitions/dto.DockerOperation'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Operate docker
@@ -4253,7 +5080,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.Options'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List images
@@ -4302,7 +5131,7 @@ paths:
           $ref: '#/definitions/dto.ImageLoad'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Load image
@@ -4402,7 +5231,7 @@ paths:
           $ref: '#/definitions/dto.BatchDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete image
@@ -4429,7 +5258,7 @@ paths:
           $ref: '#/definitions/dto.ImageSave'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Save image
@@ -4482,7 +5311,7 @@ paths:
           $ref: '#/definitions/dto.ImageTag'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Tag image
@@ -4557,7 +5386,73 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Load container limis
+  /containers/list:
+    post:
+      consumes:
+      - application/json
+      description: 获取容器名称
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: List containers
+      tags:
+      - Container
+  /containers/list/stats:
+    get:
+      description: 获取容器列表资源占用
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ContainerListStats'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Load container stats
+  /containers/load/log:
+    post:
+      consumes:
+      - application/json
+      description: 获取容器操作日志
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load container log
+      tags:
+      - Container
   /containers/network:
+    get:
+      consumes:
+      - application/json
+      description: 获取容器网络列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.Options'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List networks
+      tags:
+      - Container Network
     post:
       consumes:
       - application/json
@@ -4571,7 +5466,7 @@ paths:
           $ref: '#/definitions/dto.NetworkCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create network
@@ -4598,7 +5493,7 @@ paths:
           $ref: '#/definitions/dto.BatchDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete network
@@ -4649,7 +5544,7 @@ paths:
           $ref: '#/definitions/dto.ContainerOperation'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Operate Container
@@ -4702,7 +5597,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.ImageRepoOption'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List image repos
@@ -4723,7 +5620,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create image repo
@@ -4752,7 +5649,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete image repo
@@ -4811,7 +5708,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Load repo status
@@ -4833,7 +5730,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update image repo
@@ -4915,7 +5812,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.ContainterStats'
+            $ref: '#/definitions/dto.ContainerStats'
       security:
       - ApiKeyAuth: []
       summary: Container stats
@@ -4930,7 +5827,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.ComposeTemplateInfo'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List compose templates
@@ -4949,7 +5848,7 @@ paths:
           $ref: '#/definitions/dto.ComposeTemplateCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create compose template
@@ -4976,7 +5875,7 @@ paths:
           $ref: '#/definitions/dto.BatchDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete compose template
@@ -5033,7 +5932,7 @@ paths:
           $ref: '#/definitions/dto.ComposeTemplateUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update compose template
@@ -5066,7 +5965,7 @@ paths:
           $ref: '#/definitions/dto.ContainerOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update container
@@ -5094,7 +5993,7 @@ paths:
           $ref: '#/definitions/dto.ContainerUpgrade'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Upgrade container
@@ -5109,6 +6008,24 @@ paths:
         formatZH: 更新容器镜像 [name][image]
         paramKeys: []
   /containers/volume:
+    get:
+      consumes:
+      - application/json
+      description: 获取容器存储卷列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.Options'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List volumes
+      tags:
+      - Container Volume
     post:
       consumes:
       - application/json
@@ -5122,7 +6039,7 @@ paths:
           $ref: '#/definitions/dto.VolumeCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create volume
@@ -5149,7 +6066,7 @@ paths:
           $ref: '#/definitions/dto.BatchDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete volume
@@ -5163,29 +6080,6 @@ paths:
         formatZH: 删除容器存储卷 [names]
         paramKeys: []
   /containers/volume/search:
-    get:
-      consumes:
-      - application/json
-      description: 获取容器存储卷列表
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.PageInfo'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.PageResult'
-      security:
-      - ApiKeyAuth: []
-      summary: List volumes
-      tags:
-      - Container Volume
     post:
       consumes:
       - application/json
@@ -5209,6 +6103,26 @@ paths:
       summary: Page volumes
       tags:
       - Container Volume
+  /cronjob/record/log:
+    post:
+      consumes:
+      - application/json
+      description: 获取计划任务记录日志
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperateByID'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load Cronjob record log
+      tags:
+      - Cronjob
   /cronjobs:
     post:
       consumes:
@@ -5223,7 +6137,7 @@ paths:
           $ref: '#/definitions/dto.CronjobCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create cronjob
@@ -5251,7 +6165,7 @@ paths:
           $ref: '#/definitions/dto.CronjobBatchDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete cronjob
@@ -5284,7 +6198,7 @@ paths:
           $ref: '#/definitions/dto.CronjobDownload'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Download cronjob records
@@ -5317,7 +6231,7 @@ paths:
           $ref: '#/definitions/dto.OperateByID'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Handle cronjob once
@@ -5350,7 +6264,7 @@ paths:
           $ref: '#/definitions/dto.CronjobClean'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Clean job records
@@ -5427,7 +6341,7 @@ paths:
           $ref: '#/definitions/dto.CronjobUpdateStatus'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update cronjob status
@@ -5461,7 +6375,7 @@ paths:
           $ref: '#/definitions/dto.CronjobUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update cronjob
@@ -5546,7 +6460,7 @@ paths:
           $ref: '#/definitions/dto.MysqlDBCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create mysql database
@@ -5560,8 +6474,17 @@ paths:
         formatZH: 创建 mysql 数据库 [name]
         paramKeys: []
   /databases/baseinfo:
-    get:
+    post:
+      consumes:
+      - application/json
       description: 获取 mysql 基础信息
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -5586,7 +6509,7 @@ paths:
           $ref: '#/definitions/dto.ChangeDBInfo'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change mysql access
@@ -5619,7 +6542,7 @@ paths:
           $ref: '#/definitions/dto.ChangeDBInfo'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change mysql password
@@ -5652,7 +6575,7 @@ paths:
           $ref: '#/definitions/dto.MysqlConfUpdateByFile'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update mysql conf by upload file
@@ -5663,6 +6586,172 @@ paths:
         bodyKeys: []
         formatEN: update the mysql database configuration information
         formatZH: 更新 mysql 数据库配置信息
+        paramKeys: []
+  /databases/db:
+    post:
+      consumes:
+      - application/json
+      description: 创建远程数据库
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DatabaseCreate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Create database
+      tags:
+      - Database
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - name
+        - type
+        formatEN: create database [name][type]
+        formatZH: 创建远程数据库 [name][type]
+        paramKeys: []
+  /databases/db/:name:
+    get:
+      description: 获取远程数据库
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DatabaseInfo'
+      security:
+      - ApiKeyAuth: []
+      summary: Get databases
+      tags:
+      - Database
+  /databases/db/check:
+    post:
+      consumes:
+      - application/json
+      description: 检测远程数据库连接性
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DatabaseCreate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Check database
+      tags:
+      - Database
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - name
+        - type
+        formatEN: check if database [name][type] is connectable
+        formatZH: 检测远程数据库 [name][type] 连接性
+        paramKeys: []
+  /databases/db/del:
+    post:
+      consumes:
+      - application/json
+      description: 删除远程数据库
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperateByID'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Delete database
+      tags:
+      - Database
+      x-panel-log:
+        BeforeFuntions:
+        - db: databases
+          input_column: id
+          input_value: ids
+          isList: true
+          output_column: name
+          output_value: names
+        bodyKeys:
+        - ids
+        formatEN: delete database [names]
+        formatZH: 删除远程数据库 [names]
+        paramKeys: []
+  /databases/db/list/:type:
+    get:
+      description: 获取远程数据库列表
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.DatabaseOption'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: List databases
+      tags:
+      - Database
+  /databases/db/search:
+    post:
+      consumes:
+      - application/json
+      description: 获取远程数据库列表分页
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DatabaseSearch'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PageResult'
+      security:
+      - ApiKeyAuth: []
+      summary: Page databases
+      tags:
+      - Database
+  /databases/db/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新远程数据库
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DatabaseUpdate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update database
+      tags:
+      - Database
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - name
+        formatEN: update database [name]
+        formatZH: 更新远程数据库 [name]
         paramKeys: []
   /databases/del:
     post:
@@ -5678,7 +6767,7 @@ paths:
           $ref: '#/definitions/dto.MysqlDBDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete mysql database
@@ -5708,12 +6797,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.OperateByID'
+          $ref: '#/definitions/dto.MysqlDBDeleteCheck'
       responses:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              type: string
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Check before delete mysql database
@@ -5733,7 +6824,7 @@ paths:
           $ref: '#/definitions/dto.UpdateDescription'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update mysql database description
@@ -5753,6 +6844,44 @@ paths:
         formatEN: The description of the mysql database [name] is modified => [description]
         formatZH: mysql 数据库 [name] 描述信息修改 [description]
         paramKeys: []
+  /databases/load:
+    post:
+      consumes:
+      - application/json
+      description: 从服务器获取
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.MysqlLoadDB'
+      responses: {}
+      security:
+      - ApiKeyAuth: []
+      summary: Load mysql database from remote
+      tags:
+      - Database Mysql
+  /databases/load/file:
+    post:
+      consumes:
+      - application/json
+      description: 获取数据库文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load Database file
+      tags:
+      - Database
   /databases/options:
     get:
       consumes:
@@ -5769,7 +6898,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.MysqlOption'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List mysql database names
@@ -5824,7 +6955,7 @@ paths:
           $ref: '#/definitions/dto.RedisConfUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update redis conf
@@ -5850,7 +6981,7 @@ paths:
           $ref: '#/definitions/dto.RedisConfUpdateByFile'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update redis conf by file
@@ -5873,10 +7004,10 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.ChangeDBInfo'
+          $ref: '#/definitions/dto.ChangeRedisPass'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change redis password
@@ -5915,7 +7046,7 @@ paths:
           $ref: '#/definitions/dto.RedisConfPersistenceUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update redis persistence conf
@@ -5941,8 +7072,17 @@ paths:
       tags:
       - Database Redis
   /databases/remote:
-    get:
+    post:
+      consumes:
+      - application/json
       description: 获取 mysql 远程访问权限
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -5964,7 +7104,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/dto.SearchWithPage'
+          $ref: '#/definitions/dto.MysqlDBSearch'
       responses:
         "200":
           description: OK
@@ -5976,8 +7116,17 @@ paths:
       tags:
       - Database Mysql
   /databases/status:
-    get:
+    post:
+      consumes:
+      - application/json
       description: 获取 mysql 状态信息
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -5989,8 +7138,17 @@ paths:
       tags:
       - Database Mysql
   /databases/variables:
-    get:
+    post:
+      consumes:
+      - application/json
       description: 获取 mysql 性能参数信息
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperationWithNameAndType'
       responses:
         "200":
           description: OK
@@ -6015,7 +7173,7 @@ paths:
           $ref: '#/definitions/dto.MysqlVariablesUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update mysql variables
@@ -6041,7 +7199,7 @@ paths:
           $ref: '#/definitions/request.FileCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create file
@@ -6068,7 +7226,7 @@ paths:
           $ref: '#/definitions/request.FileBatchDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Batch delete file
@@ -6095,7 +7253,7 @@ paths:
           $ref: '#/definitions/request.FilePathCheck'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Check file exist
@@ -6122,7 +7280,7 @@ paths:
           $ref: '#/definitions/request.FileDownload'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Chunk Download file
@@ -6146,7 +7304,7 @@ paths:
         type: file
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: ChunkUpload file
@@ -6166,7 +7324,7 @@ paths:
           $ref: '#/definitions/request.FileCompress'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Compress file
@@ -6222,7 +7380,7 @@ paths:
           $ref: '#/definitions/request.FileDeCompress'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Decompress file
@@ -6249,7 +7407,7 @@ paths:
           $ref: '#/definitions/request.FileDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete file
@@ -6276,7 +7434,7 @@ paths:
           $ref: '#/definitions/request.FileDownload'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Download file
@@ -6289,55 +7447,6 @@ paths:
         formatEN: Download file [name]
         formatZH: 下载文件 [name]
         paramKeys: []
-  /files/download/bypath:
-    post:
-      consumes:
-      - application/json
-      description: 下载指定文件
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.FilePath'
-      responses:
-        "200":
-          description: ""
-      security:
-      - ApiKeyAuth: []
-      summary: Download file with path
-      tags:
-      - File
-      x-panel-log:
-        BeforeFuntions: []
-        bodyKeys:
-        - path
-        formatEN: Download file [path]
-        formatZH: 下载文件 [path]
-        paramKeys: []
-  /files/loadfile:
-    post:
-      consumes:
-      - application/json
-      description: 读取文件
-      parameters:
-      - description: request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.FilePath'
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Read file
-      tags:
-      - File
   /files/mode:
     post:
       consumes:
@@ -6352,7 +7461,7 @@ paths:
           $ref: '#/definitions/request.FileCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change file mode
@@ -6380,7 +7489,7 @@ paths:
           $ref: '#/definitions/request.FileMove'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Move file
@@ -6408,7 +7517,7 @@ paths:
           $ref: '#/definitions/request.FileRoleUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change file owner
@@ -6437,7 +7546,7 @@ paths:
           $ref: '#/definitions/request.FileRename'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change file name
@@ -6465,7 +7574,7 @@ paths:
           $ref: '#/definitions/request.FileEdit'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update file content
@@ -6514,7 +7623,7 @@ paths:
           $ref: '#/definitions/request.DirSizeReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Load file size
@@ -6543,7 +7652,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.FileTree'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Load files tree
@@ -6560,7 +7671,7 @@ paths:
         type: file
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Upload file
@@ -6589,7 +7700,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.FileInfo'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Page file
@@ -6609,7 +7722,7 @@ paths:
           $ref: '#/definitions/request.FileWget'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Wget file
@@ -6638,7 +7751,7 @@ paths:
           $ref: '#/definitions/dto.GroupCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create group
@@ -6666,7 +7779,7 @@ paths:
           $ref: '#/definitions/dto.OperateByID'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete group
@@ -6729,7 +7842,7 @@ paths:
           $ref: '#/definitions/dto.GroupUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update group
@@ -6757,10 +7870,10 @@ paths:
           $ref: '#/definitions/dto.SSHConf'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
-      summary: Update host ssh setting by file
+      summary: Update host SSH setting by file
       tags:
       - SSH
       x-panel-log:
@@ -6769,11 +7882,22 @@ paths:
         formatEN: update SSH conf
         formatZH: 修改 SSH 配置文件
         paramKeys: []
+  /host/ssh/conf:
+    get:
+      description: 获取 SSH 配置文件
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load host SSH conf
+      tags:
+      - SSH
   /host/ssh/generate:
     post:
       consumes:
       - application/json
-      description: 生成 ssh 密钥
+      description: 生成 SSH 密钥
       parameters:
       - description: request
         in: body
@@ -6783,10 +7907,10 @@ paths:
           $ref: '#/definitions/dto.GenerateSSH'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
-      summary: Generate host ssh secret
+      summary: Generate host SSH secret
       tags:
       - SSH
       x-panel-log:
@@ -6795,11 +7919,11 @@ paths:
         formatEN: generate SSH secret
         formatZH: '生成 SSH 密钥 '
         paramKeys: []
-  /host/ssh/logs:
+  /host/ssh/log:
     post:
       consumes:
       - application/json
-      description: 获取 ssh 登录日志
+      description: 获取 SSH 登录日志
       parameters:
       - description: request
         in: body
@@ -6814,7 +7938,31 @@ paths:
             $ref: '#/definitions/dto.SSHLog'
       security:
       - ApiKeyAuth: []
-      summary: Load host ssh logs
+      summary: Load host SSH logs
+      tags:
+      - SSH
+  /host/ssh/log/analysis:
+    post:
+      consumes:
+      - application/json
+      description: 分析 SSH 登录日志
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SearchForAnalysis'
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.SSHLogAnalysis'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Analysis host SSH logs
       tags:
       - SSH
   /host/ssh/operate:
@@ -6832,7 +7980,7 @@ paths:
       responses: {}
       security:
       - ApiKeyAuth: []
-      summary: Operate ssh
+      summary: Operate SSH
       tags:
       - SSH
       x-panel-log:
@@ -6852,14 +8000,14 @@ paths:
             $ref: '#/definitions/dto.SSHInfo'
       security:
       - ApiKeyAuth: []
-      summary: Load host ssh setting info
+      summary: Load host SSH setting info
       tags:
       - SSH
   /host/ssh/secret:
     post:
       consumes:
       - application/json
-      description: 获取 ssh 密钥
+      description: 获取 SSH 密钥
       parameters:
       - description: request
         in: body
@@ -6869,10 +8017,10 @@ paths:
           $ref: '#/definitions/dto.GenerateLoad'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
-      summary: Load host ssh secret
+      summary: Load host SSH secret
       tags:
       - SSH
   /host/ssh/update:
@@ -6889,10 +8037,10 @@ paths:
           $ref: '#/definitions/dto.SettingUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
-      summary: Update host ssh setting
+      summary: Update host SSH setting
       tags:
       - SSH
       x-panel-log:
@@ -6902,6 +8050,194 @@ paths:
         - value
         formatEN: update SSH setting [key] => [value]
         formatZH: 修改 SSH 配置 [key] => [value]
+        paramKeys: []
+  /host/tool:
+    post:
+      consumes:
+      - application/json
+      description: 获取主机工具状态
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.HostToolReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get tool
+      tags:
+      - Host tool
+  /host/tool/config:
+    post:
+      consumes:
+      - application/json
+      description: 操作主机工具配置文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.HostToolConfig'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get tool config
+      tags:
+      - Host tool
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - operate
+        formatEN: '[operate] tool config'
+        formatZH: '[operate] 主机工具配置文件 '
+        paramKeys: []
+  /host/tool/create:
+    post:
+      consumes:
+      - application/json
+      description: 创建主机工具配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.HostToolCreate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Create Host tool Config
+      tags:
+      - Host tool
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - type
+        formatEN: create [type] config
+        formatZH: 创建 [type] 配置
+        paramKeys: []
+  /host/tool/log:
+    post:
+      consumes:
+      - application/json
+      description: 获取主机工具日志
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.HostToolLogReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get tool
+      tags:
+      - Host tool
+  /host/tool/operate:
+    post:
+      consumes:
+      - application/json
+      description: 操作主机工具
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.HostToolReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Operate tool
+      tags:
+      - Host tool
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - operate
+        - type
+        formatEN: '[operate] [type]'
+        formatZH: '[operate] [type] '
+        paramKeys: []
+  /host/tool/supervisor/process:
+    get:
+      consumes:
+      - application/json
+      description: 获取 Supervisor 进程配置
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get Supervisor process config
+      tags:
+      - Host tool
+    post:
+      consumes:
+      - application/json
+      description: 操作守护进程
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.SupervisorProcessConfig'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Create Supervisor process
+      tags:
+      - Host tool
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - operate
+        formatEN: '[operate] process'
+        formatZH: '[operate] 守护进程 '
+        paramKeys: []
+  /host/tool/supervisor/process/file:
+    post:
+      consumes:
+      - application/json
+      description: 操作 Supervisor 进程文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.SupervisorProcessFileReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get Supervisor process config
+      tags:
+      - Host tool
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - operate
+        formatEN: '[operate] Supervisor Process Config file'
+        formatZH: '[operate] Supervisor 进程文件 '
         paramKeys: []
   /hosts:
     post:
@@ -6917,7 +8253,7 @@ paths:
           $ref: '#/definitions/dto.HostOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create host
@@ -6931,27 +8267,6 @@ paths:
         formatEN: create host [name][addr]
         formatZH: 创建主机 [name][addr]
         paramKeys: []
-  /hosts/:id:
-    get:
-      consumes:
-      - application/json
-      description: 加载主机信息
-      parameters:
-      - description: request
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.HostInfo'
-      security:
-      - ApiKeyAuth: []
-      summary: Load host info
-      tags:
-      - Host
   /hosts/command:
     get:
       description: 获取快速命令列表
@@ -6978,7 +8293,7 @@ paths:
           $ref: '#/definitions/dto.CommandOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create command
@@ -7006,7 +8321,7 @@ paths:
           $ref: '#/definitions/dto.BatchDeleteReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete command
@@ -7061,7 +8376,7 @@ paths:
           $ref: '#/definitions/dto.CommandOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update command
@@ -7088,7 +8403,7 @@ paths:
           $ref: '#/definitions/dto.BatchDeleteReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete host
@@ -7134,7 +8449,7 @@ paths:
           $ref: '#/definitions/dto.BatchRuleOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create group
@@ -7154,7 +8469,7 @@ paths:
           $ref: '#/definitions/dto.AddrRuleOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create group
@@ -7211,7 +8526,7 @@ paths:
           $ref: '#/definitions/dto.PortRuleOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create group
@@ -7261,10 +8576,30 @@ paths:
           $ref: '#/definitions/dto.AddrRuleUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create group
+      tags:
+      - Firewall
+  /hosts/firewall/update/description:
+    post:
+      consumes:
+      - application/json
+      description: 更新防火墙描述
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateFirewallDescription'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update rule description
       tags:
       - Firewall
   /hosts/firewall/update/port:
@@ -7281,7 +8616,7 @@ paths:
           $ref: '#/definitions/dto.PortRuleUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create group
@@ -7303,7 +8638,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.HostTree'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Page host
@@ -7344,7 +8681,7 @@ paths:
           $ref: '#/definitions/dto.HostConnTest'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Test host conn by info
@@ -7366,7 +8703,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.HostTree'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Load host tree
@@ -7386,7 +8725,7 @@ paths:
           $ref: '#/definitions/dto.HostOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update host
@@ -7414,7 +8753,7 @@ paths:
           $ref: '#/definitions/dto.ChangeHostGroup'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update host group
@@ -7507,6 +8846,28 @@ paths:
       summary: Page operation logs
       tags:
       - Logs
+  /logs/system:
+    post:
+      description: 获取系统日志
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load system logs
+      tags:
+      - Logs
+  /logs/system/files:
+    get:
+      description: 获取系统日志文件列表
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load system log files
+      tags:
+      - Logs
   /openResty:
     get:
       description: 获取 OpenResty 配置信息
@@ -7534,7 +8895,7 @@ paths:
           $ref: '#/definitions/request.NginxConfigFileUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update OpenResty conf by upload file
@@ -7562,7 +8923,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.NginxParam'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Load partial OpenResty conf
@@ -7595,7 +8958,7 @@ paths:
           $ref: '#/definitions/request.NginxConfigUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update OpenResty conf
@@ -7614,6 +8977,31 @@ paths:
         formatEN: Update nginx conf [domain]
         formatZH: 更新 nginx 配置 [domain]
         paramKeys: []
+  /process/stop:
+    post:
+      description: 停止进程
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.ProcessReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Stop Process
+      tags:
+      - Process
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - PID
+        formatEN: 结束进程 [PID]
+        formatZH: 结束进程 [PID]
+        paramKeys: []
   /runtimes:
     post:
       consumes:
@@ -7628,7 +9016,7 @@ paths:
           $ref: '#/definitions/request.RuntimeCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create runtime
@@ -7654,7 +9042,7 @@ paths:
         type: string
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get runtime
@@ -7674,7 +9062,7 @@ paths:
           $ref: '#/definitions/request.RuntimeDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete runtime
@@ -7686,6 +9074,53 @@ paths:
         - id
         formatEN: Delete website [name]
         formatZH: 删除网站 [name]
+        paramKeys: []
+  /runtimes/node/package:
+    post:
+      consumes:
+      - application/json
+      description: 获取 Node 项目的 scripts
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.NodePackageReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get Node package scripts
+      tags:
+      - Runtime
+  /runtimes/operate:
+    post:
+      consumes:
+      - application/json
+      description: 操作运行环境
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.RuntimeOperate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Operate runtime
+      tags:
+      - Runtime
+      x-panel-log:
+        BeforeFuntions: []
+        bodyKeys:
+        - id
+        formatEN: Operate runtime [name]
+        formatZH: 操作运行环境 [name]
         paramKeys: []
   /runtimes/search:
     post:
@@ -7701,7 +9136,7 @@ paths:
           $ref: '#/definitions/request.RuntimeSearch'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: List runtimes
@@ -7721,7 +9156,7 @@ paths:
           $ref: '#/definitions/request.RuntimeUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update runtime
@@ -7748,7 +9183,7 @@ paths:
           $ref: '#/definitions/dto.BackupOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create backup account
@@ -7775,7 +9210,7 @@ paths:
           $ref: '#/definitions/dto.CommonBackup'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Backup system data
@@ -7804,7 +9239,7 @@ paths:
           $ref: '#/definitions/dto.BatchDeleteReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete backup account
@@ -7823,6 +9258,21 @@ paths:
         formatEN: delete backup account [types]
         formatZH: 删除备份账号 [types]
         paramKeys: []
+  /settings/backup/onedrive:
+    get:
+      consumes:
+      - application/json
+      description: 获取 OneDrive 信息
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Load OneDrive info
+      tags:
+      - Backup Account
   /settings/backup/record/del:
     post:
       consumes:
@@ -7837,7 +9287,7 @@ paths:
           $ref: '#/definitions/dto.BatchDeleteReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete backup record
@@ -7870,7 +9320,7 @@ paths:
           $ref: '#/definitions/dto.DownloadRecord'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Download backup record
@@ -7898,7 +9348,7 @@ paths:
           $ref: '#/definitions/dto.RecordSearch'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Page backup records
@@ -7918,7 +9368,7 @@ paths:
           $ref: '#/definitions/dto.CommonRecover'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Recover system data
@@ -7948,7 +9398,7 @@ paths:
           $ref: '#/definitions/dto.CommonRecover'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Recover system data by upload
@@ -7971,7 +9421,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/dto.BackupInfo'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List backup accounts
@@ -7992,7 +9444,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              type: string
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List buckets
@@ -8014,7 +9468,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              type: string
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List files from backup accounts
@@ -8034,7 +9490,7 @@ paths:
           $ref: '#/definitions/dto.BackupOperate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update backup account
@@ -8074,7 +9530,7 @@ paths:
           $ref: '#/definitions/dto.PasswordUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Reset system password expired
@@ -8086,9 +9542,15 @@ paths:
         formatEN: reset an expired Password
         formatZH: 重置过期密码
         paramKeys: []
-  /settings/mfa:
+  /settings/mfa/:interval:
     get:
       description: 获取 mfa 信息
+      parameters:
+      - description: request
+        in: path
+        name: interval
+        required: true
+        type: string
       responses:
         "200":
           description: OK
@@ -8113,7 +9575,7 @@ paths:
           $ref: '#/definitions/dto.MfaCredential'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Bind mfa
@@ -8130,7 +9592,7 @@ paths:
       description: 清空监控数据
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Clean monitor datas
@@ -8156,7 +9618,7 @@ paths:
           $ref: '#/definitions/dto.PasswordUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update system password
@@ -8182,7 +9644,7 @@ paths:
           $ref: '#/definitions/dto.PortUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update system port
@@ -8213,7 +9675,7 @@ paths:
       description: 获取系统可用状态
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Load system available status
@@ -8233,7 +9695,7 @@ paths:
           $ref: '#/definitions/dto.SnapshotCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create system snapshot
@@ -8261,7 +9723,7 @@ paths:
           $ref: '#/definitions/dto.BatchDeleteReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete system backup
@@ -8294,7 +9756,7 @@ paths:
           $ref: '#/definitions/dto.UpdateDescription'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update snapshot description
@@ -8328,7 +9790,7 @@ paths:
           $ref: '#/definitions/dto.SnapshotImport'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Import system snapshot
@@ -8356,7 +9818,7 @@ paths:
           $ref: '#/definitions/dto.SnapshotRecover'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Recover system backup
@@ -8389,7 +9851,7 @@ paths:
           $ref: '#/definitions/dto.SnapshotRecover'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Rollback system backup
@@ -8430,6 +9892,37 @@ paths:
       summary: Page system snapshot
       tags:
       - System Setting
+  /settings/snapshot/status:
+    post:
+      consumes:
+      - application/json
+      description: 获取快照状态
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.OperateByID'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Load Snapshot status
+      tags:
+      - System Setting
+  /settings/ssl/download:
+    post:
+      description: 下载证书
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Download system cert
+      tags:
+      - System Setting
   /settings/ssl/info:
     get:
       description: 获取证书信息
@@ -8457,7 +9950,7 @@ paths:
           $ref: '#/definitions/dto.SSLUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update system ssl
@@ -8475,7 +9968,7 @@ paths:
       description: 加载系统可用时区
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Load time zone options
@@ -8524,7 +10017,7 @@ paths:
           $ref: '#/definitions/dto.SettingUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update system setting
@@ -8552,7 +10045,7 @@ paths:
           $ref: '#/definitions/dto.Upgrade'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Load release notes by version
@@ -8571,7 +10064,7 @@ paths:
           $ref: '#/definitions/dto.Upgrade'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Upgrade
@@ -8598,7 +10091,7 @@ paths:
           $ref: '#/definitions/request.WebsiteCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create website
@@ -8751,7 +10244,7 @@ paths:
           $ref: '#/definitions/request.WebsiteResourceReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete website acme account
@@ -8806,7 +10299,7 @@ paths:
           $ref: '#/definitions/request.NginxAuthReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get AuthBasic conf
@@ -8826,7 +10319,7 @@ paths:
           $ref: '#/definitions/request.NginxAuthUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get AuthBasic conf
@@ -8848,7 +10341,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.WebsitePreInstallCheck'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Check before create website
@@ -8890,7 +10385,7 @@ paths:
           $ref: '#/definitions/request.NginxConfigUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update nginx conf
@@ -8923,7 +10418,7 @@ paths:
           $ref: '#/definitions/request.WebsiteDefaultUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Change default server
@@ -8957,7 +10452,7 @@ paths:
           $ref: '#/definitions/request.WebsiteDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete website
@@ -8976,6 +10471,26 @@ paths:
         formatEN: Delete website [domain]
         formatZH: 删除网站 [domain]
         paramKeys: []
+  /websites/dir:
+    post:
+      consumes:
+      - application/json
+      description: 获取网站目录配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.WebsiteCommonReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get website dir
+      tags:
+      - Website
   /websites/dir/permission:
     post:
       consumes:
@@ -8990,7 +10505,7 @@ paths:
           $ref: '#/definitions/request.WebsiteUpdateDirPermission'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update Site Dir permission
@@ -9023,7 +10538,7 @@ paths:
           $ref: '#/definitions/request.WebsiteUpdateDir'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update Site Dir
@@ -9056,7 +10571,7 @@ paths:
           $ref: '#/definitions/request.WebsiteDnsAccountCreate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Create website dns account
@@ -9083,7 +10598,7 @@ paths:
           $ref: '#/definitions/request.WebsiteResourceReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete website dns account
@@ -9138,7 +10653,7 @@ paths:
           $ref: '#/definitions/request.WebsiteDnsAccountUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update website dns account
@@ -9195,7 +10710,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/model.WebsiteDomain'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Search website domains by websiteId
@@ -9215,7 +10732,7 @@ paths:
           $ref: '#/definitions/request.WebsiteDomainDelete'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete website domain
@@ -9248,7 +10765,7 @@ paths:
           $ref: '#/definitions/request.NginxCommonReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get AntiLeech conf
@@ -9268,7 +10785,7 @@ paths:
           $ref: '#/definitions/request.NginxAntiLeechUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update AntiLeech
@@ -9281,7 +10798,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.WebsiteDTO'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List websites
@@ -9337,7 +10856,7 @@ paths:
           $ref: '#/definitions/request.WebsiteNginxUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update website nginx conf
@@ -9370,7 +10889,7 @@ paths:
           $ref: '#/definitions/request.WebsiteOp'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Operate website
@@ -9397,7 +10916,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              type: string
+            type: array
       security:
       - ApiKeyAuth: []
       summary: List website names
@@ -9417,7 +10938,7 @@ paths:
           $ref: '#/definitions/request.WebsitePHPConfigUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update website php conf
@@ -9461,7 +10982,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: 更新 php 配置
+      description: 更新 php 配置文件
       parameters:
       - description: request
         in: body
@@ -9471,7 +10992,7 @@ paths:
           $ref: '#/definitions/request.WebsitePHPFileUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update php conf
@@ -9490,6 +11011,39 @@ paths:
         formatEN: Nginx conf update [domain]
         formatZH: php 配置修改 [domain]
         paramKeys: []
+  /websites/php/version:
+    post:
+      consumes:
+      - application/json
+      description: 变更 php 版本
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.WebsitePHPVersionReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update php version
+      tags:
+      - Website PHP
+      x-panel-log:
+        BeforeFuntions:
+        - db: websites
+          input_column: id
+          input_value: websiteId
+          isList: false
+          output_column: primary_domain
+          output_value: domain
+        bodyKeys:
+        - websiteId
+        formatEN: php version update [domain]
+        formatZH: php 版本变更 [domain]
+        paramKeys: []
   /websites/proxies:
     post:
       consumes:
@@ -9504,7 +11058,7 @@ paths:
           $ref: '#/definitions/request.WebsiteProxyReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get proxy conf
@@ -9524,7 +11078,7 @@ paths:
           $ref: '#/definitions/request.WebsiteProxyConfig'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update proxy conf
@@ -9557,7 +11111,7 @@ paths:
           $ref: '#/definitions/request.NginxProxyUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update proxy file
@@ -9576,6 +11130,92 @@ paths:
         formatEN: Nginx conf proxy file update [domain]
         formatZH: 更新反向代理文件 [domain]
         paramKeys: []
+  /websites/redirect:
+    post:
+      consumes:
+      - application/json
+      description: 获取重定向配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.WebsiteProxyReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Get redirect conf
+      tags:
+      - Website
+  /websites/redirect/file:
+    post:
+      consumes:
+      - application/json
+      description: 更新重定向文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.NginxRedirectUpdate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update redirect file
+      tags:
+      - Website
+      x-panel-log:
+        BeforeFuntions:
+        - db: websites
+          input_column: id
+          input_value: websiteID
+          isList: false
+          output_column: primary_domain
+          output_value: domain
+        bodyKeys:
+        - websiteID
+        formatEN: Nginx conf redirect file update [domain]
+        formatZH: 更新重定向文件 [domain]
+        paramKeys: []
+  /websites/redirect/update:
+    post:
+      consumes:
+      - application/json
+      description: 修改重定向配置
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.NginxRedirectReq'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update redirect conf
+      tags:
+      - Website
+      x-panel-log:
+        BeforeFuntions:
+        - db: websites
+          input_column: id
+          input_value: websiteID
+          isList: false
+          output_column: primary_domain
+          output_value: domain
+        bodyKeys:
+        - websiteID
+        formatEN: Update domain [domain] redirect config
+        formatZH: '修改网站 [domain] 重定向理配置 '
+        paramKeys: []
   /websites/rewrite:
     post:
       consumes:
@@ -9590,7 +11230,7 @@ paths:
           $ref: '#/definitions/request.NginxRewriteReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Get rewrite conf
@@ -9610,7 +11250,7 @@ paths:
           $ref: '#/definitions/request.NginxRewriteUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update rewrite conf
@@ -9693,7 +11333,7 @@ paths:
         type: integer
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Search website ssl by id
@@ -9713,7 +11353,7 @@ paths:
           $ref: '#/definitions/request.WebsiteResourceReq'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Delete website ssl
@@ -9746,7 +11386,7 @@ paths:
           $ref: '#/definitions/request.WebsiteSSLRenew'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Reset website ssl
@@ -9781,7 +11421,9 @@ paths:
         "200":
           description: OK
           schema:
-            type: anrry
+            items:
+              $ref: '#/definitions/response.WebsiteDNSRes'
+            type: array
       security:
       - ApiKeyAuth: []
       summary: Resolve website ssl
@@ -9801,7 +11443,7 @@ paths:
           $ref: '#/definitions/request.WebsiteSSLSearch'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Page website ssl
@@ -9821,7 +11463,7 @@ paths:
           $ref: '#/definitions/request.WebsiteSSLUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update ssl
@@ -9853,7 +11495,7 @@ paths:
         type: integer
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Search website ssl by website id
@@ -9873,7 +11515,7 @@ paths:
           $ref: '#/definitions/request.WebsiteUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update website
@@ -9908,6 +11550,39 @@ paths:
       summary: Load websit waf conf
       tags:
       - Website WAF
+  /websites/waf/file/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新 网站 waf 配置文件
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.WebsiteWafUpdate'
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Update website waf  file
+      tags:
+      - Website WAF
+      x-panel-log:
+        BeforeFuntions:
+        - db: websites
+          input_column: id
+          input_value: websiteId
+          isList: false
+          output_column: primary_domain
+          output_value: domain
+        bodyKeys:
+        - websiteId
+        formatEN: WAF conf file update [domain]
+        formatZH: WAF 配置文件修改 [domain]
+        paramKeys: []
   /websites/waf/update:
     post:
       consumes:
@@ -9922,7 +11597,7 @@ paths:
           $ref: '#/definitions/request.WebsiteWafUpdate'
       responses:
         "200":
-          description: ""
+          description: OK
       security:
       - ApiKeyAuth: []
       summary: Update website waf conf

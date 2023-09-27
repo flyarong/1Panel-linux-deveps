@@ -26,6 +26,10 @@ export const GlobalStore = defineStore({
         hasNewVersion: false,
         ignoreCaptcha: true,
         device: DeviceType.Desktop,
+        lastFilePath: '',
+        currentDB: '',
+        showEntranceWarn: true,
+        defaultNetwork: 'all',
     }),
     getters: {},
     actions: {
@@ -59,6 +63,18 @@ export const GlobalStore = defineStore({
         },
         isMobile() {
             return this.device === DeviceType.Mobile;
+        },
+        setLastFilePath(path: string) {
+            this.lastFilePath = path;
+        },
+        setCurrentDB(name: string) {
+            this.currentDB = name;
+        },
+        setShowEntranceWarn(show: boolean) {
+            this.showEntranceWarn = show;
+        },
+        setDefaultNetwork(net: string) {
+            this.defaultNetwork = net;
         },
     },
     persist: piniaPersistConfig('GlobalState'),

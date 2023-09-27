@@ -26,9 +26,8 @@ type WebsiteNginxConfig struct {
 }
 
 type WebsiteWafConfig struct {
-	Enable   bool   `json:"enable"`
-	FilePath string `json:"filePath"`
-	Content  string `json:"content"`
+	Enable  bool   `json:"enable"`
+	Content string `json:"content"`
 }
 
 type WebsiteHTTPS struct {
@@ -42,6 +41,8 @@ type WebsiteHTTPS struct {
 type WebsiteLog struct {
 	Enable  bool   `json:"enable"`
 	Content string `json:"content"`
+	End     bool   `json:"end"`
+	Path    string `json:"path"`
 }
 
 type PHPConfig struct {
@@ -52,4 +53,11 @@ type PHPConfig struct {
 
 type NginxRewriteRes struct {
 	Content string `json:"content"`
+}
+
+type WebsiteDirConfig struct {
+	Dirs      []string `json:"dirs"`
+	User      string   `json:"user"`
+	UserGroup string   `json:"userGroup"`
+	Msg       string   `json:"msg"`
 }

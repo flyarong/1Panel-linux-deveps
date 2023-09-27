@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/1Panel-dev/1Panel/backend/utils/cmd"
+	"github.com/mozillazg/go-pinyin"
 )
 
 func CompareVersion(version1 string, version2 string) bool {
@@ -22,6 +23,17 @@ func CompareVersion(version1 string, version2 string) bool {
 	}
 	version1s := strings.Split(version1, ".")
 	version2s := strings.Split(version2, ".")
+
+	if len(version2s) > len(version1s) {
+		for i := 0; i < len(version2s)-len(version1s); i++ {
+			version1s = append(version1s, "0")
+		}
+	}
+	if len(version1s) > len(version2s) {
+		for i := 0; i < len(version1s)-len(version2s); i++ {
+			version2s = append(version2s, "0")
+		}
+	}
 
 	n := min(len(version1s), len(version2s))
 	re := regexp.MustCompile("[0-9]+")
@@ -113,6 +125,13 @@ func ScanUDPPort(port int) bool {
 	return false
 }
 
+func ScanPortWithProto(port int, proto string) bool {
+	if proto == "udp" {
+		return ScanUDPPort(port)
+	}
+	return ScanPort(port)
+}
+
 func ExistWithStrArray(str string, arr []string) bool {
 	for _, a := range arr {
 		if strings.Contains(a, str) {
@@ -148,6 +167,19 @@ func LoadSizeUnit(value float64) string {
 	return fmt.Sprintf("%v", value)
 }
 
+func LoadSizeUnit2F(value float64) string {
+	if value > 1073741824 {
+		return fmt.Sprintf("%.2fG", value/1073741824)
+	}
+	if value > 1048576 {
+		return fmt.Sprintf("%.2fM", value/1048576)
+	}
+	if value > 1024 {
+		return fmt.Sprintf("%.2fK", value/1024)
+	}
+	return fmt.Sprintf("%.2f", value)
+}
+
 func LoadTimeZone() string {
 	loc := time.Now().Location()
 	if _, err := time.LoadLocation(loc.String()); err != nil {
@@ -172,4 +204,18 @@ func LoadTimeZoneByCmd() string {
 		return loc
 	}
 	return fields[2]
+}
+
+func ConvertToPinyin(text string) string {
+	args := pinyin.NewArgs()
+	args.Fallback = func(r rune, a pinyin.Args) []string {
+		return []string{string(r)}
+	}
+	p := pinyin.Pinyin(text, args)
+	var strArr []string
+	for i := 0; i < len(p); i++ {
+		strArr = append(strArr, strings.Join(p[i], ""))
+	}
+
+	return strings.Join(strArr, "")
 }

@@ -10,7 +10,7 @@
             <DrawerHeader :header="$t('container.containerTerminal')" :resource="title" :back="handleClose" />
         </template>
         <el-form ref="formRef" :model="form" label-position="top">
-            <el-form-item :label="$t('container.user')" prop="user">
+            <el-form-item :label="$t('commons.table.user')" prop="user">
                 <el-input placeholder="root" clearable v-model="form.user" />
             </el-form-item>
             <el-form-item
@@ -43,7 +43,7 @@
             <el-button v-if="!terminalOpen" @click="initTerm(formRef)">
                 {{ $t('commons.button.conn') }}
             </el-button>
-            <el-button v-else @click="handleClose()">{{ $t('commons.button.disconn') }}</el-button>
+            <el-button v-else @click="onClose()">{{ $t('commons.button.disconn') }}</el-button>
             <Terminal style="height: calc(100vh - 302px)" ref="terminalRef"></Terminal>
         </el-form>
     </el-drawer>
@@ -99,10 +99,14 @@ const initTerm = (formEl: FormInstance | undefined) => {
     });
 };
 
-function handleClose() {
+const onClose = () => {
     terminalRef.value?.onClose();
-    terminalVisiable.value = false;
     terminalOpen.value = false;
+};
+
+function handleClose() {
+    onClose();
+    terminalVisiable.value = false;
 }
 
 defineExpose({

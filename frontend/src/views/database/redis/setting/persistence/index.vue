@@ -81,7 +81,7 @@
         <el-card style="margin-top: 20px">
             <ComplexTable :pagination-config="paginationConfig" v-model:selects="selects" @search="search" :data="data">
                 <template #toolbar>
-                    <el-button type="primary" @click="onBackup">{{ $t('setting.backup') }}</el-button>
+                    <el-button type="primary" @click="onBackup">{{ $t('commons.button.backup') }}</el-button>
                     <el-button type="primary" plain :disabled="selects.length === 0" @click="onBatchDelete(null)">
                         {{ $t('commons.button.delete') }}
                     </el-button>
@@ -158,6 +158,7 @@ const selects = ref<any>([]);
 const currentRow = ref();
 const confirmDialogRef = ref();
 const paginationConfig = reactive({
+    cacheSizeKey: 'redis-backup-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,

@@ -1,60 +1,67 @@
 import http from '@/api';
 import { deepCopy } from '@/utils/util';
 import { Base64 } from 'js-base64';
-import { SearchWithPage, ResPage, DescriptionUpdate } from '../interface';
+import { ResPage, DescriptionUpdate } from '../interface';
 import { Database } from '../interface/database';
+import { TimeoutEnum } from '@/enums/http-enum';
 
-export const searchMysqlDBs = (params: SearchWithPage) => {
+export const searchMysqlDBs = (params: Database.SearchDBWithPage) => {
     return http.post<ResPage<Database.MysqlDBInfo>>(`/databases/search`, params);
+};
+export const loadDatabaseFile = (type: string, database: string) => {
+    return http.post<string>(`/databases/load/file`, { type: type, name: database });
 };
 
 export const addMysqlDB = (params: Database.MysqlDBCreate) => {
-    let reqest = deepCopy(params) as Database.MysqlDBCreate;
-    if (reqest.password) {
-        reqest.password = Base64.encode(reqest.password);
+    let request = deepCopy(params) as Database.MysqlDBCreate;
+    if (request.password) {
+        request.password = Base64.encode(request.password);
     }
-    return http.post(`/databases`, reqest);
+    return http.post(`/databases`, request);
+};
+export const loadDBFromRemote = (params: Database.MysqlLoadDB) => {
+    return http.post(`/databases/load`, params);
 };
 export const updateMysqlAccess = (params: Database.ChangeInfo) => {
     return http.post(`/databases/change/access`, params);
 };
 export const updateMysqlPassword = (params: Database.ChangeInfo) => {
-    let reqest = deepCopy(params) as Database.ChangeInfo;
-    if (reqest.value) {
-        reqest.value = Base64.encode(reqest.value);
+    let request = deepCopy(params) as Database.ChangeInfo;
+    if (request.value) {
+        request.value = Base64.encode(request.value);
     }
-    return http.post(`/databases/change/password`, reqest);
+    return http.post(`/databases/change/password`, request);
 };
 export const updateMysqlDescription = (params: DescriptionUpdate) => {
     return http.post(`/databases/description/update`, params);
 };
-export const updateMysqlVariables = (params: Array<Database.VariablesUpdate>) => {
+export const updateMysqlVariables = (params: Database.VariablesUpdate) => {
     return http.post(`/databases/variables/update`, params);
 };
 export const updateMysqlConfByFile = (params: Database.MysqlConfUpdateByFile) => {
     return http.post(`/databases/conffile/update`, params);
 };
-export const deleteCheckMysqlDB = (id: number) => {
-    return http.post<Array<string>>(`/databases/del/check`, { id: id });
+export const deleteCheckMysqlDB = (params: Database.MysqlDBDeleteCheck) => {
+    return http.post<Array<string>>(`/databases/del/check`, params);
 };
 export const deleteMysqlDB = (params: Database.MysqlDBDelete) => {
     return http.post(`/databases/del`, params);
 };
 
-export const loadMysqlBaseInfo = () => {
-    return http.get<Database.BaseInfo>(`/databases/baseinfo`);
+export const loadMysqlBaseInfo = (type: string, database: string) => {
+    return http.post<Database.BaseInfo>(`/databases/baseinfo`, { type: type, name: database });
 };
-export const loadMysqlVariables = () => {
-    return http.get<Database.MysqlVariables>(`/databases/variables`);
+export const loadMysqlVariables = (type: string, database: string) => {
+    return http.post<Database.MysqlVariables>(`/databases/variables`, { type: type, name: database });
 };
-export const loadMysqlStatus = () => {
-    return http.get<Database.MysqlStatus>(`/databases/status`);
+export const loadMysqlStatus = (type: string, database: string) => {
+    return http.post<Database.MysqlStatus>(`/databases/status`, { type: type, name: database });
 };
-export const loadRemoteAccess = () => {
-    return http.get<boolean>(`/databases/remote`);
+export const loadRemoteAccess = (type: string, database: string) => {
+    return http.post<boolean>(`/databases/remote`, { type: type, name: database });
 };
-export const loadDBNames = () => {
-    return http.get<Array<string>>(`/databases/options`);
+export const loadDBOptions = () => {
+    return http.get<Array<Database.MysqlOption>>(`/databases/options`);
 };
 
 // redis
@@ -67,12 +74,11 @@ export const loadRedisConf = () => {
 export const redisPersistenceConf = () => {
     return http.get<Database.RedisPersistenceConf>(`/databases/redis/persistence/conf`);
 };
-export const changeRedisPassword = (params: Database.ChangeInfo) => {
-    let reqest = deepCopy(params) as Database.ChangeInfo;
-    if (reqest.value) {
-        reqest.value = Base64.encode(reqest.value);
+export const changeRedisPassword = (value: string) => {
+    if (value) {
+        value = Base64.encode(value);
     }
-    return http.post(`/databases/redis/password`, reqest);
+    return http.post(`/databases/redis/password`, { value: value });
 };
 export const updateRedisPersistenceConf = (params: Database.RedisConfPersistenceUpdate) => {
     return http.post(`/databases/redis/persistence/update`, params);
@@ -82,4 +88,27 @@ export const updateRedisConf = (params: Database.RedisConfUpdate) => {
 };
 export const updateRedisConfByFile = (params: Database.RedisConfUpdateByFile) => {
     return http.post(`/databases/redis/conffile/update`, params);
+};
+
+// database
+export const getDatabase = (name: string) => {
+    return http.get<Database.DatabaseInfo>(`/databases/db/${name}`);
+};
+export const searchDatabases = (params: Database.SearchDatabasePage) => {
+    return http.post<ResPage<Database.DatabaseInfo>>(`/databases/db/search`, params);
+};
+export const listDatabases = (type: string) => {
+    return http.get<Array<Database.DatabaseOption>>(`/databases/db/list/${type}`);
+};
+export const checkDatabase = (params: Database.DatabaseCreate) => {
+    return http.post<boolean>(`/databases/db/check`, params, TimeoutEnum.T_40S);
+};
+export const addDatabase = (params: Database.DatabaseCreate) => {
+    return http.post(`/databases/db`, params, TimeoutEnum.T_40S);
+};
+export const editDatabase = (params: Database.DatabaseUpdate) => {
+    return http.post(`/databases/db/update`, params, TimeoutEnum.T_40S);
+};
+export const deleteDatabase = (id: number) => {
+    return http.post(`/databases/db/del`, { id: id });
 };

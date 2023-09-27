@@ -41,22 +41,46 @@
             </template>
             <template #main>
                 <ComplexTable :pagination-config="paginationConfig" :data="data" @search="search">
-                    <el-table-column label="ID" prop="id" min-width="60">
+                    <el-table-column label="ID" prop="id" width="140">
                         <template #default="{ row }">
-                            <Tooltip :islink="false" :text="row.id" />
+                            <Tooltip
+                                @click="onInspect(row.id)"
+                                :text="row.id.replaceAll('sha256:', '').substring(0, 12)"
+                            />
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('container.tag')" prop="tags" min-width="160" fix>
+                    <el-table-column :label="$t('commons.table.status')" prop="isUsed" width="100">
                         <template #default="{ row }">
-                            <el-tag style="margin-left: 5px" v-for="(item, index) of row.tags" :key="index">
+                            <el-tag icon="Select" v-if="row.isUsed" type="success">
+                                {{ $t('commons.status.used') }}
+                            </el-tag>
+                            <el-tag v-else type="info">
+                                {{ $t('commons.status.unUsed') }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column
+                        :label="$t('container.tag')"
+                        prop="tags"
+                        min-width="160"
+                        :width="mobile ? 400 : 'auto'"
+                        fix
+                    >
+                        <template #default="{ row }">
+                            <el-tag
+                                style="margin-left: 5px"
+                                v-for="(item, index) of row.tags"
+                                :key="index"
+                                :title="item"
+                            >
                                 {{ item }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('container.size')" prop="size" min-width="70" fix />
+                    <el-table-column :label="$t('container.size')" prop="size" min-width="60" fix />
                     <el-table-column
                         prop="createdAt"
-                        min-width="90"
+                        min-width="80"
                         :label="$t('commons.table.date')"
                         :formatter="dateFormat"
                     />
@@ -70,6 +94,7 @@
             </template>
         </LayoutContent>
 
+        <CodemirrorDialog ref="mydetail" />
         <Pull ref="dialogPullRef" @search="search" />
         <Tag ref="dialogTagRef" @search="search" />
         <Push ref="dialogPushRef" @search="search" />
@@ -82,9 +107,9 @@
 </template>
 
 <script lang="ts" setup>
-import Tooltip from '@/components/tooltip/index.vue';
 import TableSetting from '@/components/table-setting/index.vue';
-import { reactive, onMounted, ref } from 'vue';
+import Tooltip from '@/components/tooltip/index.vue';
+import { reactive, onMounted, ref, computed } from 'vue';
 import { dateFormat } from '@/utils/util';
 import { Container } from '@/api/interface/container';
 import Pull from '@/views/container/image/pull/index.vue';
@@ -95,16 +120,24 @@ import Load from '@/views/container/image/load/index.vue';
 import Build from '@/views/container/image/build/index.vue';
 import Delete from '@/views/container/image/delete/index.vue';
 import Prune from '@/views/container/image/prune/index.vue';
-import { searchImage, listImageRepo, loadDockerStatus, imageRemove } from '@/api/modules/container';
+import CodemirrorDialog from '@/components/codemirror-dialog/index.vue';
+import { searchImage, listImageRepo, loadDockerStatus, imageRemove, inspect } from '@/api/modules/container';
 import i18n from '@/lang';
 import router from '@/routers';
 import { useDeleteData } from '@/hooks/use-delete-data';
+import { GlobalStore } from '@/store';
+const globalStore = GlobalStore();
+
+const mobile = computed(() => {
+    return globalStore.isMobile();
+});
 
 const loading = ref(false);
 
 const data = ref();
 const repos = ref();
 const paginationConfig = reactive({
+    cacheSizeKey: 'container-image-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
@@ -132,6 +165,7 @@ const goSetting = async () => {
     router.push({ name: 'ContainerSetting' });
 };
 
+const mydetail = ref();
 const dialogPullRef = ref();
 const dialogTagRef = ref();
 const dialogPushRef = ref();
@@ -157,6 +191,16 @@ const loadRepos = async () => {
     repos.value = res.data || [];
 };
 
+const onInspect = async (id: string) => {
+    const res = await inspect({ id: id, type: 'image' });
+    let detailInfo = JSON.stringify(JSON.parse(res.data), null, 2);
+    let param = {
+        header: i18n.global.t('commons.button.view'),
+        detailInfo: detailInfo,
+    };
+    mydetail.value!.acceptParams(param);
+};
+
 const onOpenPull = () => {
     let params = {
         repos: repos.value,
@@ -169,7 +213,7 @@ const onOpenBuild = () => {
 };
 
 const onOpenPrune = () => {
-    dialogPruneRef.value!.acceptParams();
+    dialogPruneRef.value!.acceptParams({ list: data.value });
 };
 
 const onOpenload = () => {

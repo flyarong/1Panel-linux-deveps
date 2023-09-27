@@ -2,6 +2,7 @@ import http from '@/api';
 import { ReqPage, ResPage } from '../interface';
 import { Website } from '../interface/website';
 import { File } from '../interface/file';
+import { TimeoutEnum } from '@/enums/http-enum';
 
 export const SearchWebsites = (req: Website.WebSiteSearch) => {
     return http.post<ResPage<Website.WebsiteDTO>>(`/websites/search`, req);
@@ -100,7 +101,7 @@ export const ListSSL = (req: Website.SSLReq) => {
 };
 
 export const CreateSSL = (req: Website.SSLCreate) => {
-    return http.post<Website.SSLCreate>(`/websites/ssl`, req, 60000);
+    return http.post<Website.SSLCreate>(`/websites/ssl`, req, TimeoutEnum.T_60S);
 };
 
 export const DeleteSSL = (req: Website.DelReq) => {
@@ -128,7 +129,7 @@ export const UpdateSSL = (req: Website.SSLUpdate) => {
 };
 
 export const GetDnsResolve = (req: Website.DNSResolveReq) => {
-    return http.post<Website.DNSResolve[]>(`/websites/ssl/resolve`, req, 60000);
+    return http.post<Website.DNSResolve[]>(`/websites/ssl/resolve`, req, TimeoutEnum.T_60S);
 };
 
 export const GetHTTPSConfig = (id: number) => {
@@ -149,6 +150,10 @@ export const GetWafConfig = (req: Website.WafReq) => {
 
 export const UpdateWafEnable = (req: Website.WafUpdate) => {
     return http.post<any>(`/websites/waf/update`, req);
+};
+
+export const UpdateWafFile = (req: Website.WafFileUpdate) => {
+    return http.post<any>(`/websites/waf/file/update`, req);
 };
 
 export const UpdateNginxFile = (req: Website.NginxUpdate) => {
@@ -213,4 +218,24 @@ export const GetAntiLeech = (req: Website.LeechReq) => {
 
 export const UpdateAntiLeech = (req: Website.LeechConfig) => {
     return http.post<any>(`/websites/leech/update`, req);
+};
+
+export const GetRedirectConfig = (req: Website.WebsiteReq) => {
+    return http.post<Website.RedirectConfig[]>(`/websites/redirect`, req);
+};
+
+export const OperateRedirectConfig = (req: Website.WebsiteReq) => {
+    return http.post<any>(`/websites/redirect/update`, req);
+};
+
+export const UpdateRedirectConfigFile = (req: Website.RedirectFileUpdate) => {
+    return http.post<any>(`/websites/redirect/file`, req);
+};
+
+export const ChangePHPVersion = (req: Website.PHPVersionChange) => {
+    return http.post<any>(`/websites/php/version`, req);
+};
+
+export const GetDirConfig = (req: Website.ProxyReq) => {
+    return http.post<Website.DirConfig>(`/websites/dir`, req);
 };

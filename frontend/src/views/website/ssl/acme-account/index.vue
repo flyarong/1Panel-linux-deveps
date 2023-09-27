@@ -35,6 +35,7 @@ let loading = ref(false);
 let data = ref();
 let createRef = ref();
 const paginationConfig = reactive({
+    cacheSizeKey: 'acme-account-page-size',
     currentPage: 1,
     pageSize: 20,
     total: 0,
@@ -42,7 +43,7 @@ const paginationConfig = reactive({
 
 const buttons = [
     {
-        label: i18n.global.t('app.delete'),
+        label: i18n.global.t('commons.button.delete'),
         click: function (row: Website.AcmeAccount) {
             deleteAccount(row.id);
         },

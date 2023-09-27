@@ -32,6 +32,20 @@ func Init() {
 		migrations.UpdateCronjobWithSecond,
 		migrations.UpdateWebsite,
 		migrations.AddBackupAccountDir,
+		migrations.AddMfaInterval,
+		migrations.UpdateAppDetail,
+		migrations.EncryptHostPassword,
+		migrations.AddRemoteDB,
+		migrations.UpdateRedisParam,
+		migrations.UpdateCronjobWithDb,
+		migrations.AddTableFirewall,
+		migrations.AddDatabases,
+		migrations.UpdateDatabase,
+		migrations.UpdateAppInstallResource,
+		migrations.DropDatabaseLocal,
+
+		migrations.AddDefaultNetwork,
+		migrations.UpdateRuntime,
 	})
 	if err := m.Migrate(); err != nil {
 		global.LOG.Error(err)

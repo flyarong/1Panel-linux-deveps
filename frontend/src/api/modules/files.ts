@@ -2,9 +2,10 @@ import { File } from '@/api/interface/file';
 import http from '@/api';
 import { AxiosRequestConfig } from 'axios';
 import { ResPage } from '../interface';
+import { TimeoutEnum } from '@/enums/http-enum';
 
 export const GetFilesList = (params: File.ReqFile) => {
-    return http.post<File.File>('files/search', params, 200000);
+    return http.post<File.File>('files/search', params, TimeoutEnum.T_5M);
 };
 
 export const GetUploadList = (params: File.SearchUploadInfo) => {
@@ -29,10 +30,6 @@ export const BatchDeleteFile = (form: File.FileBatchDelete) => {
 
 export const ChangeFileMode = (form: File.FileCreate) => {
     return http.post<File.File>('files/mode', form);
-};
-
-export const LoadFile = (form: File.FilePath) => {
-    return http.post<string>('files/loadfile', form);
 };
 
 export const CompressFile = (form: File.FileCompress) => {
@@ -80,11 +77,7 @@ export const MoveFile = (params: File.FileMove) => {
 };
 
 export const DownloadFile = (params: File.FileDownload) => {
-    return http.download<BlobPart>('files/download', params, { responseType: 'blob', timeout: 20000 });
-};
-
-export const DownloadByPath = (path: string) => {
-    return http.download<BlobPart>('files/download/bypath', { path: path }, { responseType: 'blob', timeout: 40000 });
+    return http.download<BlobPart>('files/download', params, { responseType: 'blob', timeout: TimeoutEnum.T_40S });
 };
 
 export const ComputeDirSize = (params: File.DirSizeReq) => {

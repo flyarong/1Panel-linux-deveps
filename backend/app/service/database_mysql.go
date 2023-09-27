@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,8 +18,12 @@ import (
 	"github.com/1Panel-dev/1Panel/backend/buserr"
 	"github.com/1Panel-dev/1Panel/backend/constant"
 	"github.com/1Panel-dev/1Panel/backend/global"
+	"github.com/1Panel-dev/1Panel/backend/utils/cmd"
 	"github.com/1Panel-dev/1Panel/backend/utils/common"
 	"github.com/1Panel-dev/1Panel/backend/utils/compose"
+	"github.com/1Panel-dev/1Panel/backend/utils/encrypt"
+	"github.com/1Panel-dev/1Panel/backend/utils/mysql"
+	"github.com/1Panel-dev/1Panel/backend/utils/mysql/client"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -27,28 +32,36 @@ import (
 type MysqlService struct{}
 
 type IMysqlService interface {
-	SearchWithPage(search dto.SearchWithPage) (int64, interface{}, error)
-	ListDBName() ([]string, error)
+	SearchWithPage(search dto.MysqlDBSearch) (int64, interface{}, error)
+	ListDBOption() ([]dto.MysqlOption, error)
 	Create(ctx context.Context, req dto.MysqlDBCreate) (*model.DatabaseMysql, error)
+	LoadFromRemote(req dto.MysqlLoadDB) error
 	ChangeAccess(info dto.ChangeDBInfo) error
 	ChangePassword(info dto.ChangeDBInfo) error
-	UpdateVariables(updates []dto.MysqlVariablesUpdate) error
+	UpdateVariables(req dto.MysqlVariablesUpdate) error
 	UpdateConfByFile(info dto.MysqlConfUpdateByFile) error
 	UpdateDescription(req dto.UpdateDescription) error
-	DeleteCheck(id uint) ([]string, error)
+	DeleteCheck(req dto.MysqlDBDeleteCheck) ([]string, error)
 	Delete(ctx context.Context, req dto.MysqlDBDelete) error
-	LoadStatus() (*dto.MysqlStatus, error)
-	LoadVariables() (*dto.MysqlVariables, error)
-	LoadBaseInfo() (*dto.DBBaseInfo, error)
-	LoadRemoteAccess() (bool, error)
+
+	LoadStatus(req dto.OperationWithNameAndType) (*dto.MysqlStatus, error)
+	LoadVariables(req dto.OperationWithNameAndType) (*dto.MysqlVariables, error)
+	LoadBaseInfo(req dto.OperationWithNameAndType) (*dto.DBBaseInfo, error)
+	LoadRemoteAccess(req dto.OperationWithNameAndType) (bool, error)
+
+	LoadDatabaseFile(req dto.OperationWithNameAndType) (string, error)
 }
 
 func NewIMysqlService() IMysqlService {
 	return &MysqlService{}
 }
 
-func (u *MysqlService) SearchWithPage(search dto.SearchWithPage) (int64, interface{}, error) {
-	total, mysqls, err := mysqlRepo.Page(search.Page, search.PageSize, commonRepo.WithLikeName(search.Info))
+func (u *MysqlService) SearchWithPage(search dto.MysqlDBSearch) (int64, interface{}, error) {
+	total, mysqls, err := mysqlRepo.Page(search.Page, search.PageSize,
+		mysqlRepo.WithByMysqlName(search.Database),
+		commonRepo.WithLikeName(search.Info),
+		commonRepo.WithOrderRuleBy(search.OrderBy, search.Order),
+	)
 	var dtoMysqls []dto.MysqlDBInfo
 	for _, mysql := range mysqls {
 		var item dto.MysqlDBInfo
@@ -60,145 +73,232 @@ func (u *MysqlService) SearchWithPage(search dto.SearchWithPage) (int64, interfa
 	return total, dtoMysqls, err
 }
 
-func (u *MysqlService) ListDBName() ([]string, error) {
+func (u *MysqlService) ListDBOption() ([]dto.MysqlOption, error) {
 	mysqls, err := mysqlRepo.List()
-	var dbNames []string
-	for _, mysql := range mysqls {
-		dbNames = append(dbNames, mysql.Name)
-	}
-	return dbNames, err
-}
-
-var formatMap = map[string]string{
-	"utf8":    "utf8_general_ci",
-	"utf8mb4": "utf8mb4_general_ci",
-	"gbk":     "gbk_chinese_ci",
-	"big5":    "big5_chinese_ci",
-}
-
-func (u *MysqlService) Create(ctx context.Context, req dto.MysqlDBCreate) (*model.DatabaseMysql, error) {
-	if req.Username == "root" {
-		return nil, errors.New("Cannot set root as user name")
-	}
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
 	if err != nil {
 		return nil, err
 	}
-	mysql, _ := mysqlRepo.Get(commonRepo.WithByName(req.Name))
+
+	databases, err := databaseRepo.GetList(databaseRepo.WithTypeList("mysql,mariadb"))
+	if err != nil {
+		return nil, err
+	}
+	var dbs []dto.MysqlOption
+	for _, mysql := range mysqls {
+		var item dto.MysqlOption
+		if err := copier.Copy(&item, &mysql); err != nil {
+			return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
+		}
+		item.Database = mysql.MysqlName
+		for _, database := range databases {
+			if database.Name == item.Database {
+				item.Type = database.Type
+			}
+		}
+		dbs = append(dbs, item)
+	}
+	return dbs, err
+}
+
+func (u *MysqlService) Create(ctx context.Context, req dto.MysqlDBCreate) (*model.DatabaseMysql, error) {
+	if cmd.CheckIllegal(req.Name, req.Username, req.Password, req.Format, req.Permission) {
+		return nil, buserr.New(constant.ErrCmdIllegal)
+	}
+
+	mysql, _ := mysqlRepo.Get(commonRepo.WithByName(req.Name), mysqlRepo.WithByMysqlName(req.Database), databaseRepo.WithByFrom(req.From))
 	if mysql.ID != 0 {
 		return nil, constant.ErrRecordExist
 	}
-	if err := copier.Copy(&mysql, &req); err != nil {
+
+	var createItem model.DatabaseMysql
+	if err := copier.Copy(&createItem, &req); err != nil {
 		return nil, errors.WithMessage(constant.ErrStructTransform, err.Error())
 	}
 
-	createSql := fmt.Sprintf("create database `%s` default character set %s collate %s", req.Name, req.Format, formatMap[req.Format])
-	if err := excSQL(app.ContainerName, app.Password, createSql); err != nil {
-		if strings.Contains(err.Error(), "ERROR 1007") {
-			return nil, buserr.New(constant.ErrDatabaseIsExist)
-		}
+	if req.From == "local" && req.Username == "root" {
+		return nil, errors.New("Cannot set root as user name")
+	}
+
+	cli, version, err := LoadMysqlClientByFrom(req.Database)
+	if err != nil {
 		return nil, err
 	}
-	if err := u.createUser(app.ContainerName, app.Password, app.Version, req); err != nil {
+	createItem.MysqlName = req.Database
+	defer cli.Close()
+	if err := cli.Create(client.CreateInfo{
+		Name:       req.Name,
+		Format:     req.Format,
+		Username:   req.Username,
+		Password:   req.Password,
+		Permission: req.Permission,
+		Version:    version,
+		Timeout:    300,
+	}); err != nil {
 		return nil, err
 	}
 
 	global.LOG.Infof("create database %s successful!", req.Name)
-	mysql.MysqlName = app.Name
-	if err := mysqlRepo.Create(ctx, &mysql); err != nil {
+	if err := mysqlRepo.Create(ctx, &createItem); err != nil {
 		return nil, err
 	}
-	return &mysql, nil
+	return &createItem, nil
+}
+
+func (u *MysqlService) LoadFromRemote(req dto.MysqlLoadDB) error {
+	client, version, err := LoadMysqlClientByFrom(req.Database)
+	if err != nil {
+		return err
+	}
+
+	databases, err := mysqlRepo.List(mysqlRepo.WithByMysqlName(req.Database))
+	if err != nil {
+		return err
+	}
+	datas, err := client.SyncDB(version)
+	if err != nil {
+		return err
+	}
+	for _, data := range datas {
+		hasOld := false
+		for _, oldData := range databases {
+			if strings.EqualFold(oldData.Name, data.Name) && strings.EqualFold(oldData.MysqlName, data.MysqlName) {
+				hasOld = true
+				break
+			}
+		}
+		if !hasOld {
+			var createItem model.DatabaseMysql
+			if err := copier.Copy(&createItem, &data); err != nil {
+				return errors.WithMessage(constant.ErrStructTransform, err.Error())
+			}
+			if err := mysqlRepo.Create(context.Background(), &createItem); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (u *MysqlService) UpdateDescription(req dto.UpdateDescription) error {
 	return mysqlRepo.Update(req.ID, map[string]interface{}{"description": req.Description})
 }
 
-func (u *MysqlService) DeleteCheck(id uint) ([]string, error) {
+func (u *MysqlService) DeleteCheck(req dto.MysqlDBDeleteCheck) ([]string, error) {
 	var appInUsed []string
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+	db, err := mysqlRepo.Get(commonRepo.WithByID(req.ID))
 	if err != nil {
 		return appInUsed, err
 	}
 
-	db, err := mysqlRepo.Get(commonRepo.WithByID(id))
-	if err != nil {
-		return appInUsed, err
-	}
-
-	apps, _ := appInstallResourceRepo.GetBy(appInstallResourceRepo.WithLinkId(app.ID), appInstallResourceRepo.WithResourceId(db.ID))
-	for _, app := range apps {
-		appInstall, _ := appInstallRepo.GetFirst(commonRepo.WithByID(app.AppInstallId))
-		if appInstall.ID != 0 {
-			appInUsed = append(appInUsed, appInstall.Name)
+	if db.From == "local" {
+		app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Database)
+		if err != nil {
+			return appInUsed, err
+		}
+		apps, _ := appInstallResourceRepo.GetBy(appInstallResourceRepo.WithLinkId(app.ID), appInstallResourceRepo.WithResourceId(db.ID))
+		for _, app := range apps {
+			appInstall, _ := appInstallRepo.GetFirst(commonRepo.WithByID(app.AppInstallId))
+			if appInstall.ID != 0 {
+				appInUsed = append(appInUsed, appInstall.Name)
+			}
+		}
+	} else {
+		apps, _ := appInstallResourceRepo.GetBy(appInstallResourceRepo.WithResourceId(db.ID))
+		for _, app := range apps {
+			appInstall, _ := appInstallRepo.GetFirst(commonRepo.WithByID(app.AppInstallId))
+			if appInstall.ID != 0 {
+				appInUsed = append(appInUsed, appInstall.Name)
+			}
 		}
 	}
+
 	return appInUsed, nil
 }
 
 func (u *MysqlService) Delete(ctx context.Context, req dto.MysqlDBDelete) error {
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
-	if err != nil && !req.ForceDelete {
-		return err
-	}
-
 	db, err := mysqlRepo.Get(commonRepo.WithByID(req.ID))
 	if err != nil && !req.ForceDelete {
 		return err
 	}
-
-	if err := excSQL(app.ContainerName, app.Password, fmt.Sprintf("drop user if exists '%s'@'%s'", db.Username, db.Permission)); err != nil && !req.ForceDelete {
+	cli, version, err := LoadMysqlClientByFrom(req.Database)
+	if err != nil {
 		return err
 	}
-	if err := excSQL(app.ContainerName, app.Password, fmt.Sprintf("drop database if exists `%s`", db.Name)); err != nil && !req.ForceDelete {
+	defer cli.Close()
+	if err := cli.Delete(client.DeleteInfo{
+		Name:       db.Name,
+		Version:    version,
+		Username:   db.Username,
+		Permission: db.Permission,
+		Timeout:    300,
+	}); err != nil && !req.ForceDelete {
 		return err
 	}
-	global.LOG.Info("execute delete database sql successful, now start to drop uploads and records")
 
-	uploadDir := fmt.Sprintf("%s/1panel/uploads/database/mysql/%s/%s", global.CONF.System.BaseDir, app.Name, db.Name)
-	if _, err := os.Stat(uploadDir); err == nil {
-		_ = os.RemoveAll(uploadDir)
-	}
 	if req.DeleteBackup {
+		uploadDir := path.Join(global.CONF.System.BaseDir, fmt.Sprintf("1panel/uploads/database/%s/%s/%s", req.Type, req.Database, db.Name))
+		if _, err := os.Stat(uploadDir); err == nil {
+			_ = os.RemoveAll(uploadDir)
+		}
 		localDir, err := loadLocalDir()
 		if err != nil && !req.ForceDelete {
 			return err
 		}
-		backupDir := fmt.Sprintf("%s/database/mysql/%s/%s", localDir, db.MysqlName, db.Name)
+		backupDir := path.Join(localDir, fmt.Sprintf("database/%s/%s/%s", req.Type, db.MysqlName, db.Name))
 		if _, err := os.Stat(backupDir); err == nil {
 			_ = os.RemoveAll(backupDir)
 		}
-		global.LOG.Infof("delete database %s-%s backups successful", app.Name, db.Name)
+		_ = backupRepo.DeleteRecord(ctx, commonRepo.WithByType(req.Type), commonRepo.WithByName(req.Database), backupRepo.WithByDetailName(db.Name))
+		global.LOG.Infof("delete database %s-%s backups successful", req.Database, db.Name)
 	}
-	_ = backupRepo.DeleteRecord(ctx, commonRepo.WithByType("mysql"), commonRepo.WithByName(app.Name), backupRepo.WithByDetailName(db.Name))
 
 	_ = mysqlRepo.Delete(ctx, commonRepo.WithByID(db.ID))
 	return nil
 }
 
-func (u *MysqlService) ChangePassword(info dto.ChangeDBInfo) error {
-	var (
-		mysql model.DatabaseMysql
-		err   error
-	)
-	if info.ID != 0 {
-		mysql, err = mysqlRepo.Get(commonRepo.WithByID(info.ID))
-		if err != nil {
-			return err
-		}
+func (u *MysqlService) ChangePassword(req dto.ChangeDBInfo) error {
+	if cmd.CheckIllegal(req.Value) {
+		return buserr.New(constant.ErrCmdIllegal)
 	}
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+	cli, version, err := LoadMysqlClientByFrom(req.Database)
 	if err != nil {
 		return err
 	}
+	defer cli.Close()
+	var (
+		mysqlData    model.DatabaseMysql
+		passwordInfo client.PasswordChangeInfo
+	)
+	passwordInfo.Password = req.Value
+	passwordInfo.Timeout = 300
+	passwordInfo.Version = version
 
-	passwordChangeCMD := fmt.Sprintf("set password for '%s'@'%s' = password('%s')", mysql.Username, mysql.Permission, info.Value)
-	if !strings.HasPrefix(app.Version, "5.7") {
-		passwordChangeCMD = fmt.Sprintf("ALTER USER '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s';", mysql.Username, mysql.Permission, info.Value)
+	if req.ID != 0 {
+		mysqlData, err = mysqlRepo.Get(commonRepo.WithByID(req.ID))
+		if err != nil {
+			return err
+		}
+		passwordInfo.Name = mysqlData.Name
+		passwordInfo.Username = mysqlData.Username
+		passwordInfo.Permission = mysqlData.Permission
+	} else {
+		passwordInfo.Username = "root"
 	}
-	if info.ID != 0 {
-		appRess, _ := appInstallResourceRepo.GetBy(appInstallResourceRepo.WithLinkId(app.ID), appInstallResourceRepo.WithResourceId(mysql.ID))
+	if err := cli.ChangePassword(passwordInfo); err != nil {
+		return err
+	}
+
+	if req.ID != 0 {
+		var appRess []model.AppInstallResource
+		if req.From == "local" {
+			app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Database)
+			if err != nil {
+				return err
+			}
+			appRess, _ = appInstallResourceRepo.GetBy(appInstallResourceRepo.WithLinkId(app.ID), appInstallResourceRepo.WithResourceId(mysqlData.ID))
+		} else {
+			appRess, _ = appInstallResourceRepo.GetBy(appInstallResourceRepo.WithResourceId(mysqlData.ID))
+		}
 		for _, appRes := range appRess {
 			appInstall, err := appInstallRepo.GetFirst(commonRepo.WithByID(appRes.AppInstallId))
 			if err != nil {
@@ -210,134 +310,93 @@ func (u *MysqlService) ChangePassword(info dto.ChangeDBInfo) error {
 			}
 
 			global.LOG.Infof("start to update mysql password used by app %s-%s", appModel.Key, appInstall.Name)
-			if err := updateInstallInfoInDB(appModel.Key, appInstall.Name, "user-password", true, info.Value); err != nil {
+			if err := updateInstallInfoInDB(appModel.Key, appInstall.Name, "user-password", true, req.Value); err != nil {
 				return err
 			}
 		}
-		if err := excuteSql(app.ContainerName, app.Password, passwordChangeCMD); err != nil {
-			return err
+		global.LOG.Info("execute password change sql successful")
+		pass, err := encrypt.StringEncrypt(req.Value)
+		if err != nil {
+			return fmt.Errorf("decrypt database db password failed, err: %v", err)
 		}
-		global.LOG.Info("excute password change sql successful")
-		_ = mysqlRepo.Update(mysql.ID, map[string]interface{}{"password": info.Value})
+		_ = mysqlRepo.Update(mysqlData.ID, map[string]interface{}{"password": pass})
 		return nil
 	}
 
-	hosts, err := excuteSqlForRows(app.ContainerName, app.Password, "select host from mysql.user where user='root';")
-	if err != nil {
-		return err
-	}
-	for _, host := range hosts {
-		if host == "%" || host == "localhost" {
-			passwordRootChangeCMD := fmt.Sprintf("set password for 'root'@'%s' = password('%s')", host, info.Value)
-			if !strings.HasPrefix(app.Version, "5.7") {
-				passwordRootChangeCMD = fmt.Sprintf("alter user 'root'@'%s' identified with mysql_native_password BY '%s';", host, info.Value)
-			}
-			if err := excuteSql(app.ContainerName, app.Password, passwordRootChangeCMD); err != nil {
-				return err
-			}
-		}
-	}
-	if err := updateInstallInfoInDB("mysql", "", "password", false, info.Value); err != nil {
-		return err
-	}
-	if err := updateInstallInfoInDB("phpmyadmin", "", "password", true, info.Value); err != nil {
+	if err := updateInstallInfoInDB(req.Type, req.Database, "password", false, req.Value); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *MysqlService) ChangeAccess(info dto.ChangeDBInfo) error {
+func (u *MysqlService) ChangeAccess(req dto.ChangeDBInfo) error {
+	if cmd.CheckIllegal(req.Value) {
+		return buserr.New(constant.ErrCmdIllegal)
+	}
+	cli, version, err := LoadMysqlClientByFrom(req.Database)
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
 	var (
-		mysql model.DatabaseMysql
-		err   error
+		mysqlData  model.DatabaseMysql
+		accessInfo client.AccessChangeInfo
 	)
-	if info.ID != 0 {
-		mysql, err = mysqlRepo.Get(commonRepo.WithByID(info.ID))
+	accessInfo.Permission = req.Value
+	accessInfo.Timeout = 300
+	accessInfo.Version = version
+
+	if req.ID != 0 {
+		mysqlData, err = mysqlRepo.Get(commonRepo.WithByID(req.ID))
 		if err != nil {
 			return err
 		}
-		if info.Value == mysql.Permission {
-			return nil
-		}
+		accessInfo.Name = mysqlData.Name
+		accessInfo.Username = mysqlData.Username
+		accessInfo.Password = mysqlData.Password
+		accessInfo.OldPermission = mysqlData.Permission
+	} else {
+		accessInfo.Username = "root"
 	}
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
-	if err != nil {
+	if err := cli.ChangeAccess(accessInfo); err != nil {
 		return err
 	}
-	if info.ID == 0 {
-		mysql.Name = "*"
-		mysql.Username = "root"
-		mysql.Permission = "%"
-		mysql.Password = app.Password
-	}
 
-	if info.Value != mysql.Permission {
-		var userlist []string
-		if strings.Contains(mysql.Permission, ",") {
-			userlist = strings.Split(mysql.Permission, ",")
-		} else {
-			userlist = append(userlist, mysql.Permission)
-		}
-		for _, user := range userlist {
-			if len(user) != 0 {
-				if err := excuteSql(app.ContainerName, app.Password, fmt.Sprintf("drop user if exists '%s'@'%s'", mysql.Username, user)); err != nil {
-					return err
-				}
-			}
-		}
-		if info.ID == 0 {
-			return nil
-		}
+	if mysqlData.ID != 0 {
+		_ = mysqlRepo.Update(mysqlData.ID, map[string]interface{}{"permission": req.Value})
 	}
-
-	if err := u.createUser(app.ContainerName, app.Password, app.Version, dto.MysqlDBCreate{
-		Username:   mysql.Username,
-		Name:       mysql.Name,
-		Permission: info.Value,
-		Password:   mysql.Password,
-	}); err != nil {
-		return err
-	}
-	if err := excuteSql(app.ContainerName, app.Password, "flush privileges"); err != nil {
-		return err
-	}
-	if info.ID == 0 {
-		return nil
-	}
-
-	_ = mysqlRepo.Update(mysql.ID, map[string]interface{}{"permission": info.Value})
 
 	return nil
 }
 
-func (u *MysqlService) UpdateConfByFile(info dto.MysqlConfUpdateByFile) error {
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+func (u *MysqlService) UpdateConfByFile(req dto.MysqlConfUpdateByFile) error {
+	app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Database)
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("%s/mysql/%s/conf/my.cnf", constant.AppInstallDir, app.Name)
+	path := fmt.Sprintf("%s/%s/%s/conf/my.cnf", constant.AppInstallDir, req.Type, app.Name)
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0640)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 	write := bufio.NewWriter(file)
-	_, _ = write.WriteString(info.File)
+	_, _ = write.WriteString(req.File)
 	write.Flush()
-	if _, err := compose.Restart(fmt.Sprintf("%s/mysql/%s/docker-compose.yml", constant.AppInstallDir, app.Name)); err != nil {
+	if _, err := compose.Restart(fmt.Sprintf("%s/%s/%s/docker-compose.yml", constant.AppInstallDir, req.Type, app.Name)); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *MysqlService) UpdateVariables(updates []dto.MysqlVariablesUpdate) error {
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+func (u *MysqlService) UpdateVariables(req dto.MysqlVariablesUpdate) error {
+	app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Database)
 	if err != nil {
 		return err
 	}
 	var files []string
 
-	path := fmt.Sprintf("%s/mysql/%s/conf/my.cnf", constant.AppInstallDir, app.Name)
+	path := fmt.Sprintf("%s/%s/%s/conf/my.cnf", constant.AppInstallDir, req.Type, app.Name)
 	lineBytes, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -345,8 +404,8 @@ func (u *MysqlService) UpdateVariables(updates []dto.MysqlVariablesUpdate) error
 	files = strings.Split(string(lineBytes), "\n")
 
 	group := "[mysqld]"
-	for _, info := range updates {
-		if !strings.HasPrefix(app.Version, "5.7") {
+	for _, info := range req.Variables {
+		if !strings.HasPrefix(app.Version, "5.7") && !strings.HasPrefix(app.Version, "5.6") {
 			if info.Param == "query_cache_size" {
 				continue
 			}
@@ -368,16 +427,16 @@ func (u *MysqlService) UpdateVariables(updates []dto.MysqlVariablesUpdate) error
 		return err
 	}
 
-	if _, err := compose.Restart(fmt.Sprintf("%s/mysql/%s/docker-compose.yml", constant.AppInstallDir, app.Name)); err != nil {
+	if _, err := compose.Restart(fmt.Sprintf("%s/%s/%s/docker-compose.yml", constant.AppInstallDir, req.Type, app.Name)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (u *MysqlService) LoadBaseInfo() (*dto.DBBaseInfo, error) {
+func (u *MysqlService) LoadBaseInfo(req dto.OperationWithNameAndType) (*dto.DBBaseInfo, error) {
 	var data dto.DBBaseInfo
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+	app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -388,8 +447,8 @@ func (u *MysqlService) LoadBaseInfo() (*dto.DBBaseInfo, error) {
 	return &data, nil
 }
 
-func (u *MysqlService) LoadRemoteAccess() (bool, error) {
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+func (u *MysqlService) LoadRemoteAccess(req dto.OperationWithNameAndType) (bool, error) {
+	app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Name)
 	if err != nil {
 		return false, err
 	}
@@ -406,8 +465,8 @@ func (u *MysqlService) LoadRemoteAccess() (bool, error) {
 	return false, nil
 }
 
-func (u *MysqlService) LoadVariables() (*dto.MysqlVariables, error) {
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+func (u *MysqlService) LoadVariables(req dto.OperationWithNameAndType) (*dto.MysqlVariables, error) {
+	app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -424,8 +483,8 @@ func (u *MysqlService) LoadVariables() (*dto.MysqlVariables, error) {
 	return &info, nil
 }
 
-func (u *MysqlService) LoadStatus() (*dto.MysqlStatus, error) {
-	app, err := appInstallRepo.LoadBaseInfo("mysql", "")
+func (u *MysqlService) LoadStatus(req dto.OperationWithNameAndType) (*dto.MysqlStatus, error) {
+	app, err := appInstallRepo.LoadBaseInfo(req.Type, req.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -469,51 +528,28 @@ func (u *MysqlService) LoadStatus() (*dto.MysqlStatus, error) {
 	return &info, nil
 }
 
-func (u *MysqlService) createUser(container, password, version string, req dto.MysqlDBCreate) error {
-	var userlist []string
-	if strings.Contains(req.Permission, ",") {
-		ips := strings.Split(req.Permission, ",")
-		for _, ip := range ips {
-			if len(ip) != 0 {
-				userlist = append(userlist, fmt.Sprintf("'%s'@'%s'", req.Username, ip))
-			}
-		}
-	} else {
-		userlist = append(userlist, fmt.Sprintf("'%s'@'%s'", req.Username, req.Permission))
+func (u *MysqlService) LoadDatabaseFile(req dto.OperationWithNameAndType) (string, error) {
+	filePath := ""
+	switch req.Type {
+	case "mysql-conf":
+		filePath = path.Join(global.CONF.System.DataDir, fmt.Sprintf("apps/mysql/%s/conf/my.cnf", req.Name))
+	case "mariadb-conf":
+		filePath = path.Join(global.CONF.System.DataDir, fmt.Sprintf("apps/mariadb/%s/conf/my.cnf", req.Name))
+	case "redis-conf":
+		filePath = path.Join(global.CONF.System.DataDir, fmt.Sprintf("apps/redis/%s/conf/redis.conf", req.Name))
+	case "mysql-slow-logs":
+		filePath = path.Join(global.CONF.System.DataDir, fmt.Sprintf("apps/mysql/%s/data/1Panel-slow.log", req.Name))
+	case "mariadb-slow-logs":
+		filePath = path.Join(global.CONF.System.DataDir, fmt.Sprintf("apps/mariadb/%s/db/data/1Panel-slow.log", req.Name))
 	}
-
-	for _, user := range userlist {
-		if err := excSQL(container, password, fmt.Sprintf("create user %s identified by '%s';", user, req.Password)); err != nil {
-			if strings.Contains(err.Error(), "ERROR 1396") {
-				handleCreateError(container, password, req.Name, userlist, false)
-				return buserr.New(constant.ErrUserIsExist)
-			}
-			handleCreateError(container, password, req.Name, userlist, true)
-			return err
-		}
-		grantStr := fmt.Sprintf("grant all privileges on `%s`.* to %s", req.Name, user)
-		if req.Name == "*" {
-			grantStr = fmt.Sprintf("grant all privileges on *.* to %s", user)
-		}
-		if strings.HasPrefix(version, "5.7") {
-			grantStr = fmt.Sprintf("%s identified by '%s' with grant option;", grantStr, req.Password)
-		}
-		if err := excSQL(container, password, grantStr); err != nil {
-			handleCreateError(container, password, req.Name, userlist, true)
-			return err
-		}
+	if _, err := os.Stat(filePath); err != nil {
+		return "", buserr.New("ErrHttpReqNotFound")
 	}
-	return nil
-}
-func handleCreateError(contaienr, password, dbName string, userlist []string, dropUser bool) {
-	_ = excSQL(contaienr, password, fmt.Sprintf("drop database `%s`", dbName))
-	if dropUser {
-		for _, user := range userlist {
-			if err := excSQL(contaienr, password, fmt.Sprintf("drop user if exists %s", user)); err != nil {
-				global.LOG.Errorf("drop user failed, err: %v", err)
-			}
-		}
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
 	}
+	return string(content), nil
 }
 
 func excuteSqlForMaps(containerName, password, command string) (map[string]string, error) {
@@ -543,31 +579,6 @@ func excuteSqlForRows(containerName, password, command string) ([]string, error)
 		return nil, errors.New(stdStr)
 	}
 	return strings.Split(stdStr, "\n"), nil
-}
-
-func excuteSql(containerName, password, command string) error {
-	cmd := exec.Command("docker", "exec", containerName, "mysql", "-uroot", "-p"+password, "-e", command)
-	stdout, err := cmd.CombinedOutput()
-	stdStr := strings.ReplaceAll(string(stdout), "mysql: [Warning] Using a password on the command line interface can be insecure.\n", "")
-	if err != nil || strings.HasPrefix(string(stdStr), "ERROR ") {
-		return errors.New(stdStr)
-	}
-	return nil
-}
-
-func excSQL(containerName, password, command string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", "exec", containerName, "mysql", "-uroot", "-p"+password, "-e", command)
-	stdout, err := cmd.CombinedOutput()
-	if ctx.Err() == context.DeadlineExceeded {
-		return buserr.WithDetail(constant.ErrExecTimeOut, containerName, nil)
-	}
-	stdStr := strings.ReplaceAll(string(stdout), "mysql: [Warning] Using a password on the command line interface can be insecure.\n", "")
-	if err != nil || strings.HasPrefix(string(stdStr), "ERROR ") {
-		return errors.New(stdStr)
-	}
-	return nil
 }
 
 func updateMyCnf(oldFiles []string, group string, param string, value interface{}) []string {
@@ -609,4 +620,43 @@ func updateMyCnf(oldFiles []string, group string, param string, value interface{
 		newFiles = append(newFiles, fmt.Sprintf("%s=%v\n", param, value))
 	}
 	return newFiles
+}
+
+func LoadMysqlClientByFrom(database string) (mysql.MysqlClient, string, error) {
+	var (
+		dbInfo  client.DBInfo
+		version string
+		err     error
+	)
+
+	dbInfo.Timeout = 300
+	databaseItem, err := databaseRepo.Get(commonRepo.WithByName(database))
+	if err != nil {
+		return nil, "", err
+	}
+	dbInfo.From = databaseItem.From
+	dbInfo.Database = database
+	if dbInfo.From != "local" {
+		dbInfo.Address = databaseItem.Address
+		dbInfo.Port = databaseItem.Port
+		dbInfo.Username = databaseItem.Username
+		dbInfo.Password = databaseItem.Password
+		version = databaseItem.Version
+
+	} else {
+		app, err := appInstallRepo.LoadBaseInfo(databaseItem.Type, database)
+		if err != nil {
+			return nil, "", err
+		}
+		dbInfo.Address = app.ContainerName
+		dbInfo.Username = "root"
+		dbInfo.Password = app.Password
+		version = app.Version
+	}
+
+	cli, err := mysql.NewMysqlClient(dbInfo)
+	if err != nil {
+		return nil, "", err
+	}
+	return cli, version, nil
 }

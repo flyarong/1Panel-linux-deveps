@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/1Panel-dev/1Panel/backend/buserr"
@@ -117,6 +118,72 @@ func Execf(cmdStr string, a ...interface{}) (string, error) {
 	return stdout.String(), nil
 }
 
+func ExecWithCheck(name string, a ...string) (string, error) {
+	cmd := exec.Command(name, a...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		errMsg := ""
+		if len(stderr.String()) != 0 {
+			errMsg = fmt.Sprintf("stderr: %s", stderr.String())
+		}
+		if len(stdout.String()) != 0 {
+			if len(errMsg) != 0 {
+				errMsg = fmt.Sprintf("%s; stdout: %s", errMsg, stdout.String())
+			} else {
+				errMsg = fmt.Sprintf("stdout: %s", stdout.String())
+			}
+		}
+		return errMsg, err
+	}
+	return stdout.String(), nil
+}
+
+func ExecScript(scriptPath, workDir string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	cmd := exec.Command("bash", scriptPath)
+	cmd.Dir = workDir
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if ctx.Err() == context.DeadlineExceeded {
+		return "", buserr.New(constant.ErrCmdTimeout)
+	}
+	if err != nil {
+		errMsg := ""
+		if len(stderr.String()) != 0 {
+			errMsg = fmt.Sprintf("stderr: %s", stderr.String())
+		}
+		if len(stdout.String()) != 0 {
+			if len(errMsg) != 0 {
+				errMsg = fmt.Sprintf("%s; stdout: %s", errMsg, stdout.String())
+			} else {
+				errMsg = fmt.Sprintf("stdout: %s", stdout.String())
+			}
+		}
+		return errMsg, err
+	}
+	return stdout.String(), nil
+}
+
+func CheckIllegal(args ...string) bool {
+	if args == nil {
+		return false
+	}
+	for _, arg := range args {
+		if strings.Contains(arg, "&") || strings.Contains(arg, "|") || strings.Contains(arg, ";") ||
+			strings.Contains(arg, "$") || strings.Contains(arg, "'") || strings.Contains(arg, "`") ||
+			strings.Contains(arg, "(") || strings.Contains(arg, ")") || strings.Contains(arg, "\"") {
+			return true
+		}
+	}
+	return false
+}
+
 func HasNoPasswordSudo() bool {
 	cmd2 := exec.Command("sudo", "-n", "ls")
 	err2 := cmd2.Run()
@@ -129,4 +196,9 @@ func SudoHandleCmd() string {
 		return "sudo "
 	}
 	return ""
+}
+
+func Which(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
 }

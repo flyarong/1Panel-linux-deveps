@@ -1,24 +1,11 @@
 <template>
-    <el-drawer v-model="dialogVisiable" :destroy-on-close="true" :close-on-click-modal="false" size="30%">
+    <el-drawer v-model="dialogVisible" :destroy-on-close="true" :close-on-click-modal="false" size="30%">
         <template #header>
             <DrawerHeader :header="$t('database.databaseConnInfo')" :back="handleClose" />
         </template>
         <el-form @submit.prevent v-loading="loading" ref="formRef" :model="form" label-position="top">
             <el-row type="flex" justify="center">
                 <el-col :span="22">
-                    <el-form-item :label="$t('database.requirepass')" :rules="Rules.requiredInput" prop="password">
-                        <el-input type="password" show-password clearable v-model="form.password">
-                            <template #append>
-                                <el-button @click="onCopy(form.password)" icon="DocumentCopy"></el-button>
-                                <el-button style="margin-left: 1px" @click="random" icon="RefreshRight"></el-button>
-                            </template>
-                        </el-input>
-                    </el-form-item>
-                    <el-form-item :label="$t('database.serviceName')" prop="serviceName">
-                        <el-tag>{{ form.serviceName }}</el-tag>
-                        <el-button @click="onCopy(form.serviceName)" icon="DocumentCopy" link></el-button>
-                        <span class="input-help">{{ $t('database.serviceNameHelper') }}</span>
-                    </el-form-item>
                     <el-form-item :label="$t('database.containerConn')">
                         <el-tag>
                             {{ form.serviceName + ':6379' }}
@@ -29,8 +16,23 @@
                         </span>
                     </el-form-item>
                     <el-form-item :label="$t('database.remoteConn')">
-                        <el-tag>{{ $t('database.localIP') + ':' + form.port }}</el-tag>
+                        <el-tooltip v-if="loadConnInfo().length > 48" :content="loadConnInfo()" placement="top">
+                            <el-tag>{{ loadConnInfo().substring(0, 48) }}...</el-tag>
+                        </el-tooltip>
+                        <el-tag v-else>{{ loadConnInfo() }}</el-tag>
+                        <el-button @click="onCopy(form.systemIP + ':6379')" icon="DocumentCopy" link></el-button>
                         <span class="input-help">{{ $t('database.remoteConnHelper2') }}</span>
+                    </el-form-item>
+                    <el-form-item :label="$t('commons.login.password')" :rules="Rules.paramComplexity" prop="password">
+                        <el-input type="password" show-password clearable v-model="form.password">
+                            <template #append>
+                                <el-button @click="onCopy(form.password)">{{ $t('commons.button.copy') }}</el-button>
+                                <el-divider direction="vertical" />
+                                <el-button style="margin-left: 1px" @click="random">
+                                    {{ $t('commons.button.random') }}
+                                </el-button>
+                            </template>
+                        </el-input>
                     </el-form-item>
                 </el-col>
             </el-row>
@@ -40,7 +42,7 @@
 
         <template #footer>
             <span class="dialog-footer">
-                <el-button :disabled="loading" @click="dialogVisiable = false">
+                <el-button :disabled="loading" @click="dialogVisible = false">
                     {{ $t('commons.button.cancel') }}
                 </el-button>
                 <el-button :disabled="loading" type="primary" @click="onSave(formRef)">
@@ -64,14 +66,17 @@ import DrawerHeader from '@/components/drawer-header/index.vue';
 import { App } from '@/api/interface/app';
 import { getRandomStr } from '@/utils/util';
 import useClipboard from 'vue-clipboard3';
+import { getSettingInfo } from '@/api/modules/setting';
 const { toClipboard } = useClipboard();
 
 const loading = ref(false);
 
-const dialogVisiable = ref(false);
+const dialogVisible = ref(false);
 const form = ref<App.DatabaseConnInfo>({
+    privilege: false,
     password: '',
     serviceName: '',
+    systemIP: '',
     port: 0,
 });
 
@@ -85,10 +90,10 @@ const formRef = ref<FormInstance>();
 const acceptParams = (): void => {
     form.value.password = '';
     loadPassword();
-    dialogVisiable.value = true;
+    dialogVisible.value = true;
 };
 const handleClose = () => {
-    dialogVisiable.value = false;
+    dialogVisible.value = false;
 };
 
 const random = async () => {
@@ -105,28 +110,30 @@ const onCopy = async (value: string) => {
 };
 
 const loadPassword = async () => {
-    const res = await GetAppConnInfo('redis');
+    const res = await GetAppConnInfo('redis', '');
+    const settingInfoRes = await getSettingInfo();
     form.value = res.data;
+    form.value.systemIP = settingInfoRes.data.systemIP || i18n.global.t('database.localIP');
 };
 
 const onSubmit = async () => {
-    let param = {
-        id: 0,
-        value: form.value.password,
-    };
     loading.value = true;
     emit('closeTerminal');
-    await changeRedisPassword(param)
+    await changeRedisPassword(form.value.password)
         .then(() => {
             loading.value = false;
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-            dialogVisiable.value = false;
+            dialogVisible.value = false;
             emit('checkExist');
         })
         .catch(() => {
             loading.value = false;
         });
 };
+
+function loadConnInfo() {
+    return form.value.systemIP + ':' + form.value.port;
+}
 
 const onSave = async (formEl: FormInstance | undefined) => {
     if (!formEl) return;

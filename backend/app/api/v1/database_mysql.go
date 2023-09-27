@@ -143,7 +143,7 @@ func (b *BaseApi) ChangeMysqlAccess(c *gin.Context) {
 // @Router /databases/variables/update [post]
 // @x-panel-log {"bodyKeys":[],"paramKeys":[],"BeforeFuntions":[],"formatZH":"调整 mysql 数据库性能参数","formatEN":"adjust mysql database performance parameters"}
 func (b *BaseApi) UpdateMysqlVariables(c *gin.Context) {
-	var req []dto.MysqlVariablesUpdate
+	var req dto.MysqlVariablesUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
@@ -188,12 +188,12 @@ func (b *BaseApi) UpdateMysqlConfByFile(c *gin.Context) {
 // @Summary Page mysql databases
 // @Description 获取 mysql 数据库列表分页
 // @Accept json
-// @Param request body dto.SearchWithPage true "request"
+// @Param request body dto.MysqlDBSearch true "request"
 // @Success 200 {object} dto.PageResult
 // @Security ApiKeyAuth
 // @Router /databases/search [post]
 func (b *BaseApi) SearchMysql(c *gin.Context) {
-	var req dto.SearchWithPage
+	var req dto.MysqlDBSearch
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
@@ -216,11 +216,11 @@ func (b *BaseApi) SearchMysql(c *gin.Context) {
 // @Description 获取 mysql 数据库列表
 // @Accept json
 // @Param request body dto.PageInfo true "request"
-// @Success 200 {anrry} string
+// @Success 200 {array} dto.MysqlOption
 // @Security ApiKeyAuth
 // @Router /databases/options [get]
 func (b *BaseApi) ListDBName(c *gin.Context) {
-	list, err := mysqlService.ListDBName()
+	list, err := mysqlService.ListDBOption()
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -230,15 +230,40 @@ func (b *BaseApi) ListDBName(c *gin.Context) {
 }
 
 // @Tags Database Mysql
+// @Summary Load mysql database from remote
+// @Description 从服务器获取
+// @Accept json
+// @Param request body dto.MysqlLoadDB true "request"
+// @Security ApiKeyAuth
+// @Router /databases/load [post]
+func (b *BaseApi) LoadDBFromRemote(c *gin.Context) {
+	var req dto.MysqlLoadDB
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := global.VALID.Struct(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	if err := mysqlService.LoadFromRemote(req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+
+	helper.SuccessWithData(c, nil)
+}
+
+// @Tags Database Mysql
 // @Summary Check before delete mysql database
 // @Description Mysql 数据库删除前检查
 // @Accept json
-// @Param request body dto.OperateByID true "request"
-// @Success 200 {anrry} string
+// @Param request body dto.MysqlDBDeleteCheck true "request"
+// @Success 200 {array} string
 // @Security ApiKeyAuth
 // @Router /databases/del/check [post]
 func (b *BaseApi) DeleteCheckMysql(c *gin.Context) {
-	var req dto.OperateByID
+	var req dto.MysqlDBDeleteCheck
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
 		return
@@ -248,7 +273,7 @@ func (b *BaseApi) DeleteCheckMysql(c *gin.Context) {
 		return
 	}
 
-	apps, err := mysqlService.DeleteCheck(req.ID)
+	apps, err := mysqlService.DeleteCheck(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -289,11 +314,18 @@ func (b *BaseApi) DeleteMysql(c *gin.Context) {
 // @Tags Database Mysql
 // @Summary Load mysql base info
 // @Description 获取 mysql 基础信息
+// @Accept json
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {object} dto.DBBaseInfo
 // @Security ApiKeyAuth
-// @Router /databases/baseinfo [get]
+// @Router /databases/baseinfo [post]
 func (b *BaseApi) LoadBaseinfo(c *gin.Context) {
-	data, err := mysqlService.LoadBaseInfo()
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	data, err := mysqlService.LoadBaseInfo(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -302,14 +334,43 @@ func (b *BaseApi) LoadBaseinfo(c *gin.Context) {
 	helper.SuccessWithData(c, data)
 }
 
+// @Tags Database
+// @Summary Load Database file
+// @Description 获取数据库文件
+// @Accept json
+// @Param request body dto.OperationWithNameAndType true "request"
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /databases/load/file [post]
+func (b *BaseApi) LoadDatabaseFile(c *gin.Context) {
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	content, err := mysqlService.LoadDatabaseFile(req)
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, content)
+}
+
 // @Tags Database Mysql
 // @Summary Load mysql remote access
 // @Description 获取 mysql 远程访问权限
+// @Accept json
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {boolean} isRemote
 // @Security ApiKeyAuth
-// @Router /databases/remote [get]
+// @Router /databases/remote [post]
 func (b *BaseApi) LoadRemoteAccess(c *gin.Context) {
-	isRemote, err := mysqlService.LoadRemoteAccess()
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	isRemote, err := mysqlService.LoadRemoteAccess(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -321,11 +382,18 @@ func (b *BaseApi) LoadRemoteAccess(c *gin.Context) {
 // @Tags Database Mysql
 // @Summary Load mysql status info
 // @Description 获取 mysql 状态信息
+// @Accept json
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {object} dto.MysqlStatus
 // @Security ApiKeyAuth
-// @Router /databases/status [get]
+// @Router /databases/status [post]
 func (b *BaseApi) LoadStatus(c *gin.Context) {
-	data, err := mysqlService.LoadStatus()
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	data, err := mysqlService.LoadStatus(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return
@@ -337,11 +405,18 @@ func (b *BaseApi) LoadStatus(c *gin.Context) {
 // @Tags Database Mysql
 // @Summary Load mysql variables info
 // @Description 获取 mysql 性能参数信息
+// @Accept json
+// @Param request body dto.OperationWithNameAndType true "request"
 // @Success 200 {object} dto.MysqlVariables
 // @Security ApiKeyAuth
-// @Router /databases/variables [get]
+// @Router /databases/variables [post]
 func (b *BaseApi) LoadVariables(c *gin.Context) {
-	data, err := mysqlService.LoadVariables()
+	var req dto.OperationWithNameAndType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrBadRequest, constant.ErrTypeInvalidParams, err)
+		return
+	}
+	data, err := mysqlService.LoadVariables(req)
 	if err != nil {
 		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 		return

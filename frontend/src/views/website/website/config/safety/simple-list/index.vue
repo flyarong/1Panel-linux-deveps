@@ -4,6 +4,14 @@
             <el-form-item prop="enable" :label="$t('website.enable')">
                 <el-switch v-model="enableUpdate.enable" @change="updateEnable"></el-switch>
             </el-form-item>
+            <el-form-item>
+                <el-alert
+                    type="info"
+                    v-if="rule === 'ip_white'"
+                    :title="$t('website.ipWhiteListHelper')"
+                    :closable="false"
+                />
+            </el-form-item>
             <el-form-item :label="$t('website.ipValue')">
                 <el-input
                     type="textarea"
@@ -32,11 +40,10 @@
 </template>
 <script lang="ts" setup>
 import { Website } from '@/api/interface/website';
-import { GetWafConfig, UpdateWafEnable } from '@/api/modules/website';
+import { GetWafConfig, UpdateWafEnable, UpdateWafFile } from '@/api/modules/website';
 import { computed, onMounted, reactive, ref } from 'vue';
-import { SaveFileContent } from '@/api/modules/files';
 import i18n from '@/lang';
-import { checkIp } from '@/utils/util';
+import { checkIpV4V6 } from '@/utils/util';
 import { MsgSuccess } from '@/utils/message';
 import { MsgError } from '@/utils/message';
 
@@ -47,7 +54,7 @@ const props = defineProps({
     },
     rule: {
         type: String,
-        default: 'ipWhiteList',
+        default: 'ip_white',
     },
     paramKey: {
         type: String,
@@ -64,23 +71,24 @@ const key = computed(() => {
     return props.paramKey;
 });
 
-let loading = ref(false);
-let data = ref([]);
-let req = ref<Website.WafReq>({
+const loading = ref(false);
+const data = ref([]);
+const req = ref<Website.WafReq>({
     websiteId: 0,
     key: '$ipWhiteAllow',
     rule: 'ip_white',
 });
-let fileUpdate = reactive({
-    path: '',
+const fileUpdate = reactive({
     content: '',
+    websiteId: 0,
+    type: 'ip_white',
 });
-let enableUpdate = ref<Website.WafUpdate>({
+const enableUpdate = ref<Website.WafUpdate>({
     websiteId: 0,
     key: '$ipWhiteAllow',
     enable: false,
 });
-let ips = ref();
+const ips = ref();
 
 const get = async () => {
     data.value = [];
@@ -97,7 +105,6 @@ const get = async () => {
         });
     }
     enableUpdate.value.enable = res.data.enable;
-    fileUpdate.path = res.data.filePath;
 };
 
 const removeIp = (index: number) => {
@@ -127,7 +134,7 @@ const openCreate = () => {
     }
     if (req.value.rule.indexOf('ip') > -1) {
         for (const id in newIpArray) {
-            if (checkIp(newIpArray[id])) {
+            if (checkIpV4V6(newIpArray[id])) {
                 MsgError(i18n.global.t('commons.rule.ipErr', [ipArray[id]]));
                 return;
             }
@@ -144,7 +151,7 @@ const openCreate = () => {
 const submit = async (ipList: string[]) => {
     fileUpdate.content = JSON.stringify(ipList);
     loading.value = true;
-    SaveFileContent(fileUpdate)
+    UpdateWafFile(fileUpdate)
         .then(() => {
             ips.value = '';
             get();
@@ -172,6 +179,8 @@ onMounted(() => {
     req.value.key = key.value;
     enableUpdate.value.websiteId = id.value;
     enableUpdate.value.key = key.value;
+    fileUpdate.type = rule.value;
+    fileUpdate.websiteId = id.value;
     get();
 });
 </script>

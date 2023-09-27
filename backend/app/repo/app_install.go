@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"encoding/json"
+
 	"gorm.io/gorm/clause"
 
 	"github.com/1Panel-dev/1Panel/backend/app/model"
@@ -126,7 +127,7 @@ func (a *AppInstallRepo) Create(ctx context.Context, install *model.AppInstall) 
 }
 
 func (a *AppInstallRepo) Save(ctx context.Context, install *model.AppInstall) error {
-	return getTx(ctx).Omit(clause.Associations).Save(&install).Error
+	return getTx(ctx).Save(&install).Error
 }
 
 func (a *AppInstallRepo) DeleteBy(opts ...DBOption) error {
@@ -160,6 +161,7 @@ type RootInfo struct {
 	Name          string `json:"name"`
 	Port          int64  `json:"port"`
 	HttpsPort     int64  `json:"httpsPort"`
+	UserName      string `json:"userName"`
 	Password      string `json:"password"`
 	UserPassword  string `json:"userPassword"`
 	ContainerName string `json:"containerName"`
@@ -192,10 +194,28 @@ func (a *AppInstallRepo) LoadBaseInfo(key string, name string) (*RootInfo, error
 	if err := json.Unmarshal([]byte(appInstall.Env), &envMap); err != nil {
 		return nil, err
 	}
-	password, ok := envMap["PANEL_DB_ROOT_PASSWORD"].(string)
-	if ok {
-		info.Password = password
+	switch app.Key {
+	case "mysql", "mariadb":
+		password, ok := envMap["PANEL_DB_ROOT_PASSWORD"].(string)
+		if ok {
+			info.Password = password
+		}
+	case "redis":
+		password, ok := envMap["PANEL_REDIS_ROOT_PASSWORD"].(string)
+		if ok {
+			info.Password = password
+		}
+	case "mongodb", "postgresql":
+		user, ok := envMap["PANEL_DB_ROOT_USER"].(string)
+		if ok {
+			info.UserName = user
+		}
+		password, ok := envMap["PANEL_DB_ROOT_PASSWORD"].(string)
+		if ok {
+			info.Password = password
+		}
 	}
+
 	userPassword, ok := envMap["PANEL_DB_USER_PASSWORD"].(string)
 	if ok {
 		info.UserPassword = userPassword
@@ -209,5 +229,6 @@ func (a *AppInstallRepo) LoadBaseInfo(key string, name string) (*RootInfo, error
 	info.Env = appInstall.Env
 	info.Param = appInstall.Param
 	info.Version = appInstall.Version
+	info.Key = app.Key
 	return &info, nil
 }

@@ -62,11 +62,7 @@
             </el-tab-pane>
             <el-tab-pane :closable="false" name="newTabs">
                 <template #label>
-                    <el-button
-                        v-popover="popoverRef"
-                        style="background-color: #ededed; border: 0"
-                        icon="Plus"
-                    ></el-button>
+                    <el-button v-popover="popoverRef" class="tagButton" icon="Plus"></el-button>
                     <el-popover ref="popoverRef" width="250px" trigger="hover" virtual-triggering persistent>
                         <div style="margin-left: 10px">
                             <el-button link type="primary" @click="onNewSsh">{{ $t('terminal.createConn') }}</el-button>
@@ -123,7 +119,9 @@
                 ></el-empty>
             </div>
         </el-tabs>
-        <el-button @click="toggleFullscreen" v-if="!mobile" class="fullScreen" icon="FullScreen"></el-button>
+        <el-tooltip :content="loadTooltip()" placement="top">
+            <el-button @click="toggleFullscreen" v-if="!mobile" class="fullScreen" icon="FullScreen"></el-button>
+        </el-tooltip>
 
         <HostDialog ref="dialogRef" @on-conn-terminal="onConnTerminal" @load-host-tree="loadHostTree" />
     </div>
@@ -153,7 +151,11 @@ function toggleFullscreen() {
     if (screenfull.isEnabled) {
         screenfull.toggle();
     }
+    globalStore.isFullScreen = !screenfull.isFullscreen;
 }
+const loadTooltip = () => {
+    return i18n.global.t('commons.button.' + (globalStore.isFullScreen ? 'quitFullscreen' : 'fullscreen'));
+};
 
 const localHostID = ref();
 
@@ -303,7 +305,7 @@ const onNewSsh = () => {
     dialogRef.value!.acceptParams({ isLocal: false });
 };
 const onNewLocal = () => {
-    onConnTerminal(i18n.global.t('terminal.localhost'), localHostID.value, true);
+    onConnTerminal(i18n.global.t('terminal.localhost'), localHostID.value, false);
 };
 
 const onClickConn = (node: Node, data: Tree) => {
@@ -336,9 +338,9 @@ const onConnTerminal = async (title: string, wsID: number, isLocal?: boolean) =>
         for (const tab of terminalTabs.value) {
             if (tab.title.indexOf('@127.0.0.1:') !== -1 || tab.title === i18n.global.t('terminal.localhost')) {
                 onReconnect(tab);
-                return;
             }
         }
+        return;
     }
     terminalTabs.value.push({
         index: tabIndex,
@@ -348,7 +350,7 @@ const onConnTerminal = async (title: string, wsID: number, isLocal?: boolean) =>
         latency: 0,
     });
     terminalValue.value = tabIndex;
-    if (!res.data && isLocal) {
+    if (!res.data && title === i18n.global.t('terminal.localhost')) {
         dialogRef.value!.acceptParams({ isLocal: true });
     }
     nextTick(() => {
@@ -401,6 +403,11 @@ defineExpose({
     }
 }
 
+.tagButton {
+    border: 0;
+    background-color: var(--el-tabs__item);
+}
+
 .vertical-tabs > .el-tabs__content {
     padding: 32px;
     color: #6b778c;
@@ -408,6 +415,8 @@ defineExpose({
     font-weight: 600;
 }
 .fullScreen {
+    background-color: #efefef;
+    border: none;
     position: absolute;
     right: 50px;
     top: 90px;

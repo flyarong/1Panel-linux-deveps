@@ -60,7 +60,7 @@ func (b *BaseApi) CreateBackup(c *gin.Context) {
 // @Description 获取 bucket 列表
 // @Accept json
 // @Param request body dto.ForBuckets true "request"
-// @Success 200 {anrry} string
+// @Success 200 {array} string
 // @Security ApiKeyAuth
 // @Router /settings/backup/search [post]
 func (b *BaseApi) ListBuckets(c *gin.Context) {
@@ -96,6 +96,22 @@ func (b *BaseApi) ListBuckets(c *gin.Context) {
 		return
 	}
 	helper.SuccessWithData(c, buckets)
+}
+
+// @Tags Backup Account
+// @Summary Load OneDrive info
+// @Description 获取 OneDrive 信息
+// @Accept json
+// @Success 200 string clientID
+// @Security ApiKeyAuth
+// @Router /settings/backup/onedrive [get]
+func (b *BaseApi) LoadOneDriveInfo(c *gin.Context) {
+	clientID, err := backupService.LoadOneDriveInfo()
+	if err != nil {
+		helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
+		return
+	}
+	helper.SuccessWithData(c, clientID)
 }
 
 // @Tags Backup Account
@@ -253,7 +269,7 @@ func (b *BaseApi) UpdateBackup(c *gin.Context) {
 // @Tags Backup Account
 // @Summary List backup accounts
 // @Description 获取备份账号列表
-// @Success 200 {anrry} dto.BackupInfo
+// @Success 200 {array} dto.BackupInfo
 // @Security ApiKeyAuth
 // @Router /settings/backup/search [get]
 func (b *BaseApi) ListBackup(c *gin.Context) {
@@ -271,7 +287,7 @@ func (b *BaseApi) ListBackup(c *gin.Context) {
 // @Description 获取备份账号内文件列表
 // @Accept json
 // @Param request body dto.BackupSearchFile true "request"
-// @Success 200 {anrry} string
+// @Success 200 {array} string
 // @Security ApiKeyAuth
 // @Router /settings/backup/search/files [post]
 func (b *BaseApi) LoadFilesFromBackup(c *gin.Context) {
@@ -319,7 +335,7 @@ func (b *BaseApi) Backup(c *gin.Context) {
 			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 			return
 		}
-	case "mysql":
+	case "mysql", "mariadb":
 		if err := backupService.MysqlBackup(req); err != nil {
 			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 			return
@@ -367,7 +383,7 @@ func (b *BaseApi) Recover(c *gin.Context) {
 		req.File = downloadPath
 	}
 	switch req.Type {
-	case "mysql":
+	case "mysql", "mariadb":
 		if err := backupService.MysqlRecover(req); err != nil {
 			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 			return
@@ -412,7 +428,7 @@ func (b *BaseApi) RecoverByUpload(c *gin.Context) {
 	}
 
 	switch req.Type {
-	case "mysql":
+	case "mysql", "mariadb":
 		if err := backupService.MysqlRecoverByUpload(req); err != nil {
 			helper.ErrorWithDetail(c, constant.CodeErrInternalServer, constant.ErrTypeInternalServer, err)
 			return

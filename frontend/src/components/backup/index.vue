@@ -4,11 +4,11 @@
             <template #header>
                 <DrawerHeader
                     v-if="detailName"
-                    :header="$t('database.backup')"
+                    :header="$t('commons.button.backup')"
                     :resource="name + '(' + detailName + ')'"
                     :back="handleClose"
                 />
-                <DrawerHeader v-else :header="$t('database.backup')" :resource="name" :back="handleClose" />
+                <DrawerHeader v-else :header="$t('commons.button.backup')" :resource="name" :back="handleClose" />
             </template>
             <ComplexTable
                 v-loading="loading"
@@ -19,7 +19,7 @@
             >
                 <template #toolbar>
                     <el-button type="primary" @click="onBackup()">
-                        {{ $t('database.backup') }}
+                        {{ $t('commons.button.backup') }}
                     </el-button>
                     <el-button type="primary" plain :disabled="selects.length === 0" @click="onBatchDelete(null)">
                         {{ $t('commons.button.delete') }}
@@ -41,7 +41,7 @@
                     show-overflow-tooltip
                 />
 
-                <fu-table-operations :buttons="buttons" :label="$t('commons.table.operate')" fix />
+                <fu-table-operations width="230px" :buttons="buttons" :label="$t('commons.table.operate')" fix />
             </ComplexTable>
         </el-drawer>
     </div>
@@ -57,13 +57,13 @@ import DrawerHeader from '@/components/drawer-header/index.vue';
 import { deleteBackupRecord, downloadBackupRecord, searchBackupRecords } from '@/api/modules/setting';
 import { Backup } from '@/api/interface/backup';
 import { MsgSuccess } from '@/utils/message';
-// import { DownloadByPath } from '@/api/modules/files';
 
 const selects = ref<any>([]);
 const loading = ref();
 
 const data = ref();
 const paginationConfig = reactive({
+    cacheSizeKey: 'backup-page-size',
     currentPage: 1,
     pageSize: 10,
     total: 0,
