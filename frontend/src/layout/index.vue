@@ -1,39 +1,81 @@
 <template>
-    <div :class="classObj" class="app-wrapper" v-loading="loading" :element-loading-text="loadinText" fullscreen>
+    <div
+        :class="classObj"
+        class="app-wrapper relative"
+        v-loading="loading"
+        :element-loading-text="loadingText"
+        fullscreen
+    >
         <div v-if="classObj.mobile && classObj.openSidebar" class="drawer-bg" @click="handleClickOutside" />
+        <el-affix v-if="!classObj.mobile" :offset="classObj.openMenuTabs ? 8 : 15" class="affix">
+            <el-tooltip :content="menuStore.isCollapse ? $t('commons.button.expand') : $t('commons.button.collapse')">
+                <el-button
+                    size="small"
+                    circle
+                    :style="{ 'margin-left': menuStore.isCollapse ? '63px' : '168px', position: 'absolute' }"
+                    :icon="menuStore.isCollapse ? 'ArrowRight' : 'ArrowLeft'"
+                    plain
+                    @click="handleCollapse()"
+                ></el-button>
+            </el-tooltip>
+        </el-affix>
         <div class="app-sidebar" v-if="!globalStore.isFullScreen">
-            <Sidebar />
+            <Sidebar @menu-click="handleMenuClick" :menu-router="!classObj.openMenuTabs" @open-task="openTask" />
         </div>
 
         <div class="main-container">
             <mobile-header v-if="classObj.mobile" />
-            <app-main class="app-main" />
-
+            <Tabs v-if="classObj.openMenuTabs" />
+            <el-watermark
+                v-if="globalStore.isMasterProductPro && globalStore.watermark"
+                class="app-main"
+                :content="loadContent()"
+                :font="{
+                    fontSize: globalStore.watermark.fontSize,
+                    color: globalStore.watermark.color,
+                }"
+                :rotate="globalStore.watermark.rotate"
+                :gap="[globalStore.watermark.gap, globalStore.watermark.gap]"
+            >
+                <app-main :keep-alive="classObj.openMenuTabs ? tabsStore.cachedTabs : null" />
+            </el-watermark>
+            <app-main class="app-main" v-else :keep-alive="classObj.openMenuTabs ? tabsStore.cachedTabs : null" />
             <Footer class="app-footer" v-if="!globalStore.isFullScreen" />
+            <TaskList ref="taskListRef" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, computed, ref, watch, onBeforeUnmount } from 'vue';
-import { Sidebar, Footer, AppMain, MobileHeader } from './components';
+import { Sidebar, Footer, AppMain, MobileHeader, Tabs } from './components';
 import useResize from './hooks/useResize';
-import { GlobalStore } from '@/store';
-import { MenuStore } from '@/store/modules/menu';
+import { GlobalStore, MenuStore, TabsStore } from '@/store';
 import { DeviceType } from '@/enums/app';
-import { useI18n } from 'vue-i18n';
-import { useTheme } from '@/hooks/use-theme';
-import { getSettingInfo, getSystemAvailable } from '@/api/modules/setting';
+import { getSystemAvailable } from '@/api/modules/setting';
+import { useRoute, useRouter } from 'vue-router';
+import { loadMasterProductProFromDB, loadProductProFromDB } from '@/utils/xpack';
+import { useTheme } from '@/global/use-theme';
+import TaskList from '@/components/task-list/index.vue';
+const { switchTheme } = useTheme();
+
 useResize();
 
+const taskListRef = ref();
+const openTask = () => {
+    taskListRef.value.acceptParams();
+    if (globalStore.isMobile()) {
+        menuStore.setCollapse();
+    }
+};
+const router = useRouter();
+const route = useRoute();
 const menuStore = MenuStore();
 const globalStore = GlobalStore();
+const tabsStore = TabsStore();
 
-const i18n = useI18n();
 const loading = ref(false);
-const loadinText = ref();
-const themeConfig = computed(() => globalStore.themeConfig);
-const { switchDark } = useTheme();
+const loadingText = ref();
 
 let timer: NodeJS.Timer | null = null;
 
@@ -43,11 +85,25 @@ const classObj = computed(() => {
         hideSidebar: menuStore.isCollapse,
         openSidebar: !menuStore.isCollapse,
         mobile: globalStore.device === DeviceType.Mobile,
+        openMenuTabs: globalStore.openMenuTabs,
         withoutAnimation: menuStore.withoutAnimation,
     };
 });
 const handleClickOutside = () => {
     menuStore.closeSidebar(false);
+};
+
+const handleCollapse = () => {
+    menuStore.setCollapse();
+};
+
+const loadContent = () => {
+    let itemName = globalStore.watermark.content.replaceAll(
+        '${nodeName}',
+        globalStore.currentNode === 'local' ? globalStore.getMasterAlias() : globalStore.currentNode,
+    );
+    itemName = itemName.replaceAll('${nodeAddr}', globalStore.currentNodeAddr);
+    return itemName;
 };
 
 watch(
@@ -60,34 +116,38 @@ watch(
         }
     },
 );
+const handleMenuClick = async (path) => {
+    await router.push({ path: path });
+    tabsStore.addTab(route);
+    tabsStore.activeTabPath = route.path;
+};
 
-const loadDataFromDB = async () => {
-    const res = await getSettingInfo();
-    document.title = res.data.panelName;
-    i18n.locale.value = res.data.language;
-    i18n.warnHtmlMessage = false;
-    globalStore.entrance = res.data.securityEntrance;
-    globalStore.updateLanguage(res.data.language);
-    globalStore.setThemeConfig({ ...themeConfig.value, theme: res.data.theme });
-    globalStore.setThemeConfig({ ...themeConfig.value, panelName: res.data.panelName });
-    switchDark();
+const toLogin = () => {
+    let baseUrl = window.location.origin;
+    let newUrl = '';
+    if (globalStore.entrance) {
+        newUrl = baseUrl + '/' + globalStore.entrance;
+    } else {
+        newUrl = baseUrl + '/login';
+    }
+    window.open(newUrl, '_self');
 };
 
 const loadStatus = async () => {
     loading.value = globalStore.isLoading;
-    loadinText.value = globalStore.loadingText;
+    loadingText.value = globalStore.loadingText;
     if (loading.value) {
         timer = setInterval(async () => {
             await getSystemAvailable()
                 .then((res) => {
                     if (res) {
-                        location.reload();
+                        toLogin();
                         clearInterval(Number(timer));
                         timer = null;
                     }
                 })
                 .catch(() => {
-                    location.reload();
+                    toLogin();
                     clearInterval(Number(timer));
                     timer = null;
                 });
@@ -99,8 +159,25 @@ onBeforeUnmount(() => {
     timer = null;
 });
 onMounted(() => {
+    if (globalStore.openMenuTabs && !tabsStore.activeTabPath) {
+        handleMenuClick('/');
+    }
+
     loadStatus();
-    loadDataFromDB();
+    loadProductProFromDB();
+    loadMasterProductProFromDB();
+    globalStore.isFullScreen = false;
+
+    const mqList = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mqList.addEventListener) {
+        mqList.addEventListener('change', () => {
+            switchTheme();
+        });
+    } else if (mqList.addListener) {
+        mqList.addListener(() => {
+            switchTheme();
+        });
+    }
 });
 </script>
 
@@ -127,15 +204,16 @@ onMounted(() => {
     height: 100vh;
     transition: margin-left 0.3s;
     margin-left: var(--panel-menu-width);
-    background-color: #f4f4f4;
+    background-color: var(--panel-main-bg-color-9);
     overflow-x: hidden;
 }
 .app-main {
-    padding: 20px;
+    padding: 7px 20px;
     flex: 1;
     overflow: auto;
 }
 .app-sidebar {
+    z-index: 2;
     transition: width 0.3s;
     width: var(--panel-menu-width) !important;
     position: fixed;
@@ -144,6 +222,9 @@ onMounted(() => {
     bottom: 0;
     left: 0;
     overflow: hidden;
+    .affix {
+        z-index: 5;
+    }
 }
 
 .hideSidebar {

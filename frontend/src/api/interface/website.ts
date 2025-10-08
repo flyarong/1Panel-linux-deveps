@@ -21,6 +21,12 @@ export namespace Website {
         user: string;
         group: string;
         IPV6: boolean;
+        accessLog?: boolean;
+        errorLog?: boolean;
+        childSites?: string[];
+        dbID: number;
+        dbType: string;
+        favorite: boolean;
     }
 
     export interface WebsiteDTO extends Website {
@@ -29,6 +35,21 @@ export namespace Website {
         sitePath: string;
         appName: string;
         runtimeName: string;
+        runtimeType: string;
+        openBaseDir: boolean;
+    }
+    export interface WebsiteRes extends CommonModel {
+        protocol: string;
+        primaryDomain: string;
+        type: string;
+        alias: string;
+        remark: string;
+        status: string;
+        expireDate: string;
+        sitePath: string;
+        appName: string;
+        runtimeName: string;
+        sslExpireDate: Date;
     }
 
     export interface NewAppInstall {
@@ -52,16 +73,26 @@ export namespace Website {
     }
 
     export interface WebSiteCreateReq {
-        primaryDomain: string;
         type: string;
         alias: string;
         remark: string;
         appType: string;
         appInstallId: number;
         webSiteGroupId: number;
-        otherDomains: string;
         proxy: string;
         proxyType: string;
+        ftpUser: string;
+        ftpPassword: string;
+        taskID: string;
+        SSLID?: number;
+        enableSSL: boolean;
+        createDB?: boolean;
+        dbName?: string;
+        dbPassword?: string;
+        dbFormat?: string;
+        dbUser?: string;
+        dbHost?: string;
+        domains: SubDomain[];
     }
 
     export interface WebSiteUpdateReq {
@@ -71,6 +102,7 @@ export namespace Website {
         webSiteGroupId: number;
         expireDate?: string;
         IPV6: boolean;
+        favorite: boolean;
     }
 
     export interface WebSiteOp {
@@ -86,6 +118,10 @@ export namespace Website {
         pageSize?: number;
     }
 
+    export interface OptionReq {
+        types?: string[];
+    }
+
     export interface WebSiteLog {
         enable: boolean;
         content: string;
@@ -98,12 +134,23 @@ export namespace Website {
         port: number;
         id: number;
         domain: string;
+        ssl: boolean;
     }
 
     export interface DomainCreate {
-        websiteId: number;
-        port: number;
+        websiteID: number;
+        domains: SubDomain[];
+    }
+
+    export interface DomainUpdate {
+        id: number;
+        ssl: boolean;
+    }
+
+    interface SubDomain {
         domain: string;
+        port: number;
+        ssl: boolean;
     }
 
     export interface DomainDelete {
@@ -164,7 +211,28 @@ export namespace Website {
         provider: string;
         websites?: Website.Website[];
         autoRenew: boolean;
-        acmeAccountId?: number;
+        acmeAccountId: number;
+        status: string;
+        domains: string;
+        description: string;
+        dnsAccountId?: number;
+        pushDir: boolean;
+        dir: string;
+        keyType: string;
+        nameserver1: string;
+        nameserver2: string;
+        disableCNAME: boolean;
+        skipDNS: boolean;
+        execShell: boolean;
+        shell: string;
+        pushNode: boolean;
+        nodes: string;
+        privateKeyPath: string;
+        certPath: string;
+    }
+
+    export interface SSLDTO extends SSL {
+        logPath: string;
     }
 
     export interface SSLCreate {
@@ -173,6 +241,8 @@ export namespace Website {
         provider: string;
         acmeAccountId: number;
         dnsAccountId: number;
+        id?: number;
+        description: string;
     }
 
     export interface SSLApply {
@@ -187,20 +257,37 @@ export namespace Website {
     export interface SSLUpdate {
         id: number;
         autoRenew: boolean;
+        description: string;
+        primaryDomain: string;
+        otherDomains: string;
+        acmeAccountId: number;
+        provider: string;
+        dnsAccountId?: number;
+        keyType: string;
+        pushDir: boolean;
+        dir: string;
     }
 
     export interface AcmeAccount extends CommonModel {
         email: string;
         url: string;
+        type: string;
+        useProxy: boolean;
     }
 
     export interface AcmeAccountCreate {
         email: string;
+        useProxy: boolean;
+    }
+
+    export interface AcmeAccountUpdate {
+        id: number;
+        useProxy: boolean;
     }
 
     export interface DNSResolveReq {
-        domains: string[];
         acmeAccountId: number;
+        websiteSSLId: number;
     }
 
     export interface DNSResolve {
@@ -225,6 +312,7 @@ export namespace Website {
         httpConfig: string;
         SSLProtocol: string[];
         algorithm: string;
+        http3: boolean;
     }
 
     export interface HTTPSConfig {
@@ -233,6 +321,10 @@ export namespace Website {
         httpConfig: string;
         SSLProtocol: string[];
         algorithm: string;
+        hsts: boolean;
+        hstsIncludeSubDomains: boolean;
+        httpsPort?: string;
+        http3: boolean;
     }
 
     export interface CheckReq {
@@ -244,29 +336,6 @@ export namespace Website {
         status: string;
         version: string;
         appName: string;
-    }
-
-    export interface WafReq {
-        websiteId: number;
-        key: string;
-        rule: string;
-    }
-
-    export interface WafRes {
-        enable: boolean;
-        content: string;
-    }
-
-    export interface WafUpdate {
-        enable: boolean;
-        websiteId: number;
-        key: string;
-    }
-
-    export interface WafFileUpdate {
-        websiteId: number;
-        type: string;
-        content: string;
     }
 
     export interface DelReq {
@@ -281,27 +350,6 @@ export namespace Website {
     export interface DefaultServerUpdate {
         id: number;
     }
-
-    export interface PHPConfig {
-        params: any;
-        disableFunctions: string[];
-        uploadMaxSize: string;
-    }
-
-    export interface PHPConfigUpdate {
-        id: number;
-        params?: any;
-        disableFunctions?: string[];
-        scope: string;
-        uploadMaxSize?: string;
-    }
-
-    export interface PHPUpdate {
-        id: number;
-        content: string;
-        type: string;
-    }
-
     export interface RewriteReq {
         websiteID: number;
         name: string;
@@ -313,6 +361,12 @@ export namespace Website {
 
     export interface RewriteUpdate {
         websiteID: number;
+        name: string;
+        content: string;
+    }
+
+    export interface CustomRewirte {
+        operate: string;
         name: string;
         content: string;
     }
@@ -339,6 +393,8 @@ export namespace Website {
         cache: boolean;
         cacheTime: number;
         cacheUnit: string;
+        serverCacheTime: number;
+        serverCacheUnit: string;
         name: string;
         modifier: string;
         match: string;
@@ -349,6 +405,14 @@ export namespace Website {
         content?: string;
         proxyAddress?: string;
         proxyProtocol?: string;
+        sni?: boolean;
+        proxySSLName: string;
+        cors: boolean;
+        allowOrigins: string;
+        allowMethods: string;
+        allowHeaders: string;
+        allowCredentials: boolean;
+        preflight: boolean;
     }
 
     export interface ProxReplace {
@@ -381,6 +445,18 @@ export namespace Website {
         username: string;
         password: string;
         remark: string;
+        scope: string;
+        path?: '';
+        name?: '';
+    }
+
+    export interface NginxPathAuthConfig {
+        websiteID: number;
+        operate: string;
+        path: string;
+        username: string;
+        password: string;
+        name: string;
     }
 
     export interface LeechConfig {
@@ -430,7 +506,6 @@ export namespace Website {
     export interface PHPVersionChange {
         websiteID: number;
         runtimeID: number;
-        retainConfig: boolean;
     }
 
     export interface DirConfig {
@@ -438,5 +513,172 @@ export namespace Website {
         user: string;
         userGroup: string;
         msg: string;
+    }
+
+    export interface SSLUpload {
+        privateKey: string;
+        certificate: string;
+        privateKeyPath: string;
+        certificatePath: string;
+        type: string;
+        sslID: number;
+    }
+
+    export interface SSLObtain {
+        ID: number;
+    }
+
+    export interface CA extends CommonModel {
+        name: string;
+        csr: string;
+        privateKey: string;
+        keyType: string;
+    }
+
+    export interface CACreate {
+        name: string;
+        commonName: string;
+        country: string;
+        organization: string;
+        organizationUint: string;
+        keyType: string;
+        province: string;
+        city: string;
+    }
+
+    export interface CADTO extends CA {
+        commonName: string;
+        country: string;
+        organization: string;
+        organizationUint: string;
+        province: string;
+        city: string;
+    }
+
+    export interface SSLObtainByCA {
+        id: number;
+        domains: string;
+        keyType: string;
+        time: number;
+        unit: string;
+        pushDir: boolean;
+        dir: string;
+        description: string;
+    }
+
+    export interface RenewSSLByCA {
+        SSLID: number;
+    }
+
+    export interface SSLDownload {
+        id: number;
+    }
+
+    export interface WebsiteHtml {
+        content: string;
+    }
+    export interface WebsiteHtmlUpdate {
+        type: string;
+        content: string;
+    }
+
+    export interface NginxUpstream {
+        name: string;
+        algorithm: string;
+        servers: NginxUpstreamServer[];
+        content?: string;
+        websiteID?: number;
+    }
+
+    export interface NginxUpstreamFile {
+        name: string;
+        content: string;
+        websiteID: number;
+    }
+
+    export interface LoadBalanceReq {
+        websiteID: number;
+        name: string;
+        algorithm: string;
+        servers: NginxUpstreamServer[];
+    }
+
+    interface NginxUpstreamServer {
+        server: string;
+        weight: number;
+        failTimeout: string;
+        maxFails: number;
+        maxConns: number;
+        flag: string;
+    }
+
+    export interface LoadBalanceDel {
+        websiteID: number;
+        name: string;
+    }
+
+    export interface WebsiteLBUpdateFile {
+        websiteID: number;
+        name: string;
+        content: string;
+    }
+
+    export interface WebsiteCacheConfig {
+        open: boolean;
+        cacheLimit: number;
+        cacheLimitUnit: string;
+        shareCache: number;
+        shareCacheUnit: string;
+        cacheExpire: number;
+        cacheExpireUnit: string;
+    }
+
+    export interface WebsiteRealIPConfig {
+        open: boolean;
+        ipFrom: string;
+        ipHeader: string;
+        ipOther: string;
+    }
+
+    export interface WebsiteResource {
+        name: string;
+        type: string;
+        resourceID: number;
+        detail: any;
+    }
+
+    export interface WebsiteDatabase {
+        type: string;
+        databaseID: number;
+        websiteID: number;
+        from: string;
+        databaseName: number;
+    }
+
+    export interface ChangeDatabase {
+        websiteID: number;
+        databaseID: number;
+        databaseType: string;
+    }
+
+    export interface CrossSiteAccessOp {
+        websiteID: number;
+        operation: string;
+    }
+
+    export interface ExecComposer {
+        websiteID: number;
+        command: string;
+        extCommand?: string;
+        mirror: string;
+        dir: string;
+        user: string;
+        taskID: string;
+    }
+
+    export interface BatchOperate {
+        ids: number[];
+        operate: string;
+        taskID: string;
     }
 }

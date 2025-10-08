@@ -1,24 +1,16 @@
 <template>
     <el-page-header :content="header" @back="jump">
         <template v-if="slots.buttons" #content>
-            <span>{{ header }}</span>
-            <span v-if="!mobile">
-                <el-divider direction="vertical" />
-                <slot name="buttons"></slot>
-            </span>
+            <slot name="buttons"></slot>
         </template>
     </el-page-header>
-    <template v-if="slots.buttons && mobile">
-        <slot name="buttons"></slot>
-    </template>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, useSlots } from 'vue';
+import { routerToName, routerToPath } from '@/utils/router';
+import { inject, useSlots } from 'vue';
 import { useRouter } from 'vue-router';
-import { GlobalStore } from '@/store';
 
-const globalStore = GlobalStore();
 const slots = useSlots();
 const router = useRouter();
 const props = defineProps({
@@ -34,10 +26,10 @@ function jump() {
         reloadPage();
     }
     if (path) {
-        router.push(path);
+        routerToPath(path);
     }
     if (name) {
-        router.push({ name: name });
+        routerToName(name);
     }
     if (to) {
         router.push(to);
@@ -45,8 +37,4 @@ function jump() {
 }
 
 let reloadPage: Function = inject('reload');
-
-const mobile = computed(() => {
-    return globalStore.isMobile();
-});
 </script>

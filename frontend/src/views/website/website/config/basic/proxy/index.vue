@@ -1,7 +1,11 @@
 <template>
     <ComplexTable :data="data" @search="search" v-loading="loading">
         <template #toolbar>
-            <el-button type="primary" plain @click="openCreate">{{ $t('website.createProxy') }}</el-button>
+            <el-button type="primary" plain @click="openCreate">{{ $t('commons.button.create') }}</el-button>
+            <el-button @click="openCache">{{ $t('website.proxyCache') }}</el-button>
+            <el-button type="primary" @click="clear" link>
+                {{ $t('nginx.clearProxyCache') }}
+            </el-button>
         </template>
         <el-table-column :label="$t('commons.table.name')" prop="name"></el-table-column>
         <el-table-column :label="$t('website.proxyPath')" prop="match"></el-table-column>
@@ -13,12 +17,7 @@
         </el-table-column>
         <el-table-column :label="$t('commons.table.status')" prop="enable">
             <template #default="{ row }">
-                <el-button v-if="row.enable" link type="success" :icon="VideoPlay" @click="opProxy(row)">
-                    {{ $t('commons.status.running') }}
-                </el-button>
-                <el-button v-else link type="danger" :icon="VideoPause" @click="opProxy(row)">
-                    {{ $t('commons.status.stopped') }}
-                </el-button>
+                <Status :status="row.enable ? 'enable' : 'disable'" @click="opProxy(row)" :operate="true" />
             </template>
         </el-table-column>
         <fu-table-operations
@@ -30,22 +29,24 @@
             fix
         />
     </ComplexTable>
+
     <Create ref="createRef" @close="search()" />
     <File ref="fileRef" @close="search()" />
+    <OpDialog ref="opRef" @search="search()" />
+    <Cache ref="cacheRef" @close="search()" />
 </template>
 
 <script lang="ts" setup name="proxy">
 import { Website } from '@/api/interface/website';
-import { OperateProxyConfig, GetProxyConfig } from '@/api/modules/website';
+import { operateProxyConfig, getProxyConfig, clearProxyCache } from '@/api/modules/website';
 import { computed, onMounted, ref } from 'vue';
-import Create from './create/index.vue';
-import File from './file/index.vue';
-import { VideoPlay, VideoPause } from '@element-plus/icons-vue';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
-import { useDeleteData } from '@/hooks/use-delete-data';
 import { ElMessageBox } from 'element-plus';
 import { GlobalStore } from '@/store';
+import Create from './create/index.vue';
+import File from './file/index.vue';
+import Cache from './cache/index.vue';
 const globalStore = GlobalStore();
 
 const props = defineProps({
@@ -65,10 +66,13 @@ const loading = ref(false);
 const data = ref();
 const createRef = ref();
 const fileRef = ref();
+const opRef = ref();
+const cacheRef = ref();
+const hasCache = ref(false);
 
 const buttons = [
     {
-        label: i18n.global.t('website.proxyFile'),
+        label: i18n.global.t('website.sourceFile'),
         click: function (row: Website.ProxyConfig) {
             openEditFile(row);
         },
@@ -101,15 +105,22 @@ const initData = (id: number): Website.ProxyConfig => ({
     cacheTime: 1,
     cacheUnit: 'm',
     name: '',
-    modifier: '^~',
+    modifier: '',
     match: '/',
     proxyPass: 'http://',
     proxyHost: '$host',
     replaces: {},
+    proxySSLName: '',
+    serverCacheTime: 10,
+    serverCacheUnit: 'm',
 });
 
 const openCreate = () => {
     createRef.value.acceptParams(initData(id.value));
+};
+
+const openCache = () => {
+    cacheRef.value.acceptParams(id.value, hasCache.value);
 };
 
 const openEdit = (proxyConfig: Website.ProxyConfig) => {
@@ -127,8 +138,16 @@ const openEditFile = (proxyConfig: Website.ProxyConfig) => {
 
 const deleteProxy = async (proxyConfig: Website.ProxyConfig) => {
     proxyConfig.operate = 'delete';
-    await useDeleteData(OperateProxyConfig, proxyConfig, 'commons.msg.delete');
-    search();
+    opRef.value.acceptParams({
+        title: i18n.global.t('commons.button.delete'),
+        names: [proxyConfig.name],
+        msg: i18n.global.t('commons.msg.operatorHelper', [
+            i18n.global.t('website.proxy'),
+            i18n.global.t('commons.button.delete'),
+        ]),
+        api: operateProxyConfig,
+        params: proxyConfig,
+    });
 };
 
 const changeCache = (proxyConfig: Website.ProxyConfig) => {
@@ -142,7 +161,7 @@ const changeCache = (proxyConfig: Website.ProxyConfig) => {
 
 const submit = async (proxyConfig: Website.ProxyConfig) => {
     loading.value = true;
-    OperateProxyConfig(proxyConfig)
+    operateProxyConfig(proxyConfig)
         .then(() => {
             MsgSuccess(i18n.global.t('commons.msg.updateSuccess'));
             search();
@@ -177,12 +196,23 @@ const opProxy = (proxyConfig: Website.ProxyConfig) => {
 const search = async () => {
     try {
         loading.value = true;
-        const res = await GetProxyConfig({ id: id.value });
+        const res = await getProxyConfig({ id: id.value });
         data.value = res.data || [];
+        hasCache.value = data.value.some((item: Website.ProxyConfig) => item.cache);
     } catch (error) {
     } finally {
         loading.value = false;
     }
+};
+
+const clear = () => {
+    ElMessageBox.confirm(i18n.global.t('nginx.clearProxyCacheWarn'), i18n.global.t('nginx.clearProxyCache'), {
+        confirmButtonText: i18n.global.t('commons.button.confirm'),
+        cancelButtonText: i18n.global.t('commons.button.cancel'),
+    }).then(async () => {
+        await clearProxyCache({ websiteID: id.value });
+        MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
+    });
 };
 
 onMounted(() => {

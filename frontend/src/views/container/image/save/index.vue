@@ -1,49 +1,40 @@
 <template>
-    <el-drawer v-model="drawerVisiable" :destroy-on-close="true" :close-on-click-modal="false" size="30%">
-        <template #header>
-            <DrawerHeader :header="$t('container.exportImage')" :back="handleClose" />
-        </template>
+    <DrawerPro v-model="drawerVisible" :header="$t('container.exportImage')" @close="handleClose" size="small">
         <el-form v-loading="loading" label-position="top" ref="formRef" :model="form" label-width="80px">
-            <el-row type="flex" justify="center">
-                <el-col :span="22">
-                    <el-form-item :label="$t('container.tag')" :rules="Rules.requiredSelect" prop="tagName">
-                        <el-select filterable v-model="form.tagName">
-                            <el-option
-                                :disabled="item.indexOf(':<none>') !== -1"
-                                v-for="item in form.tags"
-                                :key="item"
-                                :value="item"
-                                :label="item"
-                            />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.path')" :rules="Rules.requiredInput" prop="path">
-                        <el-input v-model="form.path">
-                            <template #prepend>
-                                <FileList @choose="loadSaveDir" :dir="true"></FileList>
-                            </template>
-                        </el-input>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.fileName')" :rules="Rules.requiredInput" prop="name">
-                        <el-input v-model="form.name">
-                            <template #append>.tar</template>
-                        </el-input>
-                    </el-form-item>
-                </el-col>
-            </el-row>
+            <el-form-item :label="$t('container.tag')" :rules="Rules.requiredSelect" prop="tagName">
+                <el-select filterable v-model="form.tagName">
+                    <el-option
+                        :disabled="item.indexOf(':<none>') !== -1"
+                        v-for="item in form.tags"
+                        :key="item"
+                        :value="item"
+                        :label="item"
+                    />
+                </el-select>
+            </el-form-item>
+            <el-form-item :label="$t('container.path')" :rules="Rules.requiredInput" prop="path">
+                <el-input v-model="form.path">
+                    <template #prepend>
+                        <el-button icon="Folder" @click="fileRef.acceptParams({ dir: true })" />
+                    </template>
+                </el-input>
+            </el-form-item>
+            <el-form-item :label="$t('container.fileName')" :rules="Rules.requiredInput" prop="name">
+                <el-input v-model="form.name">
+                    <template #append>.tar</template>
+                </el-input>
+            </el-form-item>
         </el-form>
-
         <template #footer>
-            <span class="dialog-footer">
-                <el-button :disabeld="loading" @click="drawerVisiable = false">
-                    {{ $t('commons.button.cancel') }}
-                </el-button>
-                <el-button :disabeld="loading" type="primary" @click="onSubmit(formRef)">
-                    {{ $t('container.export') }}
-                </el-button>
-            </span>
+            <el-button :disabled="loading" @click="drawerVisible = false">
+                {{ $t('commons.button.cancel') }}
+            </el-button>
+            <el-button :disabled="loading" type="primary" @click="onSubmit(formRef)">
+                {{ $t('container.export') }}
+            </el-button>
         </template>
-    </el-drawer>
+    </DrawerPro>
+    <FileList ref="fileRef" @choose="loadSaveDir" />
 </template>
 
 <script lang="ts" setup>
@@ -54,12 +45,12 @@ import i18n from '@/lang';
 import { ElForm } from 'element-plus';
 import { imageSave } from '@/api/modules/container';
 import { Container } from '@/api/interface/container';
-import DrawerHeader from '@/components/drawer-header/index.vue';
 import { MsgSuccess } from '@/utils/message';
 
 const loading = ref(false);
+const fileRef = ref();
 
-const drawerVisiable = ref(false);
+const drawerVisible = ref(false);
 const form = reactive({
     tags: [] as Array<string>,
     tagName: '',
@@ -77,7 +68,7 @@ const dialogData = ref<DialogProps>({
 });
 
 const acceptParams = async (params: DialogProps): Promise<void> => {
-    drawerVisiable.value = true;
+    drawerVisible.value = true;
     form.tags = params.tags;
     form.tagName = form.tags.length !== 0 ? form.tags[0] : '';
     form.path = '';
@@ -87,7 +78,7 @@ const acceptParams = async (params: DialogProps): Promise<void> => {
 const emit = defineEmits<{ (e: 'search'): void }>();
 
 const handleClose = () => {
-    drawerVisiable.value = false;
+    drawerVisible.value = false;
 };
 
 type FormInstance = InstanceType<typeof ElForm>;
@@ -101,7 +92,7 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
         await imageSave(form)
             .then(() => {
                 loading.value = false;
-                drawerVisiable.value = false;
+                drawerVisible.value = false;
                 emit('search');
                 MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
             })

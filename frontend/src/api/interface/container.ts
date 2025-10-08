@@ -2,31 +2,79 @@ import { ReqPage } from '.';
 
 export namespace Container {
     export interface ContainerOperate {
-        name: string;
+        names: Array<string>;
         operation: string;
+    }
+    export interface ContainerRename {
+        name: string;
         newName: string;
+    }
+    export interface ContainerCommit {
+        containerID: string;
+        containerName: string;
+        newImageName: string;
+        comment: string;
+        author: string;
+        pause: boolean;
+        taskID: string;
     }
     export interface ContainerSearch extends ReqPage {
         name: string;
+        state: string;
         filters: string;
         orderBy: string;
         order: string;
+    }
+    export interface ContainerStatus {
+        all: number;
+        created: number;
+        running: number;
+        paused: number;
+        restarting: number;
+        removing: number;
+        exited: number;
+        dead: number;
+
+        containerCount: number;
+        composeCount: number;
+        composeTemplateCount: number;
+        imageCount: number;
+        networkCount: number;
+        volumeCount: number;
+        repoCount: number;
+
+        imageSize: number;
+    }
+    export interface ContainerOption {
+        name: string;
+        state: string;
     }
     export interface ResourceLimit {
         cpu: number;
         memory: number;
     }
     export interface ContainerHelper {
+        taskID: string;
         containerID: string;
         name: string;
         image: string;
         imageInput: boolean;
         forcePull: boolean;
         network: string;
+        hostname: string;
+        domainName: string;
+        macAddr: string;
+        ipv4: string;
+        ipv6: string;
+        dns: Array<string>;
         cmdStr: string;
         entrypointStr: string;
         memoryItem: number;
         cmd: Array<string>;
+        workingDir: string;
+        user: string;
+        openStdin: boolean;
+        tty: boolean;
         entrypoint: Array<string>;
         publishAllPorts: boolean;
         exposedPorts: Array<Port>;
@@ -34,12 +82,17 @@ export namespace Container {
         cpuShares: number;
         memory: number;
         volumes: Array<Volume>;
+        privileged: boolean;
         autoRemove: boolean;
         labels: Array<string>;
-        labelsStr: string;
         env: Array<string>;
-        envStr: string;
         restartPolicy: string;
+    }
+    export interface ContainerUpgrade {
+        taskID: string;
+        names: Array<string>;
+        image: string;
+        forcePull: boolean;
     }
     export interface Port {
         host: string;
@@ -49,10 +102,10 @@ export namespace Container {
         protocol: string;
     }
     export interface Volume {
+        type: string;
         sourceDir: string;
         containerDir: string;
         mode: string;
-        isVolume: boolean;
     }
     export interface ContainerInfo {
         containerID: string;
@@ -69,6 +122,10 @@ export namespace Container {
         hasLoad: boolean;
         cpuPercent: number;
         memoryPercent: number;
+    }
+    export interface ContainerInfo {
+        name: string;
+        state: string;
     }
     export interface ContainerListStats {
         containerID: string;
@@ -107,29 +164,37 @@ export namespace Container {
         option: string;
     }
 
+    export interface ImageSearch extends ReqPage {
+        name: string;
+        orderBy: string;
+        order: string;
+    }
     export interface ImageInfo {
         id: string;
         createdAt: Date;
         name: string;
         tags: Array<string>;
         size: string;
+        isUsed: boolean;
     }
     export interface ImageBuild {
+        taskID: string;
         from: string;
         name: string;
         dockerfile: string;
         tags: Array<string>;
     }
     export interface ImagePull {
+        taskID: string;
         repoID: number;
-        imageName: string;
+        imageName: Array<string>;
     }
     export interface ImageTag {
-        repoID: number;
         sourceID: string;
         targetName: string;
     }
     export interface ImagePush {
+        taskID: string;
         repoID: number;
         tagName: string;
     }
@@ -162,7 +227,7 @@ export namespace Container {
         driver: string;
         subnet: string;
         gateway: string;
-        scope: string;
+        ipRange: string;
     }
 
     export interface VolumeInfo {
@@ -195,9 +260,6 @@ export namespace Container {
         password: string;
         auth: boolean;
     }
-    export interface RepoDelete {
-        ids: Array<number>;
-    }
     export interface RepoInfo {
         id: number;
         createdAt: Date;
@@ -218,12 +280,15 @@ export namespace Container {
         name: string;
         createdAt: string;
         createdBy: string;
-        containerNumber: number;
+        containerCount: number;
+        runningCount: number;
         configFile: string;
         workdir: string;
         path: string;
         containers: Array<ComposeContainer>;
         expand: boolean;
+        envStr: string;
+        env: Array<string>;
     }
     export interface ComposeContainer {
         name: string;
@@ -232,22 +297,26 @@ export namespace Container {
         state: string;
     }
     export interface ComposeCreate {
+        taskID: string;
         name: string;
         from: string;
         file: string;
         path: string;
         template: number;
     }
-    export interface ComposeOpration {
+    export interface ComposeOperation {
         name: string;
         operation: string;
         path: string;
         withFile: boolean;
+        force: boolean;
     }
     export interface ComposeUpdate {
         name: string;
         path: string;
         content: string;
+        env: Array<string>;
+        createdBy: string;
     }
 
     export interface TemplateCreate {
@@ -281,16 +350,34 @@ export namespace Container {
     export interface DaemonJsonUpdateByFile {
         file: string;
     }
+    export interface DockerStatus {
+        isActive: boolean;
+        isExist: boolean;
+    }
     export interface DaemonJsonConf {
         isSwarm: boolean;
-        status: string;
+        isExist: boolean;
+        isActive: boolean;
         version: string;
         registryMirrors: Array<string>;
         insecureRegistries: Array<string>;
         liveRestore: boolean;
         iptables: boolean;
         cgroupDriver: string;
+
+        ipv6: boolean;
+        fixedCidrV6: string;
+        ip6Tables: boolean;
+        experimental: boolean;
+
         logMaxSize: string;
         logMaxFile: string;
+    }
+
+    export interface ContainerLogInfo {
+        container: string;
+        since: string;
+        tail: number;
+        containerType: string;
     }
 }

@@ -76,7 +76,7 @@
                         </el-input>
                         <span class="input-help">{{ $t('database.readRndBufferSizeHelper') }}</span>
                     </el-form-item>
-                    <el-form-item v-if="showCacheSize" label="query_cache_size" prop="query_cache_size">
+                    <el-form-item v-if="showCacheSize()" label="query_cache_size" prop="query_cache_size">
                         <el-input clearable v-model.number="mysqlVariables.query_cache_size">
                             <template #append>MB</template>
                         </el-input>
@@ -206,10 +206,12 @@ const emit = defineEmits(['loading']);
 const changePlan = async () => {
     for (const item of planOptions) {
         if (item.id === plan.value) {
+            variableFormRef.value.resetFields();
             mysqlVariables.key_buffer_size = item.data.key_buffer_size;
             mysqlVariables.query_cache_size = item.data.query_cache_size;
             mysqlVariables.tmp_table_size = item.data.tmp_table_size;
             mysqlVariables.innodb_buffer_pool_size = item.data.innodb_buffer_pool_size;
+            mysqlVariables.innodb_log_buffer_size = item.data.innodb_log_buffer_size;
 
             mysqlVariables.sort_buffer_size = item.data.sort_buffer_size;
             mysqlVariables.read_buffer_size = item.data.read_buffer_size;
@@ -303,7 +305,7 @@ const onSaveVariables = async () => {
 };
 
 const showCacheSize = () => {
-    return currentDB.version.startsWith('5.7');
+    return currentDB.version?.startsWith('5.7');
 };
 defineExpose({
     acceptParams,

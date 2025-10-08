@@ -7,8 +7,8 @@
                 </el-form-item>
                 <el-form-item :label="$t('website.primaryPath')">
                     <el-space wrap>
-                        {{ website.sitePath }}
-                        <el-button type="primary" link @click="toFolder(website.sitePath)">
+                        {{ website.sitePath + '/index' }}
+                        <el-button type="primary" link @click="routerToFileWithPath(website.sitePath + '/index')">
                             <el-icon>
                                 <FolderOpened />
                             </el-icon>
@@ -20,7 +20,7 @@
                 </el-form-item>
                 <el-form-item v-if="configDir" :label="$t('website.runDir')">
                     <el-space wrap>
-                        <el-select v-model="update.siteDir">
+                        <el-select v-model="update.siteDir" filterable class="p-w-200">
                             <el-option
                                 v-for="(item, index) in dirs"
                                 :label="item"
@@ -50,19 +50,11 @@
                     </el-space>
                 </el-form-item>
             </el-form>
-            <el-alert :closable="false" v-if="configDir">
-                <template #default>
-                    <span class="warnHelper">{{ $t('website.runUserHelper') }}</span>
-                </template>
-            </el-alert>
-            <el-alert :closable="false" type="error" v-if="dirConfig.msg != ''">
-                <template #default>
-                    <span class="warnHelper">{{ dirConfig.msg }}</span>
-                </template>
-            </el-alert>
+            <el-text type="warning" v-if="configDir">{{ $t('website.runUserHelper') }}</el-text>
+            <br />
+            <el-text type="danger" v-if="dirConfig.msg != ''">{{ dirConfig.msg }}</el-text>
             <br />
             <el-descriptions :title="$t('website.folderTitle')" :column="1" border>
-                <el-descriptions-item label="waf">{{ $t('website.wafFolder') }}</el-descriptions-item>
                 <el-descriptions-item label="ssl">{{ $t('website.sslFolder') }}</el-descriptions-item>
                 <el-descriptions-item label="log">{{ $t('website.logFolder') }}</el-descriptions-item>
                 <el-descriptions-item label="index">{{ $t('website.indexFolder') }}</el-descriptions-item>
@@ -72,13 +64,12 @@
 </template>
 <script lang="ts" setup>
 import { Website } from '@/api/interface/website';
-import { GetDirConfig, GetWebsite, UpdateWebsiteDir, UpdateWebsiteDirPermission } from '@/api/modules/website';
+import { getDirConfig, getWebsite, updateWebsiteDir, updateWebsiteDirPermission } from '@/api/modules/website';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
+import { routerToFileWithPath } from '@/utils/router';
 import { FormInstance } from 'element-plus';
 import { computed, onMounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
 
 const props = defineProps({
     id: {
@@ -112,7 +103,7 @@ const dirConfig = ref<Website.DirConfig>({
 
 const search = () => {
     loading.value = true;
-    GetWebsite(websiteId.value)
+    getWebsite(websiteId.value)
         .then((res) => {
             website.value = res.data;
             update.id = website.value.id;
@@ -122,9 +113,9 @@ const search = () => {
             updatePermission.id = website.value.id;
             updatePermission.group = website.value.group === '' ? '1000' : website.value.group;
             updatePermission.user = website.value.user === '' ? '1000' : website.value.user;
-            if (website.value.type === 'static' || website.value.runtimeID > 0) {
+            if ((website.value.type === 'static' || website.value.runtimeID > 0) && website.value.type != 'subsite') {
                 configDir.value = true;
-                getDirConfig();
+                getConfig();
             }
         })
         .finally(() => {
@@ -139,7 +130,7 @@ const submit = async (formEl: FormInstance | undefined) => {
             return;
         }
         loading.value = true;
-        UpdateWebsiteDir(update)
+        updateWebsiteDir(update)
             .then(() => {
                 MsgSuccess(i18n.global.t('commons.msg.updateSuccess'));
                 search();
@@ -155,7 +146,7 @@ const submitPermission = async () => {
         return;
     }
     loading.value = true;
-    UpdateWebsiteDirPermission(updatePermission)
+    updateWebsiteDirPermission(updatePermission)
         .then(() => {
             MsgSuccess(i18n.global.t('commons.msg.updateSuccess'));
             search();
@@ -169,17 +160,12 @@ const initData = () => {
     dirs.value = [];
 };
 
-const getDirConfig = async () => {
+const getConfig = async () => {
     try {
-        const res = await GetDirConfig({ id: props.id });
+        const res = await getDirConfig({ id: props.id });
         dirs.value = res.data.dirs;
         dirConfig.value = res.data;
-        console.log(res);
     } catch (error) {}
-};
-
-const toFolder = (folder: string) => {
-    router.push({ path: '/hosts/files', query: { path: folder } });
 };
 
 onMounted(() => {

@@ -4,24 +4,23 @@
 
         <div v-loading="loading">
             <FireStatus
-                v-show="fireName !== '-'"
-                ref="fireStatuRef"
+                ref="fireStatusRef"
                 @search="search"
                 v-model:loading="loading"
                 v-model:mask-show="maskShow"
-                v-model:status="fireStatus"
+                v-model:is-active="isActive"
                 v-model:name="fireName"
             />
             <div v-if="fireName !== '-'">
-                <el-card v-if="fireStatus != 'running' && maskShow" class="mask-prompt">
+                <el-card v-if="!isActive && maskShow" class="mask-prompt">
                     <span>{{ $t('firewall.firewallNotStart') }}</span>
                 </el-card>
 
-                <LayoutContent :title="$t('firewall.portRule')" :class="{ mask: fireStatus != 'running' }">
+                <LayoutContent :title="$t('firewall.portRule', 2)" :class="{ mask: !isActive }">
                     <template #prompt>
                         <el-alert type="info" :closable="false">
                             <template #default>
-                                <span>
+                                <span class="flx-align-center">
                                     <span>{{ $t('firewall.dockerHelper', [fireName]) }}</span>
                                     <el-link
                                         style="font-size: 12px; margin-left: 5px"
@@ -35,45 +34,30 @@
                             </template>
                         </el-alert>
                     </template>
-                    <template #search>
-                        <div class="flx-align-center">
-                            <el-select v-model="searchStatus" @change="search()" clearable>
-                                <template #prefix>{{ $t('commons.table.status') }}</template>
-                                <el-option :label="$t('commons.table.all')" value=""></el-option>
-                                <el-option :label="$t('firewall.unUsed')" value="free"></el-option>
-                                <el-option :label="$t('firewall.used')" value="used"></el-option>
-                            </el-select>
-                            <el-select v-model="searchStrategy" style="margin-left: 10px" @change="search()" clearable>
-                                <template #prefix>{{ $t('firewall.strategy') }}</template>
-                                <el-option :label="$t('commons.table.all')" value=""></el-option>
-                                <el-option :label="$t('firewall.accept')" value="accept"></el-option>
-                                <el-option :label="$t('firewall.drop')" value="drop"></el-option>
-                            </el-select>
-                        </div>
+                    <template #leftToolBar>
+                        <el-button type="primary" @click="onOpenDialog('create')">
+                            {{ $t('commons.button.create') }}{{ $t('firewall.portRule') }}
+                        </el-button>
+                        <el-button @click="onDelete(null)" plain :disabled="selects.length === 0">
+                            {{ $t('commons.button.delete') }}
+                        </el-button>
                     </template>
-                    <template #toolbar>
-                        <el-row>
-                            <el-col :span="16">
-                                <el-button type="primary" @click="onOpenDialog('create')">
-                                    {{ $t('commons.button.create') }}{{ $t('firewall.portRule') }}
-                                </el-button>
-                                <el-button @click="onDelete(null)" plain :disabled="selects.length === 0">
-                                    {{ $t('commons.button.delete') }}
-                                </el-button>
-                            </el-col>
-                            <el-col :span="8">
-                                <TableSetting @search="search()" />
-                                <div class="search-button">
-                                    <el-input
-                                        v-model="searchName"
-                                        clearable
-                                        suffix-icon="Search"
-                                        @change="search()"
-                                        :placeholder="$t('commons.button.search')"
-                                    ></el-input>
-                                </div>
-                            </el-col>
-                        </el-row>
+                    <template #rightToolBar>
+                        <el-select v-model="searchStatus" @change="search()" clearable class="p-w-200">
+                            <template #prefix>{{ $t('commons.table.status') }}</template>
+                            <el-option :label="$t('commons.table.all')" value=""></el-option>
+                            <el-option :label="$t('firewall.unUsed')" value="free"></el-option>
+                            <el-option :label="$t('firewall.used')" value="used"></el-option>
+                        </el-select>
+                        <el-select v-model="searchStrategy" @change="search()" clearable class="p-w-200">
+                            <template #prefix>{{ $t('firewall.strategy') }}</template>
+                            <el-option :label="$t('commons.table.all')" value=""></el-option>
+                            <el-option :label="$t('firewall.accept')" value="accept"></el-option>
+                            <el-option :label="$t('firewall.drop')" value="drop"></el-option>
+                        </el-select>
+                        <TableSearch @search="search()" v-model:searchName="searchName" />
+                        <TableRefresh @search="search()" />
+                        <TableSetting title="firewall-port-refresh" @search="search()" />
                     </template>
                     <template #main>
                         <ComplexTable
@@ -81,6 +65,7 @@
                             v-model:selects="selects"
                             @search="search"
                             :data="data"
+                            :heightDiff="420"
                         >
                             <el-table-column type="selection" fix />
                             <el-table-column :label="$t('commons.table.protocol')" :min-width="70" prop="protocol" />
@@ -104,7 +89,8 @@
                                     </div>
                                     <div v-else>
                                         <el-tag type="info" v-if="row.usedStatus">
-                                            {{ $t('firewall.used') }}
+                                            <span v-if="row.usedStatus === 'inUsed'">{{ $t('firewall.used') }}</span>
+                                            <span v-else>{{ $t('firewall.used') + ' ' + row.usedStatus }}</span>
                                         </el-tag>
                                         <el-tag type="success" v-else>{{ $t('firewall.unUsed') }}</el-tag>
                                     </div>
@@ -152,38 +138,16 @@
                     </template>
                 </LayoutContent>
             </div>
-            <div v-else>
-                <LayoutContent :title="$t('firewall.firewall')" :divider="true">
-                    <template #main>
-                        <div class="app-warn">
-                            <div>
-                                <span>{{ $t('firewall.notSupport') }}</span>
-                                <el-link
-                                    style="font-size: 12px; margin-left: 5px"
-                                    @click="toDoc"
-                                    icon="Position"
-                                    type="primary"
-                                >
-                                    {{ $t('firewall.quickJump') }}
-                                </el-link>
-                                <div>
-                                    <img src="@/assets/images/no_app.svg" />
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </LayoutContent>
-            </div>
         </div>
 
-        <OperatrDialog @search="search" ref="dialogRef" />
+        <OpDialog ref="opRef" @search="search" />
+        <OperateDialog @search="search" ref="dialogRef" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import FireRouter from '@/views/host/firewall/index.vue';
-import TableSetting from '@/components/table-setting/index.vue';
-import OperatrDialog from '@/views/host/firewall/port/operate/index.vue';
+import OperateDialog from '@/views/host/firewall/port/operate/index.vue';
 import FireStatus from '@/views/host/firewall/status/index.vue';
 import { onMounted, reactive, ref } from 'vue';
 import { batchOperateRule, searchFireRule, updateFirewallDescription, updatePortRule } from '@/api/modules/host';
@@ -191,7 +155,7 @@ import { Host } from '@/api/interface/host';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
 import { ElMessageBox } from 'element-plus';
-import router from '@/routers';
+import { routerToName } from '@/utils/router';
 
 const loading = ref();
 const activeTag = ref('port');
@@ -201,20 +165,22 @@ const searchStatus = ref('');
 const searchStrategy = ref('');
 
 const maskShow = ref(true);
-const fireStatus = ref('running');
+const isActive = ref(false);
 const fireName = ref();
-const fireStatuRef = ref();
+const fireStatusRef = ref();
+
+const opRef = ref();
 
 const data = ref();
 const paginationConfig = reactive({
     cacheSizeKey: 'firewall-port-page-size',
     currentPage: 1,
-    pageSize: 10,
+    pageSize: Number(localStorage.getItem('firewall-port-page-size')) || 20,
     total: 0,
 });
 
 const search = async () => {
-    if (fireStatus.value !== 'running') {
+    if (!isActive.value) {
         loading.value = false;
         data.value = [];
         paginationConfig.total = 0;
@@ -260,10 +226,7 @@ const onOpenDialog = async (
 };
 
 const quickJump = () => {
-    router.push({ name: 'AppInstalled' });
-};
-const toDoc = () => {
-    window.open('https://1panel.cn/docs/user_manual/hosts/firewall/', '_blank');
+    routerToName('AppInstalled');
 };
 
 const onChangeStatus = async (row: Host.RuleInfo, status: string) => {
@@ -315,43 +278,40 @@ const onChange = async (info: any) => {
 };
 
 const onDelete = async (row: Host.RuleInfo | null) => {
-    ElMessageBox.confirm(i18n.global.t('commons.msg.delete'), i18n.global.t('commons.msg.deleteTitle'), {
-        confirmButtonText: i18n.global.t('commons.button.confirm'),
-        cancelButtonText: i18n.global.t('commons.button.cancel'),
-        type: 'warning',
-    }).then(async () => {
-        let rules = [];
-        if (row) {
+    let names = [];
+    let rules = [];
+    if (row) {
+        rules.push({
+            operation: 'remove',
+            address: row.address,
+            port: row.port,
+            source: '',
+            protocol: row.protocol,
+            strategy: row.strategy,
+        });
+        names = [row.port + ' (' + row.protocol + ')'];
+    } else {
+        for (const item of selects.value) {
+            names.push(item.port + ' (' + item.protocol + ')');
             rules.push({
                 operation: 'remove',
-                address: row.address,
-                port: row.port,
+                address: item.address,
+                port: item.port,
                 source: '',
-                protocol: row.protocol,
-                strategy: row.strategy,
+                protocol: item.protocol,
+                strategy: item.strategy,
             });
-        } else {
-            for (const item of selects.value) {
-                rules.push({
-                    operation: 'remove',
-                    address: item.address,
-                    port: item.port,
-                    source: '',
-                    protocol: item.protocol,
-                    strategy: item.strategy,
-                });
-            }
         }
-        loading.value = true;
-        await batchOperateRule({ type: 'port', rules: rules })
-            .then(() => {
-                loading.value = false;
-                MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-                search();
-            })
-            .catch(() => {
-                loading.value = false;
-            });
+    }
+    opRef.value.acceptParams({
+        title: i18n.global.t('commons.button.delete'),
+        names: names,
+        msg: i18n.global.t('commons.msg.operatorHelper', [
+            i18n.global.t('firewall.portRule'),
+            i18n.global.t('commons.button.delete'),
+        ]),
+        api: batchOperateRule,
+        params: { type: 'port', rules: rules },
     });
 };
 
@@ -373,7 +333,7 @@ const buttons = [
 onMounted(() => {
     if (fireName.value !== '-') {
         loading.value = true;
-        fireStatuRef.value.acceptParams();
+        fireStatusRef.value.acceptParams();
     }
 });
 </script>

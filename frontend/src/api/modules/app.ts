@@ -3,102 +3,127 @@ import { ResPage } from '../interface';
 import { App } from '../interface/app';
 import { TimeoutEnum } from '@/enums/http-enum';
 
-export const SyncApp = () => {
-    return http.post<any>('apps/sync', {});
+export const syncApp = (req: App.AppStoreSync) => {
+    return http.post('apps/sync/remote', req);
 };
 
-export const GetAppListUpdate = () => {
-    return http.get<App.AppUpdateRes>('apps/checkupdate');
+export const syncLocalApp = (req: App.AppStoreSync) => {
+    return http.post('apps/sync/local', req);
 };
 
-export const SearchApp = (req: App.AppReq) => {
+export const searchApp = (req: App.AppReq) => {
     return http.post<App.AppResPage>('apps/search', req);
 };
 
-export const GetApp = (key: string) => {
-    return http.get<App.AppDTO>('apps/' + key);
+export const getAppByKey = (key: string, node?: string) => {
+    const params = node ? `?operateNode=${node}` : '';
+    return http.get<App.AppDTO>('apps/' + key + `${params}`);
 };
 
-export const GetAppTags = () => {
+export const getAppTags = () => {
     return http.get<App.Tag[]>('apps/tags');
 };
 
-export const GetAppDetail = (appID: number, version: string, type: string) => {
-    return http.get<App.AppDetail>(`apps/detail/${appID}/${version}/${type}`);
+export const getAppDetail = (appID: number, version: string, type: string, node?: string) => {
+    const params = node ? `?operateNode=${node}` : '';
+    return http.get<App.AppDetail>(`apps/detail/${appID}/${version}/${type}${params}`);
 };
 
-export const GetAppDetailByID = (id: number) => {
+export const getAppDetailByID = (id: number) => {
     return http.get<App.AppDetail>(`apps/details/${id}`);
 };
 
-export const InstallApp = (install: App.AppInstall) => {
+export const installApp = (install: App.AppInstall) => {
     return http.post<any>('apps/install', install);
 };
 
-export const ChangePort = (params: App.ChangePort) => {
+export const changePort = (params: App.ChangePort) => {
     return http.post<any>('apps/installed/port/change', params);
 };
 
-export const SearchAppInstalled = (search: App.AppInstallSearch) => {
-    return http.post<ResPage<App.AppInstalled>>('apps/installed/search', search);
+export const searchAppInstalled = (search: App.AppInstallSearch) => {
+    return http.post<ResPage<App.AppInstallDto>>('apps/installed/search', search);
 };
 
-export const ListAppInstalled = () => {
+export const listAppInstalled = () => {
     return http.get<Array<App.AppInstalledInfo>>('apps/installed/list');
 };
 
-export const GetAppPort = (type: string, name: string) => {
+export const getAppPort = (type: string, name: string) => {
     return http.post<number>(`apps/installed/loadport`, { type: type, name: name });
 };
 
-export const GetAppConnInfo = (type: string, name: string) => {
+export const getAppConnInfo = (type: string, name: string) => {
     return http.post<App.DatabaseConnInfo>(`apps/installed/conninfo`, { type: type, name: name });
 };
 
-export const CheckAppInstalled = (key: string, name: string) => {
+export const checkAppInstalled = (key: string, name: string) => {
     return http.post<App.CheckInstalled>(`apps/installed/check`, { key: key, name: name });
 };
 
-export const AppInstalledDeleteCheck = (appInstallId: number) => {
-    return http.get<App.AppInstallResource[]>(`apps/installed/delete/check/${appInstallId}`);
+export const appInstalledDeleteCheck = (appInstallId: number, node?: string) => {
+    const params = node ? `?operateNode=${node}` : '';
+    return http.get<App.AppInstallResource[]>(`apps/installed/delete/check/${appInstallId}${params}`);
 };
 
-export const GetAppInstalled = (search: App.AppInstalledSearch) => {
-    return http.post<App.AppInstalled[]>('apps/installed/search', search);
+export const getAppInstalled = (search: App.AppInstalledSearch) => {
+    return http.post<ResPage<App.AppInstalled>>('apps/installed/search', search);
 };
 
-export const InstalledOp = (op: App.AppInstalledOp) => {
-    return http.post<any>('apps/installed/op', op, TimeoutEnum.T_40S);
+export const getAppInstalledByID = (installID: number, node?: string) => {
+    const params = node ? `?operateNode=${node}` : '';
+    return http.get<App.AppInstalledInfo>(`apps/installed/info/${installID}${params}`);
 };
 
-export const SyncInstalledApp = () => {
+export const installedOp = (op: App.AppInstalledOp, node?: string) => {
+    const params = node ? `?operateNode=${node}` : '';
+    return http.post<any>(`apps/installed/op${params}`, op, TimeoutEnum.T_40S);
+};
+
+export const syncInstalledApp = () => {
     return http.post<any>('apps/installed/sync', {});
 };
 
-export const GetAppService = (key: string | undefined) => {
+export const getAppService = (key: string | undefined) => {
     return http.get<App.AppService[]>(`apps/services/${key}`);
 };
 
-export const GetAppUpdateVersions = (id: number) => {
-    return http.get<any>(`apps/installed/${id}/versions`);
+export const getAppUpdateVersions = (req: App.AppUpdateVersionReq) => {
+    return http.post<any>(`apps/installed/update/versions`, req);
 };
 
-export const GetAppDefaultConfig = (key: string, name: string) => {
+export const getAppDefaultConfig = (key: string, name: string) => {
     return http.post<string>(`apps/installed/conf`, { type: key, name: name });
 };
 
-export const GetAppInstallParams = (id: number) => {
+export const getAppInstallParams = (id: number) => {
     return http.get<App.AppConfig>(`apps/installed/params/${id}`);
 };
 
-export const UpdateAppInstallParams = (req: any) => {
+export const updateAppInstallParams = (req: any) => {
     return http.post<any>(`apps/installed/params/update`, req);
 };
 
-export const IgnoreUpgrade = (req: any) => {
+export const ignoreUpgrade = (req: App.AppIgnoreReq) => {
     return http.post<any>(`apps/installed/ignore`, req);
 };
 
-export const GetIgnoredApp = () => {
+export const getIgnoredApp = () => {
     return http.get<App.IgnoredApp>(`apps/ignored/detail`);
+};
+
+export const cancelAppIgnore = (req: App.CancelAppIgnore) => {
+    return http.post(`apps/ignored/cancel`, req);
+};
+
+export const updateInstallConfig = (req: App.AppConfigUpdate) => {
+    return http.post(`apps/installed/config/update`, req);
+};
+
+export const syncCutomAppStore = (req: App.AppStoreSync) => {
+    return http.post(`/custom/app/sync`, req);
+};
+
+export const getCurrentNodeCustomAppConfig = () => {
+    return http.get<App.CustomAppStoreConfig>(`/custom/app/config`);
 };

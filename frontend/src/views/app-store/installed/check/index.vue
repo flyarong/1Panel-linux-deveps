@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="open" :title="$t('app.checkTitle')" width="50%" :close-on-click-modal="false">
+    <DialogPro v-model="open" :title="$t('app.checkTitle')" size="large">
         <el-row>
             <el-col :span="20" :offset="2" v-if="open">
                 <el-alert
@@ -9,11 +9,18 @@
                     show-icon
                     :closable="false"
                 />
-                <br />
-                <el-descriptions border :column="1">
-                    <el-descriptions-item v-for="(item, key) in map" :key="key">
+                <el-descriptions border :column="1" class="mt-5">
+                    <el-descriptions-item
+                        v-for="(item, key) in map"
+                        :key="key"
+                        label-class-name="check-label"
+                        class-name="check-content"
+                        min-width="60px"
+                    >
                         <template #label>
-                            <a href="javascript:void(0);" @click="toPage(item[0])">{{ $t('app.' + item[0]) }}</a>
+                            <a href="javascript:void(0);" class="check-label-a" @click="toPage(item[0])">
+                                {{ $t('menu.' + item[0]) }}
+                            </a>
                         </template>
                         <span class="resources">
                             {{ map.get(item[0]).toString() }}
@@ -37,16 +44,16 @@
                 </el-button>
             </span>
         </template>
-    </el-dialog>
+    </DialogPro>
 </template>
 <script lang="ts" setup>
 import { App } from '@/api/interface/app';
-import { InstalledOp } from '@/api/modules/app';
+import { installedOp } from '@/api/modules/app';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
+import { routerToName } from '@/utils/router';
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
+import ErrPrompt from '@/components/error-prompt/index.vue';
 
 interface CheckRrops {
     items: App.AppInstallResource[];
@@ -87,17 +94,17 @@ const toPage = (key: string) => {
         open.value = false;
     }
     if (key === 'website') {
-        router.push({ name: 'Website' });
+        routerToName('Website');
     }
     if (key === 'database') {
-        router.push({ name: 'MySQL' });
+        routerToName('MySQL');
     }
 };
 
 const onConfirm = () => {
     ElMessageBox.confirm(
-        i18n.global.t('app.operatorHelper', [i18n.global.t('app.delete')]),
-        i18n.global.t('app.delete'),
+        i18n.global.t('app.operatorHelper', [i18n.global.t('commons.button.delete')]),
+        i18n.global.t('commons.button.delete'),
         {
             confirmButtonText: i18n.global.t('commons.button.confirm'),
             cancelButtonText: i18n.global.t('commons.button.cancel'),
@@ -111,7 +118,7 @@ const onConfirm = () => {
             forceDelete: true,
             deleteDB: true,
         };
-        InstalledOp(deleteReq).then(() => {
+        installedOp(deleteReq).then(() => {
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
             open.value = false;
             em('close', open);

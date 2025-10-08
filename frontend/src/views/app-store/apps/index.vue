@@ -1,163 +1,100 @@
 <template>
-    <LayoutContent v-loading="loading" v-if="!showDetail" :title="$t('app.app')">
-        <template #toolbar>
-            <el-row :gutter="5">
-                <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
-                    <el-button
-                        class="tag-button"
-                        :class="activeTag === 'all' ? '' : 'no-active'"
-                        @click="changeTag('all')"
-                        :type="activeTag === 'all' ? 'primary' : ''"
-                        :plain="activeTag !== 'all'"
-                    >
-                        {{ $t('app.all') }}
-                    </el-button>
-                    <div v-for="item in tags" :key="item.key" style="display: inline">
-                        <el-button
-                            class="tag-button"
-                            :class="activeTag === item.key ? '' : 'no-active'"
-                            @click="changeTag(item.key)"
-                            :type="activeTag === item.key ? 'primary' : ''"
-                            :plain="activeTag !== item.key"
-                        >
-                            {{ language == 'zh' || language == 'tw' ? item.name : item.key }}
-                        </el-button>
-                    </div>
-                </el-col>
-                <el-col :xs="24" :sm="4" :md="4" :lg="4" :xl="4">
-                    <div class="search-button">
-                        <el-input
-                            v-model="req.name"
-                            clearable
-                            @clear="searchByName('')"
-                            suffix-icon="Search"
-                            @change="searchByName(req.name)"
-                            :placeholder="$t('commons.button.search')"
-                        ></el-input>
-                    </div>
-                </el-col>
-            </el-row>
-        </template>
-        <template #rightButton>
-            <el-badge is-dot class="item" :hidden="!canUpdate">
-                <el-button @click="sync" type="primary" link :plain="true" :disabled="syncing">
-                    {{ $t('app.syncAppList') }}
+    <div>
+        <docker-status v-model:isActive="isActive" v-model:isExist="isExist" />
+        <LayoutContent v-loading="loading" v-if="isExist" :class="{ mask: !isActive }" :title="$t('app.app', 2)">
+            <template #search>
+                <Tags @change="changeTag" />
+            </template>
+            <template #leftToolBar>
+                <el-button @click="sync" type="primary" plain :disabled="syncing">
+                    <span>{{ syncCustomAppstore || isOffLine ? $t('app.syncCustomApp') : $t('app.syncAppList') }}</span>
                 </el-button>
-            </el-badge>
-        </template>
-        <template #main>
-            <el-alert type="info" :title="$t('app.appHelper')" :closable="false" />
-            <el-row :gutter="5">
-                <el-col
-                    class="app-col-12"
-                    v-for="(app, index) in apps"
-                    :key="index"
-                    :xs="24"
-                    :sm="12"
-                    :md="8"
-                    :lg="8"
-                    :xl="8"
-                >
-                    <div class="app-card">
-                        <el-card class="e-card" @click.stop="openDetail(app.key)">
-                            <el-row :gutter="20">
-                                <el-col :xs="8" :sm="6" :md="6" :lg="6" :xl="5">
-                                    <div class="app-icon-container">
-                                        <div class="app-icon">
-                                            <el-avatar
-                                                shape="square"
-                                                :size="60"
-                                                :src="'data:image/png;base64,' + app.icon"
-                                            />
-                                        </div>
-                                    </div>
-                                </el-col>
-                                <el-col :xs="16" :sm="18" :md="18" :lg="18" :xl="19">
-                                    <div class="app-content">
-                                        <div class="app-header">
-                                            <span class="app-title">{{ app.name }}</span>
-                                            <el-text type="success" style="margin-left: 10px" v-if="app.installed">
-                                                {{ $t('app.allReadyInstalled') }}
-                                            </el-text>
-                                            <el-button
-                                                class="app-button"
-                                                type="primary"
-                                                plain
-                                                round
-                                                size="small"
-                                                :disabled="
-                                                    (app.installed && app.limit == 1) || app.status === 'TakeDown'
-                                                "
-                                                @click.stop="openInstall(app)"
-                                            >
-                                                {{ $t('app.install') }}
-                                            </el-button>
-                                        </div>
-                                        <div class="app-desc">
-                                            <span class="desc">
-                                                {{
-                                                    language == 'zh' || language == 'tw'
-                                                        ? app.shortDescZh
-                                                        : app.shortDescEn
-                                                }}
-                                            </span>
-                                        </div>
-                                        <div class="app-tag">
-                                            <el-tag v-for="(tag, ind) in app.tags" :key="ind" style="margin-right: 5px">
-                                                <span :style="{ color: getColor(ind) }">
-                                                    {{ language == 'zh' || language == 'tw' ? tag.name : tag.key }}
-                                                </span>
-                                            </el-tag>
-                                            <el-tag v-if="app.status === 'TakeDown'" style="margin-right: 5px">
-                                                <span style="color: red">{{ $t('app.takeDown') }}</span>
-                                            </el-tag>
-                                        </div>
-                                    </div>
-                                </el-col>
-                            </el-row>
-                        </el-card>
-                    </div>
-                </el-col>
-            </el-row>
-            <div class="page-button">
-                <fu-table-pagination
-                    v-model:current-page="paginationConfig.currentPage"
-                    v-model:page-size="paginationConfig.pageSize"
-                    v-bind="paginationConfig"
+                <el-button @click="syncLocal" type="primary" plain :disabled="syncing" class="ml-2">
+                    {{ $t('app.syncLocalApp') }}
+                </el-button>
+            </template>
+            <template #rightToolBar>
+                <el-checkbox class="!mr-2.5" v-model="req.showCurrentArch" @change="search(req)">
+                    {{ $t('app.showCurrentArch') }}
+                </el-checkbox>
+                <el-checkbox
+                    class="!mr-2.5"
+                    v-model="req.resource"
+                    true-value="all"
+                    false-value="remote"
                     @change="search(req)"
-                    :layout="mobile ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next, jumper'"
-                />
-            </div>
-        </template>
-    </LayoutContent>
-    <Detail ref="detailRef"></Detail>
+                >
+                    {{ $t('app.showLocal') }}
+                </el-checkbox>
+                <TableSearch @search="searchByName()" v-model:searchName="req.name" />
+            </template>
+            <template #main>
+                <div>
+                    <MainDiv :heightDiff="300">
+                        <el-alert type="info" :title="$t('app.appHelper')" :closable="false" />
+                        <el-row :gutter="5" v-if="apps.length > 0">
+                            <el-col
+                                class="app-col-12"
+                                v-for="(app, index) in apps"
+                                :key="index"
+                                :xs="24"
+                                :sm="12"
+                                :md="8"
+                                :lg="8"
+                                :xl="6"
+                            >
+                                <AppCard :app="app" @open-install="openInstall" @open-detail="openDetail" />
+                            </el-col>
+                        </el-row>
+                        <NoApp v-if="noApp" />
+                    </MainDiv>
+                    <div class="page-button">
+                        <fu-table-pagination
+                            v-model:current-page="paginationConfig.currentPage"
+                            v-model:page-size="paginationConfig.pageSize"
+                            v-bind="paginationConfig"
+                            @change="search(req)"
+                            :page-sizes="[30, 60, 90]"
+                            :layout="mobile ? 'total, prev, pager, next' : 'total, sizes, prev, pager, next, jumper'"
+                        />
+                    </div>
+                </div>
+            </template>
+        </LayoutContent>
+    </div>
     <Install ref="installRef" />
+    <Detail ref="detailRef" />
+    <TaskLog ref="taskLogRef" @close="refresh" />
 </template>
 
 <script lang="ts" setup>
 import { App } from '@/api/interface/app';
 import { onMounted, reactive, ref, computed } from 'vue';
-import { GetAppTags, SearchApp, SyncApp } from '@/api/modules/app';
-import i18n from '@/lang';
-import Detail from '../detail/index.vue';
+import { searchApp, syncApp, syncCutomAppStore, syncLocalApp, getCurrentNodeCustomAppConfig } from '@/api/modules/app';
 import Install from '../detail/install/index.vue';
 import router from '@/routers';
 import { MsgSuccess } from '@/utils/message';
-import { useI18n } from 'vue-i18n';
-import { GlobalStore } from '@/store';
-
-const globalStore = GlobalStore();
+import { newUUID } from '@/utils/util';
+import Detail from '../detail/index.vue';
+import TaskLog from '@/components/log/task/index.vue';
+import bus from '@/global/bus';
+import Tags from '@/views/app-store/components/tag.vue';
+import DockerStatus from '@/views/container/docker-status/index.vue';
+import NoApp from '@/views/app-store/apps/no-app/index.vue';
+import AppCard from '@/views/app-store/apps/app/index.vue';
+import MainDiv from '@/components/main-div/index.vue';
+import { jumpToInstall } from '@/utils/app';
+import { useGlobalStore } from '@/composables/useGlobalStore';
+const { globalStore, isProductPro, isOffLine } = useGlobalStore();
 
 const mobile = computed(() => {
     return globalStore.isMobile();
 });
 
-const language = useI18n().locale.value;
-
 const paginationConfig = reactive({
     cacheSizeKey: 'app-page-size',
     currentPage: 1,
-    pageSize: 60,
+    pageSize: Number(localStorage.getItem('app-page-size')) || 60,
     total: 0,
 });
 
@@ -166,70 +103,109 @@ const req = reactive({
     tags: [],
     page: 1,
     pageSize: 60,
+    resource: 'all',
+    showCurrentArch: false,
 });
 
 const apps = ref<App.AppDTO[]>([]);
-const tags = ref<App.Tag[]>([]);
-const colorArr = ['#005eeb', '#008B45', '#BEBEBE', '#FFF68F', '#FFFF00', '#8B0000'];
 const loading = ref(false);
-const activeTag = ref('all');
-const showDetail = ref(false);
 const canUpdate = ref(false);
 const syncing = ref(false);
-const detailRef = ref();
 const installRef = ref();
 const installKey = ref('');
+const mainHeight = ref(0);
+const detailRef = ref();
+const taskLogRef = ref();
+const syncCustomAppstore = ref(false);
+const isActive = ref(false);
+const isExist = ref(false);
+const noApp = ref(false);
 
-const getColor = (index: number) => {
-    return colorArr[index];
+const refresh = () => {
+    search(req);
 };
 
 const search = async (req: App.AppReq) => {
     loading.value = true;
     req.pageSize = paginationConfig.pageSize;
     req.page = paginationConfig.currentPage;
-    await SearchApp(req)
+    localStorage.setItem('app-page-size', req.pageSize + '');
+
+    const customReq = {
+        page: req.page,
+        pageSize: req.pageSize,
+        tags: req.tags,
+        name: req.name,
+        resource: req.resource,
+        showCurrentArch: req.showCurrentArch,
+    };
+    if (syncCustomAppstore.value && req.resource === 'remote') {
+        customReq.resource = 'custom';
+    }
+    await searchApp(customReq)
         .then((res) => {
             apps.value = res.data.items;
             paginationConfig.total = res.data.total;
+            if (noApp.value && apps.value.length > 0) {
+                noApp.value = false;
+            }
         })
         .finally(() => {
             loading.value = false;
         });
-    GetAppTags().then((res) => {
-        tags.value = res.data;
-    });
 };
 
 const openInstall = (app: App.App) => {
-    switch (app.type) {
-        case 'php':
-            router.push({ path: '/websites/runtimes/php' });
-            break;
-        case 'node':
-            router.push({ path: '/websites/runtimes/node' });
-            break;
-        default:
-            const params = {
-                app: app,
-            };
-            installRef.value.acceptParams(params);
+    if (!jumpToInstall(app.type, app.key)) {
+        const params = {
+            app: app,
+        };
+        installRef.value.acceptParams(params);
     }
 };
 
 const openDetail = (key: string) => {
-    detailRef.value.acceptParams(key);
+    detailRef.value.acceptParams(key, 'install');
 };
 
-const sync = () => {
+const openTaskLog = (taskID: string) => {
+    taskLogRef.value.openWithTaskID(taskID);
+};
+
+const sync = async () => {
     syncing.value = true;
-    SyncApp()
-        .then((res) => {
-            if (res.message != '') {
-                MsgSuccess(res.message);
-            } else {
-                MsgSuccess(i18n.global.t('app.syncStart'));
-            }
+    const taskID = newUUID();
+    const syncReq = {
+        taskID: taskID,
+    };
+    try {
+        let res;
+        if (isOffLine.value || (isProductPro.value && syncCustomAppstore.value)) {
+            res = await syncCutomAppStore(syncReq);
+        } else {
+            res = await syncApp(syncReq);
+        }
+        if (res.message != '' && res.message != 'success') {
+            MsgSuccess(res.message);
+        } else {
+            openTaskLog(taskID);
+        }
+        canUpdate.value = false;
+        search(req);
+    } finally {
+        syncing.value = false;
+    }
+};
+
+const syncLocal = () => {
+    const taskID = newUUID();
+    const syncReq = {
+        taskID: taskID,
+    };
+    syncing.value = true;
+    syncLocalApp(syncReq)
+        .then(() => {
+            openTaskLog(taskID);
             canUpdate.value = false;
             search(req);
         })
@@ -240,19 +216,20 @@ const sync = () => {
 
 const changeTag = (key: string) => {
     req.tags = [];
-    activeTag.value = key;
     if (key !== 'all') {
         req.tags = [key];
     }
     search(req);
 };
 
-const searchByName = (name: string) => {
-    req.name = name;
+const searchByName = () => {
     search(req);
 };
 
-onMounted(() => {
+onMounted(async () => {
+    bus.on('refreshApp', () => {
+        search(req);
+    });
     if (router.currentRoute.value.query.install) {
         installKey.value = String(router.currentRoute.value.query.install);
         const params = {
@@ -263,88 +240,29 @@ onMounted(() => {
         installRef.value.acceptParams(params);
     }
     search(req);
+    if (isProductPro.value) {
+        const res = await getCurrentNodeCustomAppConfig();
+        if (res && res.data) {
+            syncCustomAppstore.value = res.data.status === 'Enable';
+        }
+    }
+    if (isOffLine.value) {
+        syncCustomAppstore.value = true;
+    }
+    mainHeight.value = window.innerHeight - 380;
+    window.onresize = () => {
+        return (() => {
+            mainHeight.value = window.innerHeight - 380;
+        })();
+    };
 });
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .header {
     padding-bottom: 10px;
 }
 
-.app-card {
-    margin-top: 10px;
-    cursor: pointer;
-    padding: 5px;
-
-    .app-icon-container {
-        margin-top: 10px;
-        margin-left: 15px;
-    }
-
-    &:hover .app-icon {
-        transform: scale(1.2);
-    }
-
-    .app-icon {
-        transition: transform 0.1s;
-        transform-origin: center center;
-    }
-
-    .app-content {
-        margin-top: 10px;
-        height: 100%;
-        width: 100%;
-
-        .app-header {
-            height: 20%;
-            .app-title {
-                font-weight: 500;
-                font-size: 16px;
-                color: var(--el-text-color-regular);
-            }
-            .app-button {
-                float: right;
-                margin-right: 20px;
-            }
-        }
-
-        .app-desc {
-            margin-top: 8px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-
-            text-overflow: ellipsis;
-            height: 43px;
-
-            .desc {
-                font-size: 14px;
-                color: var(--el-text-color-regular);
-            }
-        }
-
-        .app-tag {
-            margin-top: 5px;
-        }
-    }
-
-    .e-card {
-        border: var(--panel-border) !important;
-        &:hover {
-            cursor: pointer;
-            border: 1px solid var(--el-color-primary) !important;
-        }
-    }
-}
-
-.tag-button {
-    margin-right: 10px;
-    &.no-active {
-        background: none;
-        border: none;
-    }
-}
 @media only screen and (min-width: 768px) and (max-width: 1200px) {
     .app-col-12 {
         max-width: 50%;

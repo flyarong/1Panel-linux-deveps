@@ -1,9 +1,6 @@
 <template>
     <div>
-        <el-drawer v-model="drawerVisiable" :destroy-on-close="true" :close-on-click-modal="false" size="30%">
-            <template #header>
-                <DrawerHeader :header="$t('container.mirrors')" :back="handleClose" />
-            </template>
+        <DrawerPro v-model="drawerVisible" :header="$t('container.mirrors')" @close="handleClose" size="small">
             <el-form
                 ref="formRef"
                 label-position="top"
@@ -12,28 +9,22 @@
                 :rules="rules"
                 v-loading="loading"
             >
-                <el-row type="flex" justify="center">
-                    <el-col :span="22">
-                        <el-form-item :label="$t('container.mirrors')" prop="mirrors">
-                            <el-input
-                                type="textarea"
-                                :placeholder="$t('container.mirrorHelper')"
-                                :autosize="{ minRows: 8, maxRows: 10 }"
-                                v-model="form.mirrors"
-                            />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+                <el-form-item :label="$t('container.mirrors')" prop="mirrors">
+                    <el-input
+                        type="textarea"
+                        :placeholder="$t('container.mirrorHelper')"
+                        :rows="5"
+                        v-model="form.mirrors"
+                    />
+                </el-form-item>
             </el-form>
             <template #footer>
-                <span class="dialog-footer">
-                    <el-button @click="drawerVisiable = false">{{ $t('commons.button.cancel') }}</el-button>
-                    <el-button :disabled="loading" type="primary" @click="onSave(formRef)">
-                        {{ $t('commons.button.confirm') }}
-                    </el-button>
-                </span>
+                <el-button @click="drawerVisible = false">{{ $t('commons.button.cancel') }}</el-button>
+                <el-button :disabled="loading" type="primary" @click="onSave(formRef)">
+                    {{ $t('commons.button.confirm') }}
+                </el-button>
             </template>
-        </el-drawer>
+        </DrawerPro>
 
         <ConfirmDialog ref="confirmDialogRef" @confirm="onSubmit" />
     </div>
@@ -44,8 +35,8 @@ import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
 import ConfirmDialog from '@/components/confirm-dialog/index.vue';
 import { updateDaemonJson } from '@/api/modules/container';
-import DrawerHeader from '@/components/drawer-header/index.vue';
 import { FormInstance } from 'element-plus';
+import { emptyLineFilter } from '@/utils/util';
 
 const emit = defineEmits<{ (e: 'search'): void }>();
 
@@ -54,7 +45,7 @@ const confirmDialogRef = ref();
 interface DialogProps {
     mirrors: string;
 }
-const drawerVisiable = ref();
+const drawerVisible = ref();
 const loading = ref();
 
 const form = reactive({
@@ -67,9 +58,12 @@ const rules = reactive({
 
 function checkMirrors(rule: any, value: any, callback: any) {
     if (form.mirrors !== '') {
-        const reg = /^https?:\/\/[a-zA-Z0-9.-]+$/;
+        const reg = /^https?:\/\/[a-zA-Z0-9.-]+(:[0-9]{1,5})?(\/[a-zA-Z0-9./-]*)?$/;
         let mirrors = form.mirrors.split('\n');
         for (const item of mirrors) {
+            if (item === '') {
+                continue;
+            }
             if (!reg.test(item)) {
                 return callback(new Error(i18n.global.t('commons.rule.mirror')));
             }
@@ -80,7 +74,7 @@ function checkMirrors(rule: any, value: any, callback: any) {
 
 const acceptParams = (params: DialogProps): void => {
     form.mirrors = params.mirrors || params.mirrors.replaceAll(',', '\n');
-    drawerVisiable.value = true;
+    drawerVisible.value = true;
 };
 
 const onSave = async (formEl: FormInstance | undefined) => {
@@ -98,7 +92,7 @@ const onSave = async (formEl: FormInstance | undefined) => {
 
 const onSubmit = async () => {
     loading.value = true;
-    await updateDaemonJson('Mirrors', form.mirrors.replaceAll('\n', ','))
+    await updateDaemonJson('Mirrors', emptyLineFilter(form.mirrors, '\n').replaceAll('\n', ','))
         .then(() => {
             loading.value = false;
             emit('search');
@@ -111,7 +105,7 @@ const onSubmit = async () => {
 };
 
 const handleClose = () => {
-    drawerVisiable.value = false;
+    drawerVisible.value = false;
 };
 
 defineExpose({

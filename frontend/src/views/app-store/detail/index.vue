@@ -1,12 +1,9 @@
 <template>
-    <el-drawer v-model="open" :destroy-on-close="true" size="50%">
-        <template #header>
-            <DrawerHeader :header="$t('app.detail')" :back="handleClose" />
-        </template>
+    <DrawerPro v-model="open" :header="$t('app.detail')" @close="handleClose" size="large">
         <div class="brief" v-loading="loadingApp">
             <div class="detail flex">
-                <div class="w-12 h-12 bg-gray-100 rounded p-1 shadow-md icon">
-                    <img :src="app.icon" alt="App Icon" class="w-full h-full rounded" />
+                <div class="w-12 h-12 rounded p-1 shadow-md icon">
+                    <img :src="app.icon" alt="App Icon" class="w-full h-full rounded" style="object-fit: contain" />
                 </div>
                 <div class="ml-4">
                     <div class="name mb-2">
@@ -14,13 +11,12 @@
                     </div>
                     <div class="description mb-4">
                         <span>
-                            {{ language == 'zh' || language == 'tw' ? app.shortDescZh : app.shortDescEn }}
+                            {{ app.description }}
                         </span>
                     </div>
                     <br />
                     <div v-if="!loadingDetail" class="mb-2">
                         <el-alert
-                            style="width: 300px"
                             v-if="!appDetail.enable"
                             :title="$t('app.limitHelper')"
                             type="warning"
@@ -28,61 +24,59 @@
                             :closable="false"
                         />
                     </div>
-                    <el-button round v-if="appDetail.enable" @click="openInstall" type="primary">
-                        {{ $t('app.install') }}
+                    <el-button
+                        round
+                        v-if="appDetail.enable && operate === 'install'"
+                        @click="openInstall"
+                        type="primary"
+                        class="brief-button"
+                    >
+                        {{ $t('commons.button.install') }}
                     </el-button>
                 </div>
             </div>
-            <div class="divider"></div>
-            <div>
-                <el-row>
-                    <el-col :span="12">
-                        <div class="descriptions">
-                            <el-descriptions direction="vertical">
-                                <el-descriptions-item>
-                                    <el-link @click="toLink(app.website)">
-                                        <el-icon><OfficeBuilding /></el-icon>
-                                        <span>{{ $t('app.appOfficeWebsite') }}</span>
-                                    </el-link>
-                                </el-descriptions-item>
-                                <el-descriptions-item>
-                                    <el-link @click="toLink(app.document)">
-                                        <el-icon><Document /></el-icon>
-                                        <span>{{ $t('app.document') }}</span>
-                                    </el-link>
-                                </el-descriptions-item>
-                                <el-descriptions-item>
-                                    <el-link @click="toLink(app.github)">
-                                        <el-icon><Link /></el-icon>
-                                        <span>{{ $t('app.github') }}</span>
-                                    </el-link>
-                                </el-descriptions-item>
-                            </el-descriptions>
-                        </div>
-                    </el-col>
-                </el-row>
+            <div class="descriptions">
+                <el-descriptions border size="large" direction="vertical">
+                    <el-descriptions-item :label="$t('app.appOfficeWebsite')">
+                        <el-link @click="toLink(app.website)">
+                            {{ $t('app.link') }}
+                            <el-icon class="ml-1.5"><Promotion /></el-icon>
+                        </el-link>
+                    </el-descriptions-item>
+                    <el-descriptions-item :label="$t('app.github')">
+                        <el-link @click="toLink(app.github)">
+                            {{ $t('app.link') }}
+                            <el-icon class="ml-1.5"><Promotion /></el-icon>
+                        </el-link>
+                    </el-descriptions-item>
+                    <el-descriptions-item :label="$t('app.requireMemory')" v-if="appDetail.memoryRequired > 0">
+                        <span>{{ computeSizeFromMB(appDetail.memoryRequired) }}</span>
+                    </el-descriptions-item>
+                    <el-descriptions-item :label="$t('app.supportedArchitectures')" v-if="architectures.length > 0">
+                        <el-tag v-for="(arch, index) in architectures" :key="index" class="mx-1">
+                            {{ arch }}
+                        </el-tag>
+                    </el-descriptions-item>
+                </el-descriptions>
             </div>
         </div>
-        <MdEditor
-            previewOnly
-            v-model="app.readMe"
-            :theme="globalStore.$state.themeConfig.theme === 'dark' ? 'dark' : 'light'"
-        />
-    </el-drawer>
-    <Install ref="installRef"></Install>
+        <MdEditor previewOnly v-model="app.readMe" :theme="isDarkTheme ? 'dark' : 'light'" />
+    </DrawerPro>
+    <Install ref="installRef" />
 </template>
 
 <script lang="ts" setup>
-import { GetApp, GetAppDetail } from '@/api/modules/app';
+import { getAppByKey, getAppDetail } from '@/api/modules/app';
 import MdEditor from 'md-editor-v3';
 import { ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import Install from './install/index.vue';
-import router from '@/routers';
 import { GlobalStore } from '@/store';
-const globalStore = GlobalStore();
+import { computeSizeFromMB } from '@/utils/util';
+import { storeToRefs } from 'pinia';
+import { jumpToInstall } from '@/utils/app';
 
-const language = useI18n().locale.value;
+const globalStore = GlobalStore();
+const { isDarkTheme } = storeToRefs(globalStore);
 
 const app = ref<any>({});
 const appDetail = ref<any>({});
@@ -92,9 +86,12 @@ const loadingApp = ref(false);
 const installRef = ref();
 const open = ref(false);
 const appKey = ref();
+const operate = ref();
+const architectures = ref([]);
 
-const acceptParams = async (key: string) => {
+const acceptParams = async (key: string, op: string) => {
     appKey.value = key;
+    operate.value = op;
     open.value = true;
     getApp();
 };
@@ -106,7 +103,7 @@ const handleClose = () => {
 const getApp = async () => {
     loadingApp.value = true;
     try {
-        const res = await GetApp(appKey.value);
+        const res = await getAppByKey(appKey.value);
         app.value = res.data;
         app.value.icon = 'data:image/png;base64,' + res.data.icon;
         version.value = app.value.versions[0];
@@ -119,8 +116,11 @@ const getApp = async () => {
 const getDetail = async (id: number, version: string) => {
     loadingDetail.value = true;
     try {
-        const res = await GetAppDetail(id, version, 'app');
+        const res = await getAppDetail(id, version, 'app');
         appDetail.value = res.data;
+        if (appDetail.value.architectures != '') {
+            architectures.value = appDetail.value.architectures.split(',');
+        }
     } finally {
         loadingDetail.value = false;
     }
@@ -131,19 +131,12 @@ const toLink = (link: string) => {
 };
 
 const openInstall = () => {
-    switch (app.value.type) {
-        case 'php':
-            router.push({ path: '/websites/runtimes/php' });
-            break;
-        case 'node':
-            router.push({ path: '/websites/runtimes/node' });
-            break;
-        default:
-            const params = {
-                app: app.value,
-            };
-            installRef.value.acceptParams(params);
-            open.value = false;
+    if (!jumpToInstall(app.value.type, app.value.key)) {
+        const params = {
+            app: app.value,
+        };
+        installRef.value.acceptParams(params);
+        open.value = false;
     }
 };
 
@@ -152,13 +145,13 @@ defineExpose({
 });
 </script>
 
-<style lang="scss">
+<style scoped lang="scss">
 .brief {
-    padding: 10px;
     .name {
         span {
             font-weight: 500;
             font-size: 18px;
+            color: var(--el-text-color-regular);
         }
     }
 
@@ -173,6 +166,7 @@ defineExpose({
     .icon {
         width: 180px;
         height: 180px;
+        background-color: #ffffff;
     }
 
     .version {
@@ -180,7 +174,10 @@ defineExpose({
     }
 
     .descriptions {
-        margin-top: 5px;
+        margin-top: 20px;
     }
+}
+:deep(.md-editor-dark) {
+    background-color: var(--panel-main-bg-color-9);
 }
 </style>

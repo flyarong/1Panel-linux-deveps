@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="dialogVisiable" :title="$t('container.containerPrune')" :destroy-on-close="true" width="30%">
+    <DialogPro v-model="open" :title="$t('container.containerPrune')" size="small">
         <div>
             <ul class="help-ul">
                 <li class="lineClass" style="color: red">{{ $t('container.containerPruneHelper1') }}</li>
@@ -9,7 +9,7 @@
         </div>
         <template #footer>
             <span class="dialog-footer">
-                <el-button :disabled="loading" @click="dialogVisiable = false">
+                <el-button :disabled="loading" @click="open = false">
                     {{ $t('commons.button.cancel') }}
                 </el-button>
                 <el-button :disabled="loading" type="primary" @click="onClean()">
@@ -17,46 +17,49 @@
                 </el-button>
             </span>
         </template>
-    </el-dialog>
+    </DialogPro>
+    <TaskLog ref="taskLogRef" width="70%" @close="onSearch" />
 </template>
 
 <script lang="ts" setup>
 import { containerPrune } from '@/api/modules/container';
-import i18n from '@/lang';
-import { MsgSuccess } from '@/utils/message';
+import TaskLog from '@/components/log/task/index.vue';
 import { ref } from 'vue';
-import { computeSize } from '@/utils/util';
+import { newUUID } from '@/utils/util';
 
 const loading = ref(false);
-const dialogVisiable = ref<boolean>(false);
+const open = ref<boolean>(false);
+const taskLogRef = ref();
 
 const emit = defineEmits<{ (e: 'search'): void }>();
 
 const onClean = async () => {
     loading.value = true;
     let params = {
+        taskID: newUUID(),
         pruneType: 'container',
         withTagAll: false,
     };
     await containerPrune(params)
-        .then((res) => {
+        .then(() => {
             loading.value = false;
-            MsgSuccess(
-                i18n.global.t('container.cleanSuccessWithSpace', [
-                    res.data.deletedNumber,
-                    computeSize(res.data.spaceReclaimed),
-                ]),
-            );
-            dialogVisiable.value = false;
-            emit('search');
+            open.value = false;
+            openTaskLog(params.taskID);
         })
         .catch(() => {
             loading.value = false;
         });
 };
+const openTaskLog = (taskID: string) => {
+    taskLogRef.value.openWithTaskID(taskID);
+};
+
+const onSearch = () => {
+    emit('search');
+};
 
 const acceptParams = (): void => {
-    dialogVisiable.value = true;
+    open.value = true;
 };
 
 defineExpose({

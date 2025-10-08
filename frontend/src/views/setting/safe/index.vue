@@ -2,7 +2,12 @@
     <div>
         <LayoutContent v-loading="loading" :title="$t('setting.safe')" :divider="true">
             <template #main>
-                <el-form :model="form" v-loading="loading" label-position="left" label-width="150px">
+                <el-form
+                    :model="form"
+                    v-loading="loading"
+                    :label-position="mobile ? 'top' : 'left'"
+                    label-width="150px"
+                >
                     <el-row>
                         <el-col :span="1"><br /></el-col>
                         <el-col :xs="24" :sm="20" :md="15" :lg="12" :xl="12">
@@ -15,7 +20,15 @@
                                     </template>
                                 </el-input>
                             </el-form-item>
-
+                            <el-form-item :label="$t('setting.bindInfo')" prop="bindAddress">
+                                <el-input disabled v-model="form.bindAddress">
+                                    <template #append>
+                                        <el-button @click="onChangeBind" icon="Setting">
+                                            {{ $t('commons.button.set') }}
+                                        </el-button>
+                                    </template>
+                                </el-input>
+                            </el-form-item>
                             <el-form-item :label="$t('setting.entrance')">
                                 <el-input
                                     type="password"
@@ -39,11 +52,21 @@
                                 <span class="input-help">{{ $t('setting.entranceHelper') }}</span>
                             </el-form-item>
 
+                            <el-form-item :label="$t('setting.noAuthSetting')">
+                                <el-input disabled v-model="form.noAuthSetting">
+                                    <template #append>
+                                        <el-button @click="onChangeResponse" icon="Setting">
+                                            {{ $t('commons.button.set') }}
+                                        </el-button>
+                                    </template>
+                                </el-input>
+                            </el-form-item>
+
                             <el-form-item :label="$t('setting.allowIPs')">
                                 <div style="width: 100%" v-if="form.allowIPs">
                                     <el-input
                                         type="textarea"
-                                        :autosize="{ minRows: 3, maxRows: 5 }"
+                                        :rows="3"
                                         disabled
                                         v-model="form.allowIPs"
                                         style="width: calc(100% - 80px)"
@@ -80,6 +103,27 @@
                                 <span class="input-help">{{ $t('setting.bindDomainHelper') }}</span>
                             </el-form-item>
 
+                            <el-form-item :label="$t('setting.panelSSL')" prop="ssl">
+                                <el-switch
+                                    @change="handleSSL"
+                                    v-model="form.ssl"
+                                    active-value="Enable"
+                                    inactive-value="Disable"
+                                />
+                                <span class="input-help">{{ $t('setting.https') }}</span>
+                                <div v-if="form.ssl === 'Enable' && sslInfo">
+                                    <el-tag>{{ $t('setting.domainOrIP') }} {{ sslInfo.domain }}</el-tag>
+                                    <el-tag style="margin-left: 5px">
+                                        {{ $t('setting.timeOut') }} {{ sslInfo.timeout }}
+                                    </el-tag>
+                                    <div>
+                                        <el-button link type="primary" @click="handleSSL">
+                                            {{ $t('commons.button.view') }}
+                                        </el-button>
+                                    </div>
+                                </div>
+                            </el-form-item>
+
                             <el-form-item :label="$t('setting.expirationTime')" prop="expirationTime">
                                 <el-input disabled v-model="form.expirationTime">
                                     <template #append>
@@ -101,8 +145,8 @@
                                 <el-switch
                                     @change="onSaveComplexity"
                                     v-model="form.complexityVerification"
-                                    active-value="enable"
-                                    inactive-value="disable"
+                                    active-value="Enable"
+                                    inactive-value="Disable"
                                 />
                                 <span class="input-help">
                                     {{ $t('setting.complexityHelper') }}
@@ -113,33 +157,12 @@
                                 <el-switch
                                     @change="handleMFA"
                                     v-model="form.mfaStatus"
-                                    active-value="enable"
-                                    inactive-value="disable"
+                                    active-value="Enable"
+                                    inactive-value="Disable"
                                 />
                                 <span class="input-help">
                                     {{ $t('setting.mfaHelper') }}
                                 </span>
-                            </el-form-item>
-
-                            <el-form-item label="HTTPS" prop="ssl">
-                                <el-switch
-                                    @change="handleSSL"
-                                    v-model="form.ssl"
-                                    active-value="enable"
-                                    inactive-value="disable"
-                                />
-                                <span class="input-help">{{ $t('setting.https') }}</span>
-                                <div v-if="form.ssl === 'enable' && sslInfo">
-                                    <el-tag>{{ $t('setting.domainOrIP') }} {{ sslInfo.domain }}</el-tag>
-                                    <el-tag style="margin-left: 5px">
-                                        {{ $t('setting.timeOut') }} {{ sslInfo.timeout }}
-                                    </el-tag>
-                                    <div>
-                                        <el-button link type="primary" @click="handleSSL">
-                                            {{ $t('commons.button.view') }}
-                                        </el-button>
-                                    </div>
-                                </div>
                             </el-form-item>
                         </el-col>
                     </el-row>
@@ -148,19 +171,23 @@
         </LayoutContent>
 
         <PortSetting ref="portRef" />
+        <BindSetting ref="bindRef" />
         <MfaSetting ref="mfaRef" @search="search" />
         <SSLSetting ref="sslRef" @search="search" />
         <EntranceSetting ref="entranceRef" @search="search" />
-        <TimeoutSetting ref="timeoutref" @search="search" />
+        <TimeoutSetting ref="timeoutRef" @search="search" />
         <DomainSetting ref="domainRef" @search="search" />
         <AllowIPsSetting ref="allowIPsRef" @search="search" />
+        <ResponseSetting ref="responseRef" @search="search()" />
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { ElForm, ElMessageBox } from 'element-plus';
 import PortSetting from '@/views/setting/safe/port/index.vue';
+import BindSetting from '@/views/setting/safe/bind/index.vue';
+import ResponseSetting from '@/views/setting/safe/response/index.vue';
 import SSLSetting from '@/views/setting/safe/ssl/index.vue';
 import MfaSetting from '@/views/setting/safe/mfa/index.vue';
 import TimeoutSetting from '@/views/setting/safe/timeout/index.vue';
@@ -177,26 +204,35 @@ const globalStore = GlobalStore();
 const loading = ref(false);
 const entranceRef = ref();
 const portRef = ref();
-const timeoutref = ref();
+const bindRef = ref();
+const timeoutRef = ref();
 const mfaRef = ref();
+const responseRef = ref();
 
 const sslRef = ref();
 const sslInfo = ref<Setting.SSLInfo>();
 const domainRef = ref();
 const allowIPsRef = ref();
+const mobile = computed(() => {
+    return globalStore.isMobile();
+});
 
 const form = reactive({
     serverPort: 9999,
-    ssl: 'disable',
+    ipv6: 'Disable',
+    bindAddress: '',
+    ssl: 'Disable',
     sslType: 'self',
     securityEntrance: '',
     expirationDays: 0,
     expirationTime: '',
-    complexityVerification: 'disable',
-    mfaStatus: 'disable',
+    complexityVerification: 'Disable',
+    mfaStatus: 'Disable',
     mfaInterval: 30,
     allowIPs: '',
     bindDomain: '',
+    noAuthSetting: '200 - ' + i18n.global.t('setting.help200'),
+    noAuthSettingValue: '200',
 });
 
 const unset = ref(i18n.global.t('setting.unSetting'));
@@ -204,9 +240,11 @@ const unset = ref(i18n.global.t('setting.unSetting'));
 const search = async () => {
     const res = await getSettingInfo();
     form.serverPort = Number(res.data.serverPort);
+    form.ipv6 = res.data.ipv6;
+    form.bindAddress = res.data.bindAddress;
     form.ssl = res.data.ssl;
     form.sslType = res.data.sslType;
-    if (form.ssl === 'enable') {
+    if (form.ssl === 'Enable') {
         loadInfo();
     }
     form.securityEntrance = res.data.securityEntrance;
@@ -217,6 +255,12 @@ const search = async () => {
     form.mfaInterval = Number(res.data.mfaInterval);
     form.allowIPs = res.data.allowIPs.replaceAll(',', '\n');
     form.bindDomain = res.data.bindDomain;
+    form.noAuthSettingValue = res.data.noAuthSetting;
+    if (res.data.noAuthSetting !== '200') {
+        form.noAuthSetting = res.data.noAuthSetting + ' - ' + i18n.global.t('setting.error' + res.data.noAuthSetting);
+    } else {
+        form.noAuthSetting = res.data.noAuthSetting + ' - ' + i18n.global.t('setting.help200');
+    }
 };
 
 const onSaveComplexity = async () => {
@@ -237,19 +281,29 @@ const onSaveComplexity = async () => {
 };
 
 const handleMFA = async () => {
-    if (form.mfaStatus === 'enable') {
+    if (form.mfaStatus === 'Enable') {
         mfaRef.value.acceptParams({ interval: form.mfaInterval });
         return;
     }
-    loading.value = true;
-    await updateSetting({ key: 'MFAStatus', value: 'disable' })
-        .then(() => {
-            loading.value = false;
-            search();
-            MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
+    ElMessageBox.confirm(i18n.global.t('setting.mfaClose'), i18n.global.t('setting.mfa'), {
+        confirmButtonText: i18n.global.t('commons.button.confirm'),
+        cancelButtonText: i18n.global.t('commons.button.cancel'),
+    })
+        .then(async () => {
+            loading.value = true;
+            await updateSetting({ key: 'MFAStatus', value: 'Disable' })
+                .then(() => {
+                    loading.value = false;
+                    search();
+                    MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
+                })
+                .catch(() => {
+                    loading.value = false;
+                    search();
+                });
         })
         .catch(() => {
-            loading.value = false;
+            search();
         });
 };
 
@@ -259,6 +313,12 @@ const onChangeEntrance = () => {
 const onChangePort = () => {
     portRef.value.acceptParams({ serverPort: form.serverPort });
 };
+const onChangeBind = () => {
+    bindRef.value.acceptParams({ ipv6: form.ipv6, bindAddress: form.bindAddress });
+};
+const onChangeResponse = () => {
+    responseRef.value.acceptParams({ noAuthSetting: form.noAuthSettingValue });
+};
 const onChangeBindDomain = () => {
     domainRef.value.acceptParams({ bindDomain: form.bindDomain });
 };
@@ -266,7 +326,7 @@ const onChangeAllowIPs = () => {
     allowIPsRef.value.acceptParams({ allowIPs: form.allowIPs });
 };
 const handleSSL = async () => {
-    if (form.ssl === 'enable') {
+    if (form.ssl === 'Enable') {
         let params = {
             ssl: form.ssl,
             sslType: form.sslType,
@@ -281,7 +341,7 @@ const handleSSL = async () => {
         type: 'info',
     })
         .then(async () => {
-            await updateSSL({ ssl: 'disable', domain: '', sslType: '', key: '', cert: '', sslID: 0 });
+            await updateSSL({ ssl: 'Disable', domain: '', sslType: form.sslType, key: '', cert: '', sslID: 0 });
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
             let href = window.location.href;
             globalStore.isLogin = false;
@@ -291,10 +351,12 @@ const handleSSL = async () => {
             } else {
                 address = address.replaceAll('settings/safe', 'login');
             }
-            window.location.href = `http://${address}`;
+            setTimeout(() => {
+                window.location.href = `http://${address}`;
+            }, 1000);
         })
         .catch(() => {
-            form.ssl = 'enable';
+            form.ssl = 'Enable';
         });
 };
 
@@ -305,7 +367,7 @@ const loadInfo = async () => {
 };
 
 const onChangeExpirationTime = async () => {
-    timeoutref.value.acceptParams({ expirationDays: form.expirationDays });
+    timeoutRef.value.acceptParams({ expirationDays: form.expirationDays });
 };
 
 function loadTimeOut() {

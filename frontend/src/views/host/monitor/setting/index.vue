@@ -2,7 +2,7 @@
     <div>
         <MonitorRouter />
 
-        <LayoutContent v-loading="loading" :title="$t('commons.button.set')" :divider="true">
+        <LayoutContent v-loading="loading" :title="$t('menu.settings', 2)" :divider="true">
             <template #main>
                 <el-form :model="form" @submit.prevent ref="panelFormRef" label-position="left" label-width="160px">
                     <el-row>
@@ -12,8 +12,8 @@
                                 <el-switch
                                     @change="onSaveStatus"
                                     v-model="form.monitorStatus"
-                                    active-value="enable"
-                                    inactive-value="disable"
+                                    active-value="Enable"
+                                    inactive-value="Disable"
                                 />
                             </el-form-item>
                             <el-form-item :label="$t('monitor.storeDays')" prop="monitorStoreDays">
@@ -34,6 +34,16 @@
                                     </template>
                                 </el-input>
                             </el-form-item>
+                            <el-form-item :label="$t('monitor.defaultNetwork')">
+                                <el-input disabled v-model="form.defaultNetwork">
+                                    <template #append>
+                                        <el-button @click="onChangeNetwork" icon="Setting">
+                                            {{ $t('commons.button.set') }}
+                                        </el-button>
+                                    </template>
+                                </el-input>
+                                <span class="input-help">{{ $t('monitor.defaultNetworkHelper') }}</span>
+                            </el-form-item>
                             <el-form-item>
                                 <el-button @click="onClean()" icon="Delete">{{ $t('monitor.cleanMonitor') }}</el-button>
                             </el-form-item>
@@ -45,44 +55,46 @@
 
         <Interval ref="intervalRef" @search="search" />
         <StoreDays ref="daysRef" @search="search" />
+        <Network ref="networkRef" @search="search()" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessageBox, FormInstance } from 'element-plus';
-import { cleanMonitors, getSettingInfo, getSystemAvailable, updateSetting } from '@/api/modules/setting';
+import { cleanMonitors, loadMonitorSetting, updateMonitorSetting } from '@/api/modules/host';
 import MonitorRouter from '@/views/host/monitor/index.vue';
 import Interval from '@/views/host/monitor/setting/interval/index.vue';
 import StoreDays from '@/views/host/monitor/setting/days/index.vue';
+import Network from '@/views/host/monitor/setting/default-network/index.vue';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
 
 const loading = ref();
 const form = reactive({
-    monitorStatus: 'disable',
+    monitorStatus: 'Disable',
     monitorStoreDays: 30,
     monitorInterval: 1,
+    defaultNetwork: '',
 });
 const panelFormRef = ref<FormInstance>();
 
 const intervalRef = ref();
 const daysRef = ref();
+const networkRef = ref();
 
 const search = async () => {
-    const res = await getSettingInfo();
+    const res = await loadMonitorSetting();
     form.monitorStatus = res.data.monitorStatus;
     form.monitorInterval = Number(res.data.monitorInterval);
     form.monitorStoreDays = Number(res.data.monitorStoreDays);
+    form.defaultNetwork =
+        res.data.defaultNetwork === 'all' ? i18n.global.t('commons.table.all') : res.data.defaultNetwork;
 };
 
 const onSaveStatus = async () => {
-    let param = {
-        key: 'MonitorStatus',
-        value: form.monitorStatus,
-    };
     loading.value = true;
-    await updateSetting(param)
+    await updateMonitorSetting('MonitorStatus', form.monitorStatus)
         .then(() => {
             loading.value = false;
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
@@ -98,6 +110,9 @@ const onChangeStoreDays = () => {
 const onChangeInterval = () => {
     intervalRef.value.acceptParams({ monitorInterval: form.monitorInterval });
 };
+const onChangeNetwork = () => {
+    networkRef.value.acceptParams({ defaultNetwork: form.defaultNetwork });
+};
 
 const onClean = async () => {
     ElMessageBox.confirm(i18n.global.t('commons.msg.clean'), i18n.global.t('monitor.cleanMonitor'), {
@@ -105,12 +120,19 @@ const onClean = async () => {
         cancelButtonText: i18n.global.t('commons.button.cancel'),
         type: 'info',
     }).then(async () => {
-        await cleanMonitors();
+        loading.value = true;
+        await cleanMonitors()
+            .then(() => {
+                loading.value = false;
+                MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
+            })
+            .catch(() => {
+                loading.value = false;
+            });
     });
 };
 
 onMounted(() => {
     search();
-    getSystemAvailable();
 });
 </script>

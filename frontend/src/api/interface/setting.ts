@@ -7,6 +7,9 @@ export namespace Setting {
         email: string;
         systemIP: string;
         systemVersion: string;
+        upgradeBackupCopies: string;
+        dockerSockPath: string;
+        developerMode: string;
 
         sessionTimeout: number;
         localTime: string;
@@ -15,10 +18,16 @@ export namespace Setting {
 
         panelName: string;
         theme: string;
+        menuTabs: string;
         language: string;
         defaultNetwork: string;
+        lastCleanTime: string;
+        lastCleanSize: string;
+        lastCleanData: string;
 
         serverPort: number;
+        ipv6: string;
+        bindAddress: string;
         ssl: string;
         sslType: string;
         allowIPs: string;
@@ -39,10 +48,49 @@ export namespace Setting {
         emailVars: string;
         weChatVars: string;
         dingVars: string;
+        snapshotIgnore: string;
+        hideMenu: string;
+        noAuthSetting: string;
+
+        proxyUrl: string;
+        proxyType: string;
+        proxyPort: string;
+        proxyUser: string;
+        proxyPasswd: string;
+        proxyPasswdKeep: string;
+
+        apiInterfaceStatus: string;
+        apiKey: string;
+        ipWhiteList: string;
+        apiKeyValidityTime: number;
+    }
+    export interface TerminalInfo {
+        lineHeight: string;
+        letterSpacing: string;
+        fontSize: string;
+        cursorBlink: string;
+        cursorStyle: string;
+        scrollback: string;
+        scrollSensitivity: string;
     }
     export interface SettingUpdate {
         key: string;
         value: string;
+    }
+    export interface ProxyUpdate {
+        proxyUrl: string;
+        proxyType: string;
+        proxyPort: string;
+        proxyUser: string;
+        proxyPasswd: string;
+        proxyPasswdKeep: string;
+        withDockerRestart: boolean;
+    }
+    export interface ApiConfig {
+        apiInterfaceStatus: string;
+        apiKey: string;
+        ipWhiteList: string;
+        apiKeyValidityTime: number;
     }
     export interface SSLUpdate {
         ssl: string;
@@ -67,6 +115,10 @@ export namespace Setting {
     export interface PortUpdate {
         serverPort: number;
     }
+    export interface MFARequest {
+        title: string;
+        interval: number;
+    }
     export interface MFAInfo {
         secret: string;
         qrImage: string;
@@ -76,53 +128,156 @@ export namespace Setting {
         code: string;
         interval: string;
     }
+
     export interface SnapshotCreate {
         id: number;
-        from: string;
+        sourceAccountIDs: string;
+        downloadAccountID: string;
         description: string;
+        secret: string;
+        timeout: number;
+
+        appData: Array<DataTree>;
+        panelData: Array<DataTree>;
+        backupData: Array<DataTree>;
+
+        withMonitorData: boolean;
+        withLoginLog: boolean;
+        withOperationLog: boolean;
     }
     export interface SnapshotImport {
-        from: string;
+        backupAccountID: number;
         names: Array<string>;
         description: string;
     }
     export interface SnapshotRecover {
         id: number;
+        taskID: string;
         isNew: boolean;
         reDownload: boolean;
+        secret: string;
     }
     export interface SnapshotInfo {
         id: number;
         name: string;
-        from: string;
+        sourceAccounts: Array<string>;
+        downloadAccount: string;
         description: string;
         status: string;
         message: string;
         createdAt: DateTimeFormats;
         version: string;
+        secret: string;
+        timeout: number;
+
+        taskID: string;
+        taskRecoverID: string;
+        taskRollbackID: string;
+
         interruptStep: string;
         recoverStatus: string;
         recoverMessage: string;
-        lastRecoveredAt: string;
         rollbackStatus: string;
         rollbackMessage: string;
-        lastRollbackedAt: string;
     }
-    export interface SnapshotStatus {
-        panel: string;
-        panelInfo: string;
-        daemonJson: string;
-        appData: string;
-        panelData: string;
-        backupData: string;
+    export interface SnapshotData {
+        appData: Array<DataTree>;
+        panelData: Array<DataTree>;
+        backupData: Array<DataTree>;
 
-        compress: string;
-        size: string;
-        upload: string;
+        withMonitorData: boolean;
+        withLoginLog: boolean;
+        withOperationLog: boolean;
+    }
+    export interface DataTree {
+        id: string;
+        label: string;
+        key: string;
+        name: string;
+        size: number;
+        isShow: boolean;
+        isDisable: boolean;
+
+        path: string;
+
+        Children: Array<DataTree>;
     }
     export interface UpgradeInfo {
+        testVersion: string;
         newVersion: string;
         latestVersion: string;
         releaseNote: string;
+    }
+
+    export interface License {
+        licenseName: string;
+        assigneeName: string;
+        productPro: string;
+        versionConstraint: string;
+        trial: boolean;
+        status: string;
+        message: string;
+        smsUsed: number;
+        smsTotal: number;
+    }
+    export interface LicenseOptions {
+        id: number;
+        licenseName: string;
+        totalFreeCount: number;
+        availableXpackCount: number;
+        availableFreeCount: number;
+    }
+    export interface LicenseStatus {
+        productPro: string;
+        status: string;
+        smsTotal: number;
+        smsUsed: number;
+    }
+    export interface NodeItem {
+        id: number;
+        addr: string;
+        status: string;
+        version: string;
+        isXpack: boolean;
+        isBound: boolean;
+        name: string;
+    }
+    export interface SimpleNodeItem {
+        id: number;
+        name: string;
+        addr: string;
+        description: string;
+        systemVersion: string;
+        securityEntrance: string;
+        cpuUsedPercent: number;
+        cpuTotal: number;
+        memoryTotal: number;
+        memoryUsedPercent: number;
+    }
+    export interface ReleasesNotes {
+        Version: string;
+        CreatedAt: string;
+        Content: string;
+        NewCount: number;
+        OptimizationCount: number;
+        FixCount: number;
+    }
+
+    export interface LicenseBind {
+        nodeID: number;
+        licenseID: number;
+        syncList: string;
+        withDockerRestart: boolean;
+    }
+    export interface LicenseUnbind {
+        id: number;
+        force: boolean;
+        withDockerRestart: boolean;
+    }
+
+    export interface SmsInfo {
+        licenseName: string;
+        smsUsed: number;
+        smsTotal: number;
     }
 }

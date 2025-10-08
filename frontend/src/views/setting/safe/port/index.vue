@@ -1,28 +1,17 @@
 <template>
-    <div>
-        <el-drawer v-model="drawerVisiable" :destroy-on-close="true" :close-on-click-modal="false" size="30%">
-            <template #header>
-                <DrawerHeader :header="$t('setting.panelPort')" :back="handleClose" />
-            </template>
-            <el-form ref="formRef" label-position="top" :model="form" @submit.prevent v-loading="loading">
-                <el-row type="flex" justify="center">
-                    <el-col :span="22">
-                        <el-form-item :label="$t('setting.panelPort')" prop="serverPort" :rules="Rules.port">
-                            <el-input clearable v-model.number="form.serverPort" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
-            <template #footer>
-                <span class="dialog-footer">
-                    <el-button @click="drawerVisiable = false">{{ $t('commons.button.cancel') }}</el-button>
-                    <el-button :disabled="loading" type="primary" @click="onSavePort(formRef)">
-                        {{ $t('commons.button.confirm') }}
-                    </el-button>
-                </span>
-            </template>
-        </el-drawer>
-    </div>
+    <DrawerPro v-model="drawerVisible" :header="$t('setting.panelPort')" @close="handleClose" size="small">
+        <el-form ref="formRef" label-position="top" :model="form" @submit.prevent v-loading="loading">
+            <el-form-item :label="$t('setting.panelPort')" prop="serverPort" :rules="Rules.port">
+                <el-input clearable v-model.number="form.serverPort" />
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <el-button @click="drawerVisible = false">{{ $t('commons.button.cancel') }}</el-button>
+            <el-button :disabled="loading" type="primary" @click="onSavePort(formRef)">
+                {{ $t('commons.button.confirm') }}
+            </el-button>
+        </template>
+    </DrawerPro>
 </template>
 <script lang="ts" setup>
 import { reactive, ref } from 'vue';
@@ -32,13 +21,12 @@ import { updatePort } from '@/api/modules/setting';
 import { ElMessageBox, FormInstance } from 'element-plus';
 import { Rules } from '@/global/form-rules';
 import { GlobalStore } from '@/store';
-import DrawerHeader from '@/components/drawer-header/index.vue';
 const globalStore = GlobalStore();
 
 interface DialogProps {
     serverPort: number;
 }
-const drawerVisiable = ref();
+const drawerVisible = ref();
 const loading = ref();
 
 const form = reactive({
@@ -49,7 +37,7 @@ const formRef = ref<FormInstance>();
 
 const acceptParams = (params: DialogProps): void => {
     form.serverPort = params.serverPort;
-    drawerVisiable.value = true;
+    drawerVisible.value = true;
 };
 
 const onSavePort = async (formEl: FormInstance | undefined) => {
@@ -89,7 +77,7 @@ const onSavePort = async (formEl: FormInstance | undefined) => {
 };
 
 const handleClose = () => {
-    drawerVisiable.value = false;
+    drawerVisible.value = false;
 };
 
 defineExpose({

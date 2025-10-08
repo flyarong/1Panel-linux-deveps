@@ -1,30 +1,13 @@
 <template>
     <div v-loading="loading">
-        <LayoutContent>
-            <template #title>
-                <back-button name="MySQL" :header="$t('database.remoteDB')" />
+        <LayoutContent backName="MySQL" :title="$t('database.remoteDB')">
+            <template #leftToolBar>
+                <el-button type="primary" @click="onOpenDialog('create')">
+                    {{ $t('database.createRemoteDB') }}
+                </el-button>
             </template>
-            <template #toolbar>
-                <el-row>
-                    <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
-                        <el-button type="primary" @click="onOpenDialog('create')">
-                            {{ $t('database.createRemoteDB') }}
-                        </el-button>
-                    </el-col>
-                    <el-col :xs="24" :sm="4" :md="4" :lg="4" :xl="4">
-                        <div class="search-button">
-                            <el-input
-                                v-model="searchName"
-                                clearable
-                                @clear="search()"
-                                suffix-icon="Search"
-                                @keyup.enter="search()"
-                                @change="search()"
-                                :placeholder="$t('commons.button.search')"
-                            ></el-input>
-                        </div>
-                    </el-col>
-                </el-row>
+            <template #rightToolBar>
+                <TableSearch @search="search()" v-model:searchName="searchName" />
             </template>
             <template #main>
                 <ComplexTable :pagination-config="paginationConfig" @sort-change="search" @search="search" :data="data">
@@ -33,31 +16,31 @@
                     <el-table-column :label="$t('commons.login.username')" prop="username" />
                     <el-table-column :label="$t('commons.login.password')" prop="password">
                         <template #default="{ row }">
-                            <div>
-                                <span style="float: left; line-height: 25px" v-if="!row.showPassword">***********</span>
-                                <div style="cursor: pointer; float: left" v-if="!row.showPassword">
-                                    <el-icon
-                                        style="margin-left: 5px; margin-top: 3px"
-                                        @click="row.showPassword = true"
-                                        :size="16"
-                                    >
-                                        <View />
-                                    </el-icon>
+                            <div class="flex items-center flex-wrap">
+                                <div class="star-center">
+                                    <span v-if="!row.showPassword">**********</span>
                                 </div>
-                                <span style="float: left" v-if="row.showPassword">{{ row.password }}</span>
-                                <div style="cursor: pointer; float: left" v-if="row.showPassword">
-                                    <el-icon
-                                        style="margin-left: 5px; margin-top: 3px"
-                                        @click="row.showPassword = false"
-                                        :size="16"
-                                    >
-                                        <Hide />
-                                    </el-icon>
+                                <div>
+                                    <span v-if="row.showPassword">
+                                        {{ row.password }}
+                                    </span>
                                 </div>
-                                <div style="cursor: pointer; float: left">
-                                    <el-icon style="margin-left: 5px; margin-top: 3px" :size="16" @click="onCopy(row)">
-                                        <DocumentCopy />
-                                    </el-icon>
+                                <el-button
+                                    v-if="!row.showPassword"
+                                    link
+                                    @click="row.showPassword = true"
+                                    icon="View"
+                                    class="ml-1.5"
+                                ></el-button>
+                                <el-button
+                                    v-if="row.showPassword"
+                                    link
+                                    @click="row.showPassword = false"
+                                    icon="Hide"
+                                    class="ml-1.5"
+                                ></el-button>
+                                <div>
+                                    <CopyButton :content="row.password" />
                                 </div>
                             </div>
                         </template>
@@ -84,33 +67,35 @@
             </template>
         </LayoutContent>
 
+        <AppResources ref="checkRef"></AppResources>
         <OperateDialog ref="dialogRef" @search="search" />
+        <DeleteDialog ref="deleteRef" @search="search" />
     </div>
 </template>
 
 <script lang="ts" setup>
 import { dateFormat } from '@/utils/util';
 import { onMounted, reactive, ref } from 'vue';
-import { deleteDatabase, searchDatabases } from '@/api/modules/database';
+import { deleteCheckDatabase, searchDatabases } from '@/api/modules/database';
+import AppResources from '@/views/database/mysql/check/index.vue';
 import OperateDialog from '@/views/database/mysql/remote/operate/index.vue';
+import DeleteDialog from '@/views/database/mysql/remote/delete/index.vue';
 import i18n from '@/lang';
-import { MsgError, MsgSuccess } from '@/utils/message';
-import useClipboard from 'vue-clipboard3';
 import { Database } from '@/api/interface/database';
-import { useDeleteData } from '@/hooks/use-delete-data';
-const { toClipboard } = useClipboard();
 
 const loading = ref(false);
 
 const dialogRef = ref();
+const checkRef = ref();
+const deleteRef = ref();
 
 const data = ref();
 const paginationConfig = reactive({
     cacheSizeKey: 'mysql-remote-page-size',
     currentPage: 1,
-    pageSize: 10,
+    pageSize: Number(localStorage.getItem('mysql-remote-page-size')) || 20,
     total: 0,
-    orderBy: 'created_at',
+    orderBy: 'createdAt',
     order: 'null',
 });
 const searchName = ref();
@@ -141,6 +126,7 @@ const onOpenDialog = async (
         port: 3306,
         username: 'root',
         password: '',
+        timeout: 30,
         description: '',
     },
 ) => {
@@ -151,18 +137,16 @@ const onOpenDialog = async (
     dialogRef.value!.acceptParams(params);
 };
 
-const onCopy = async (row: any) => {
-    try {
-        await toClipboard(row.password);
-        MsgSuccess(i18n.global.t('commons.msg.copySuccess'));
-    } catch (e) {
-        MsgError(i18n.global.t('commons.msg.copyfailed'));
-    }
-};
-
 const onDelete = async (row: Database.DatabaseInfo) => {
-    await useDeleteData(deleteDatabase, row.id, 'commons.msg.delete');
-    search();
+    const res = await deleteCheckDatabase(row.id);
+    if (res.data && res.data.length > 0) {
+        checkRef.value.acceptParams({ items: res.data });
+    } else {
+        deleteRef.value.acceptParams({
+            id: row.id,
+            database: row.name,
+        });
+    }
 };
 
 const buttons = [
@@ -173,7 +157,7 @@ const buttons = [
         },
     },
     {
-        label: i18n.global.t('commons.button.delete'),
+        label: i18n.global.t('commons.button.unbind'),
         click: (row: Database.DatabaseInfo) => {
             onDelete(row);
         },

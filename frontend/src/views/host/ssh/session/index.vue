@@ -1,30 +1,12 @@
 <template>
     <div>
         <FireRouter />
-        <LayoutContent :title="$t('ssh.session')">
-            <template #toolbar>
-                <div style="width: 100%">
-                    <el-row :gutter="20">
-                        <el-col :span="8"></el-col>
-                        <el-col :span="8"></el-col>
-                        <el-col :span="8">
-                            <div class="search-button">
-                                <el-input
-                                    v-model.trim="sshSearch.loginUser"
-                                    clearable
-                                    @clear="search()"
-                                    suffix-icon="Search"
-                                    @keyup.enter="search()"
-                                    @change="search()"
-                                    :placeholder="$t('commons.table.user')"
-                                ></el-input>
-                            </div>
-                        </el-col>
-                    </el-row>
-                </div>
+        <LayoutContent :title="$t('ssh.session', 2)">
+            <template #rightToolBar>
+                <TableSearch @search="search()" v-model:searchName="sshSearch.loginUser" />
             </template>
             <template #main>
-                <ComplexTable :data="data" ref="tableRef" v-loading="loading">
+                <ComplexTable :data="data" ref="tableRef" v-loading="loading" :heightDiff="260">
                     <el-table-column :label="$t('commons.table.user')" fix prop="username"></el-table-column>
                     <el-table-column :label="'TTY'" fix prop="terminal"></el-table-column>
                     <el-table-column :label="$t('ssh.loginIP')" fix prop="host"></el-table-column>
@@ -45,8 +27,10 @@
 import FireRouter from '@/views/host/ssh/index.vue';
 import { ref, onMounted, onUnmounted, reactive } from 'vue';
 import i18n from '@/lang';
-import { StopProcess } from '@/api/modules/process';
+import { stopProcess } from '@/api/modules/process';
 import { MsgError, MsgSuccess } from '@/utils/message';
+import { GlobalStore } from '@/store';
+const globalStore = GlobalStore();
 
 const sshSearch = reactive({
     type: 'ssh',
@@ -55,9 +39,9 @@ const sshSearch = reactive({
 
 const buttons = [
     {
-        label: i18n.global.t('ssh.disconnect'),
+        label: i18n.global.t('commons.button.disConn'),
         click: function (row: any) {
-            stopProcess(row.PID);
+            stop(row.PID);
         },
     },
 ];
@@ -93,7 +77,8 @@ const initProcess = () => {
     let href = window.location.href;
     let protocol = href.split('//')[0] === 'http:' ? 'ws' : 'wss';
     let ipLocal = href.split('//')[1].split('/')[0];
-    processSocket = new WebSocket(`${protocol}://${ipLocal}/api/v1/process/ws`);
+    let currentNode = globalStore.currentNode;
+    processSocket = new WebSocket(`${protocol}://${ipLocal}/api/v2/process/ws?operateNode=${currentNode}`);
     processSocket.onopen = onOpenProcess;
     processSocket.onmessage = onMessage;
     processSocket.onerror = onerror;
@@ -115,15 +100,15 @@ const search = () => {
     }
 };
 
-const stopProcess = async (PID: number) => {
-    ElMessageBox.confirm(i18n.global.t('ssh.stopSSHWarn'), i18n.global.t('ssh.disconnect'), {
+const stop = async (PID: number) => {
+    ElMessageBox.confirm(i18n.global.t('ssh.stopSSHWarn'), i18n.global.t('commons.button.disConn'), {
         confirmButtonText: i18n.global.t('commons.button.confirm'),
         cancelButtonText: i18n.global.t('commons.button.cancel'),
         type: 'info',
     })
         .then(async () => {
             try {
-                await StopProcess({ PID: PID });
+                await stopProcess({ PID: PID });
                 MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
             } catch (error) {
                 MsgError(error);

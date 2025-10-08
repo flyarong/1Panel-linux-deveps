@@ -1,43 +1,36 @@
 <template>
-    <el-drawer :close-on-click-modal="false" v-model="open" size="30%">
-        <template #header>
-            <Header :header="$t('app.ignoreList')" :back="handleClose"></Header>
+    <DrawerPro v-model="open" :header="$t('app.ignoreList')" @close="handleClose" size="small">
+        <template #content>
+            <el-table :data="apps">
+                <el-table-column prop="name" :label="$t('app.app')" />
+                <el-table-column prop="scope" :label="$t('license.trialInfo')">
+                    <template #default="{ row }">
+                        <el-tag v-if="row.version != ''">{{ row.version }}</el-tag>
+                        <el-tag v-else>{{ $t('commons.table.all') + $t('app.version') }}</el-tag>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="scope" :label="$t('commons.table.operate')">
+                    <template #default="{ row }">
+                        <el-button type="primary" link @click="cancelIgnore(row.ID)">
+                            {{ $t('app.cancelIgnore') }}
+                        </el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
         </template>
-        <el-row :gutter="5">
-            <el-col v-for="(app, index) in apps" :key="index">
-                <el-card class="app-margin">
-                    <el-row :gutter="20">
-                        <el-col :span="6">
-                            <el-avatar shape="square" :size="60" :src="'data:image/png;base64,' + app.icon" />
-                        </el-col>
-                        <el-col :span="12">
-                            <span>{{ app.name }}</span>
-                            <div class="app-margin">
-                                <el-tag>{{ app.version }}</el-tag>
-                            </div>
-                        </el-col>
-                        <el-col :span="6">
-                            <el-button type="primary" link @click="cancelIngore(app.detailID)">
-                                {{ $t('app.cancelIgnore') }}
-                            </el-button>
-                        </el-col>
-                    </el-row>
-                </el-card>
-            </el-col>
-        </el-row>
         <template #footer>
             <span class="dialog-footer">
                 <el-button @click="handleClose" :disabled="loading">{{ $t('commons.button.cancel') }}</el-button>
             </span>
         </template>
-    </el-drawer>
+    </DrawerPro>
 </template>
 <script lang="ts" setup>
-import { GetIgnoredApp, IgnoreUpgrade } from '@/api/modules/app';
+import { cancelAppIgnore, getIgnoredApp } from '@/api/modules/app';
 import { ref } from 'vue';
-import Header from '@/components/drawer-header/index.vue';
 import { MsgSuccess } from '@/utils/message';
 import i18n from '@/lang';
+import bus from '@/global/bus';
 
 const open = ref(false);
 const loading = ref(false);
@@ -56,15 +49,16 @@ const acceptParams = () => {
 
 const getApps = async () => {
     try {
-        const res = await GetIgnoredApp();
+        const res = await getIgnoredApp();
         apps.value = res.data;
     } catch (error) {}
 };
 
-const cancelIngore = async (id: number) => {
+const cancelIgnore = async (id: number) => {
     loading.value = true;
-    await IgnoreUpgrade({ detailID: id, operate: 'cancel' })
+    await cancelAppIgnore({ id: id })
         .then(() => {
+            bus.emit('upgrade', true);
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
         })
         .finally(() => {

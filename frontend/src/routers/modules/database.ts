@@ -1,8 +1,9 @@
 import { Layout } from '@/routers/constant';
 
 const databaseRouter = {
-    sort: 4,
+    sort: 5,
     path: '/databases',
+    name: 'Database-Menu',
     component: Layout,
     redirect: '/databases/mysql',
     meta: {
@@ -12,7 +13,7 @@ const databaseRouter = {
     children: [
         {
             path: '/databases',
-            name: 'Databases',
+            name: 'Database',
             redirect: '/databases/mysql',
             component: () => import('@/views/database/index.vue'),
             meta: {},
@@ -25,6 +26,8 @@ const databaseRouter = {
                     meta: {
                         activeMenu: '/databases',
                         requiresAuth: false,
+                        parent: 'menu.database',
+                        title: 'MySQL',
                     },
                 },
                 {
@@ -36,6 +39,7 @@ const databaseRouter = {
                     meta: {
                         activeMenu: '/databases',
                         requiresAuth: false,
+                        ignoreTab: true,
                     },
                 },
                 {
@@ -46,6 +50,46 @@ const databaseRouter = {
                     meta: {
                         activeMenu: '/databases',
                         requiresAuth: false,
+                        parent: 'menu.database',
+                        title: 'MySQL',
+                        detail: 'database.remote',
+                    },
+                },
+                {
+                    path: 'postgresql',
+                    name: 'PostgreSQL',
+                    component: () => import('@/views/database/postgresql/index.vue'),
+                    hidden: true,
+                    meta: {
+                        activeMenu: '/databases',
+                        requiresAuth: false,
+                        parent: 'menu.database',
+                        title: 'PostgreSQL',
+                    },
+                },
+                {
+                    path: 'postgresql/remote',
+                    name: 'PostgreSQL-Remote',
+                    component: () => import('@/views/database/postgresql/remote/index.vue'),
+                    hidden: true,
+                    meta: {
+                        activeMenu: '/databases',
+                        requiresAuth: false,
+                        parent: 'menu.database',
+                        title: 'PostgreSQL',
+                        detail: 'database.remote',
+                    },
+                },
+                {
+                    path: 'postgresql/setting/:type/:database',
+                    name: 'PostgreSQL-Setting',
+                    component: () => import('@/views/database/postgresql/setting/index.vue'),
+                    props: true,
+                    hidden: true,
+                    meta: {
+                        activeMenu: '/databases',
+                        requiresAuth: false,
+                        ignoreTab: true,
                     },
                 },
                 {
@@ -56,6 +100,21 @@ const databaseRouter = {
                     meta: {
                         activeMenu: '/databases',
                         requiresAuth: false,
+                        parent: 'menu.database',
+                        title: 'Redis',
+                    },
+                },
+                {
+                    path: 'redis/remote',
+                    name: 'Redis-Remote',
+                    component: () => import('@/views/database/redis/remote/index.vue'),
+                    hidden: true,
+                    meta: {
+                        activeMenu: '/databases',
+                        requiresAuth: false,
+                        parent: 'menu.database',
+                        title: 'Redis',
+                        detail: 'database.remote',
                     },
                 },
             ],

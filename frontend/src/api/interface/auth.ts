@@ -26,4 +26,14 @@ export namespace Login {
     export interface ResAuthButtons {
         [propName: string]: any;
     }
+
+    export interface LoginSetting {
+        isDemo: boolean;
+        isIntl: boolean;
+        language: string;
+        menuTabs: string;
+        panelName: string;
+        theme: string;
+        isOffLine: boolean;
+    }
 }

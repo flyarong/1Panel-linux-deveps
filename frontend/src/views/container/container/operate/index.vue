@@ -1,328 +1,512 @@
 <template>
-    <el-drawer v-model="drawerVisible" :destroy-on-close="true" :close-on-click-modal="false" size="50%">
-        <template #header>
-            <DrawerHeader
-                :header="title"
-                :hideResource="dialogData.title === 'create'"
-                :resource="dialogData.rowData?.name"
-                :back="handleClose"
-            />
-        </template>
-        <el-form
-            ref="formRef"
-            label-position="top"
-            v-loading="loading"
-            :model="dialogData.rowData!"
-            :rules="rules"
-            label-width="80px"
+    <div>
+        <LayoutContent
+            back-name="ContainerItem"
+            :title="isCreate ? $t('container.create') : $t('commons.button.edit') + ' - ' + form.name"
         >
-            <el-row type="flex" justify="center">
-                <el-col :span="22">
-                    <el-form-item :label="$t('commons.table.name')" prop="name">
-                        <el-input clearable v-model.trim="dialogData.rowData!.name" />
-                    </el-form-item>
-                    <el-form-item :label="$t('container.image')" prop="image">
-                        <el-checkbox v-model="dialogData.rowData!.imageInput" :label="$t('container.input')" />
-                        <el-select
-                            v-if="!dialogData.rowData!.imageInput"
-                            filterable
-                            v-model="dialogData.rowData!.image"
-                        >
-                            <el-option
-                                v-for="(item, index) of images"
-                                :key="index"
-                                :value="item.option"
-                                :label="item.option"
-                            />
-                        </el-select>
-                        <el-input v-else v-model="dialogData.rowData!.image" />
-                    </el-form-item>
-                    <el-form-item prop="forcePull">
-                        <el-checkbox v-model="dialogData.rowData!.forcePull">
-                            {{ $t('container.forcePull') }}
-                        </el-checkbox>
-                        <span class="input-help">{{ $t('container.forcePullHelper') }}</span>
-                    </el-form-item>
-                    <el-form-item :label="$t('commons.table.port')">
-                        <el-radio-group v-model="dialogData.rowData!.publishAllPorts" class="ml-4">
-                            <el-radio :label="false">{{ $t('container.exposePort') }}</el-radio>
-                            <el-radio :label="true">{{ $t('container.exposeAll') }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                    <el-form-item v-if="!dialogData.rowData!.publishAllPorts">
-                        <el-card class="widthClass">
-                            <table style="width: 100%" class="tab-table">
-                                <tr v-if="dialogData.rowData!.exposedPorts.length !== 0">
-                                    <th scope="col" width="45%" align="left">
-                                        <label>{{ $t('container.server') }}</label>
-                                    </th>
-                                    <th scope="col" width="35%" align="left">
-                                        <label>{{ $t('container.container') }}</label>
-                                    </th>
-                                    <th scope="col" width="20%" align="left">
-                                        <label>{{ $t('commons.table.protocol') }}</label>
-                                    </th>
-                                    <th align="left"></th>
-                                </tr>
-                                <tr v-for="(row, index) in dialogData.rowData!.exposedPorts" :key="index">
-                                    <td width="45%">
-                                        <el-input
-                                            :placeholder="$t('container.serverExample')"
-                                            style="width: 100%"
-                                            v-model="row.host"
-                                        />
-                                    </td>
-                                    <td width="35%">
-                                        <el-input
-                                            :placeholder="$t('container.containerExample')"
-                                            style="width: 100%"
-                                            v-model="row.containerPort"
-                                        />
-                                    </td>
-                                    <td width="20%">
-                                        <el-select v-model="row.protocol" style="width: 100%">
-                                            <el-option label="tcp" value="tcp" />
-                                            <el-option label="udp" value="udp" />
-                                        </el-select>
-                                    </td>
-                                    <td>
-                                        <el-button link style="font-size: 10px" @click="handlePortsDelete(index)">
-                                            {{ $t('commons.button.delete') }}
-                                        </el-button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="left">
-                                        <el-button @click="handlePortsAdd()">{{ $t('commons.button.add') }}</el-button>
-                                    </td>
-                                </tr>
-                            </table>
-                        </el-card>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.network')" prop="network">
-                        <el-select v-model="dialogData.rowData!.network">
-                            <el-option
-                                v-for="(item, indexV) of networks"
-                                :key="indexV"
-                                :value="item.option"
-                                :label="item.option"
-                            />
-                        </el-select>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.mount')">
-                        <div v-for="(row, index) in dialogData.rowData!.volumes" :key="index" style="width: 100%">
-                            <el-card class="mt-1">
-                                <el-radio-group v-model="row.isVolume">
-                                    <el-radio-button :label="true">{{ $t('container.volumeOption') }}</el-radio-button>
-                                    <el-radio-button :label="false">{{ $t('container.hostOption') }}</el-radio-button>
-                                </el-radio-group>
-                                <el-button
-                                    class="float-right mt-3"
-                                    link
-                                    type="primary"
-                                    @click="handleVolumesDelete(index)"
-                                >
-                                    {{ $t('commons.button.delete') }}
+            <template #main>
+                <el-form
+                    ref="formRef"
+                    label-position="top"
+                    v-loading="loading"
+                    :model="form"
+                    :rules="rules"
+                    label-width="80px"
+                >
+                    <el-row type="flex" justify="center" :gutter="20">
+                        <el-col :span="20">
+                            <el-card>
+                                <el-alert
+                                    v-if="!isCreate && isFromApp(form)"
+                                    :title="$t('container.containerFromAppHelper')"
+                                    :closable="false"
+                                    type="error"
+                                />
+
+                                <el-button v-if="isCreate" type="primary" icon="EditPen" plain @click="toTerminal()">
+                                    {{ $t('container.commandInput') }}
                                 </el-button>
-                                <el-row class="mt-4" :gutter="5">
-                                    <el-col :span="10">
-                                        <el-form-item v-if="row.isVolume" :label="$t('container.volumeOption')">
-                                            <el-select filterable v-model="row.sourceDir">
-                                                <div v-for="(item, indexV) of volumes" :key="indexV">
-                                                    <el-tooltip :hide-after="20" :content="item.option" placement="top">
-                                                        <el-option
-                                                            :value="item.option"
-                                                            :label="item.option.substring(0, 30)"
-                                                        />
-                                                    </el-tooltip>
-                                                </div>
-                                            </el-select>
-                                        </el-form-item>
-                                        <el-form-item v-else :label="$t('container.hostOption')">
-                                            <el-input v-model="row.sourceDir" />
-                                        </el-form-item>
-                                    </el-col>
-                                    <el-col :span="5">
-                                        <el-form-item :label="$t('container.mode')">
-                                            <el-select class="widthClass" filterable v-model="row.mode">
-                                                <el-option value="rw" :label="$t('container.modeRW')" />
-                                                <el-option value="ro" :label="$t('container.modeR')" />
-                                            </el-select>
-                                        </el-form-item>
-                                    </el-col>
-                                    <el-col :span="9">
-                                        <el-form-item :label="$t('container.containerDir')">
-                                            <el-input v-model="row.containerDir" />
-                                        </el-form-item>
-                                    </el-col>
-                                </el-row>
+                                <el-form-item class="mt-5" :label="$t('commons.table.name')" prop="name">
+                                    <el-input
+                                        :disabled="isFromApp(form)"
+                                        class="mini-form-item"
+                                        clearable
+                                        v-model.trim="form.name"
+                                    />
+                                    <span class="input-help" v-if="!isCreate && isFromApp(form)">
+                                        {{ $t('container.containerFromAppHelper1') }}
+                                        <el-button
+                                            style="margin-left: -5px"
+                                            size="small"
+                                            text
+                                            type="primary"
+                                            @click="goRouter()"
+                                        >
+                                            <el-icon><Position /></el-icon>
+                                            {{ $t('firewall.quickJump') }}
+                                        </el-button>
+                                    </span>
+                                </el-form-item>
+                                <el-form-item :label="$t('container.image')" prop="image">
+                                    <el-checkbox v-model="form.imageInput" :label="$t('container.input')" />
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-select
+                                        class="mini-form-item"
+                                        v-if="!form.imageInput"
+                                        filterable
+                                        v-model="form.image"
+                                    >
+                                        <el-option
+                                            v-for="(item, index) of images"
+                                            :key="index"
+                                            :value="item.option"
+                                            :label="item.option"
+                                        />
+                                    </el-select>
+                                    <el-input class="mini-form-item" v-else v-model="form.image" />
+                                </el-form-item>
+                                <el-form-item prop="forcePull">
+                                    <el-checkbox v-model="form.forcePull">
+                                        {{ $t('container.forcePull') }}
+                                    </el-checkbox>
+                                    <span class="input-help">{{ $t('container.forcePullHelper') }}</span>
+                                </el-form-item>
+
+                                <el-form-item prop="autoRemove">
+                                    <el-checkbox v-model="form.autoRemove">
+                                        {{ $t('container.autoRemove') }}
+                                    </el-checkbox>
+                                </el-form-item>
+                                <el-form-item :label="$t('commons.table.port')">
+                                    <el-radio-group v-model="form.publishAllPorts" class="ml-4">
+                                        <el-radio :value="false">{{ $t('container.exposePort') }}</el-radio>
+                                        <el-radio :value="true">{{ $t('container.exposeAll') }}</el-radio>
+                                    </el-radio-group>
+                                </el-form-item>
+                                <el-form-item v-if="!form.publishAllPorts">
+                                    <el-table v-if="form.exposedPorts.length !== 0" :data="form.exposedPorts">
+                                        <el-table-column :label="$t('container.server')" min-width="200">
+                                            <template #default="{ row }">
+                                                <el-input
+                                                    :placeholder="$t('container.serverExample')"
+                                                    v-model="row.host"
+                                                />
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column :label="$t('menu.container')" min-width="120">
+                                            <template #default="{ row }">
+                                                <el-input
+                                                    :placeholder="$t('container.containerExample')"
+                                                    v-model="row.containerPort"
+                                                />
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column :label="$t('commons.table.protocol')" min-width="100">
+                                            <template #default="{ row }">
+                                                <el-radio-group v-model="row.protocol">
+                                                    <el-radio value="tcp">tcp</el-radio>
+                                                    <el-radio value="udp">udp</el-radio>
+                                                </el-radio-group>
+                                            </template>
+                                        </el-table-column>
+                                        <el-table-column min-width="80">
+                                            <template #default="scope">
+                                                <el-button link type="primary" @click="handlePortsDelete(scope.$index)">
+                                                    {{ $t('commons.button.delete') }}
+                                                </el-button>
+                                            </template>
+                                        </el-table-column>
+                                    </el-table>
+
+                                    <el-button class="ml-3 mt-2" @click="handlePortsAdd()">
+                                        {{ $t('commons.button.add') }}
+                                    </el-button>
+                                </el-form-item>
                             </el-card>
-                        </div>
-                        <el-button @click="handleVolumesAdd()">
-                            {{ $t('commons.button.add') }}
-                        </el-button>
-                    </el-form-item>
-                    <el-form-item label="Command" prop="cmdStr">
-                        <el-input v-model="dialogData.rowData!.cmdStr" :placeholder="$t('container.cmdHelper')" />
-                    </el-form-item>
-                    <el-form-item label="Entrypoint" prop="entrypoint">
-                        <el-input
-                            v-model="dialogData.rowData!.entrypointStr"
-                            :placeholder="$t('container.entrypointHelper')"
-                        />
-                    </el-form-item>
-                    <el-form-item prop="autoRemove">
-                        <el-checkbox v-model="dialogData.rowData!.autoRemove">
-                            {{ $t('container.autoRemove') }}
-                        </el-checkbox>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.restartPolicy')" prop="restartPolicy">
-                        <el-radio-group v-model="dialogData.rowData!.restartPolicy">
-                            <el-radio label="no">{{ $t('container.no') }}</el-radio>
-                            <el-radio label="always">{{ $t('container.always') }}</el-radio>
-                            <el-radio label="on-failure">{{ $t('container.onFailure') }}</el-radio>
-                            <el-radio label="unless-stopped">{{ $t('container.unlessStopped') }}</el-radio>
-                        </el-radio-group>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.cpuShare')" prop="cpuShares">
-                        <el-input class="mini-form-item" v-model.number="dialogData.rowData!.cpuShares" />
-                        <span class="input-help">{{ $t('container.cpuShareHelper') }}</span>
-                    </el-form-item>
-                    <el-form-item
-                        :label="$t('container.cpuQuota')"
-                        prop="nanoCPUs"
-                        :rules="checkFloatNumberRange(0, Number(limits.cpu))"
-                    >
-                        <el-input class="mini-form-item" v-model="dialogData.rowData!.nanoCPUs">
-                            <template #append>
-                                <div style="width: 35px">{{ $t('commons.units.core') }}</div>
-                            </template>
-                        </el-input>
-                        <span class="input-help">
-                            {{ $t('container.limitHelper', [limits.cpu]) }}{{ $t('commons.units.core') }}
-                        </span>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.memoryLimit')" prop="memory">
-                        <el-input class="mini-form-item" v-model="dialogData.rowData!.memory">
-                            <template #append><div style="width: 35px">MB</div></template>
-                        </el-input>
-                        <span class="input-help">{{ $t('container.limitHelper', [limits.memory]) }}MB</span>
-                    </el-form-item>
-                    <el-form-item :label="$t('container.tag')" prop="labelsStr">
-                        <el-input
-                            type="textarea"
-                            :placeholder="$t('container.tagHelper')"
-                            :autosize="{ minRows: 2, maxRows: 10 }"
-                            v-model="dialogData.rowData!.labelsStr"
-                        />
-                    </el-form-item>
-                    <el-form-item :label="$t('container.env')" prop="envStr">
-                        <el-input
-                            type="textarea"
-                            :placeholder="$t('container.tagHelper')"
-                            :autosize="{ minRows: 2, maxRows: 10 }"
-                            v-model="dialogData.rowData!.envStr"
-                        />
-                    </el-form-item>
-                </el-col>
-            </el-row>
-        </el-form>
-        <template #footer>
-            <span class="dialog-footer">
-                <el-button :disabled="loading" @click="drawerVisible = false">
-                    {{ $t('commons.button.cancel') }}
-                </el-button>
-                <el-button :disabled="loading" type="primary" @click="onSubmit(formRef)">
-                    {{ $t('commons.button.confirm') }}
-                </el-button>
-            </span>
-        </template>
-    </el-drawer>
+
+                            <el-tabs type="border-card" class="mt-5">
+                                <el-tab-pane :label="$t('container.network')">
+                                    <el-row :gutter="20">
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item :label="$t('container.network')" prop="network">
+                                                <el-select v-model="form.network">
+                                                    <el-option
+                                                        v-for="(item, indexV) of networks"
+                                                        :key="indexV"
+                                                        :value="item.option"
+                                                        :label="item.option"
+                                                    />
+                                                </el-select>
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item :label="$t('toolbox.device.hostname')" prop="hostname">
+                                                <el-input v-model="form.hostname" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item label="Domain" prop="domainName">
+                                                <el-input v-model="form.domainName" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item :label="$t('container.macAddr')" prop="macAddr">
+                                                <el-input v-model="form.macAddr" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item label="IPv4" prop="ipv4">
+                                                <el-input
+                                                    v-model="form.ipv4"
+                                                    :placeholder="$t('container.inputIpv4')"
+                                                />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item label="IPv6" prop="ipv6">
+                                                <el-input
+                                                    v-model="form.ipv6"
+                                                    :placeholder="$t('container.inputIpv6')"
+                                                />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item label="DNS" prop="dns">
+                                                <div v-for="(_, index) of form.dns" :key="index" class="w-full">
+                                                    <el-input class="mt-2" v-model="form.dns[index]">
+                                                        <template #append>
+                                                            <el-button
+                                                                link
+                                                                icon="Delete"
+                                                                @click="form.dns.splice(index, 1)"
+                                                            />
+                                                        </template>
+                                                    </el-input>
+                                                </div>
+                                                <el-button class="mt-2" @click="form.dns.push('')">
+                                                    {{ $t('commons.button.add') }}
+                                                </el-button>
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                </el-tab-pane>
+
+                                <el-tab-pane :label="$t('container.mount')">
+                                    <Volume ref="volumeRef" :volumes="form.volumes"></Volume>
+                                </el-tab-pane>
+
+                                <el-tab-pane :label="$t('terminal.command')">
+                                    <el-row :gutter="20">
+                                        <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
+                                            <el-form-item label="Command" prop="cmdStr">
+                                                <el-input
+                                                    v-model="form.cmdStr"
+                                                    :placeholder="$t('container.cmdHelper')"
+                                                />
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                    <el-row :gutter="20">
+                                        <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
+                                            <el-form-item label="Entrypoint" prop="entrypointStr">
+                                                <el-input
+                                                    v-model="form.entrypointStr"
+                                                    :placeholder="$t('container.entrypointHelper')"
+                                                />
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+
+                                    <el-row :gutter="20">
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item :label="$t('container.workingDir')" prop="workingDir">
+                                                <el-input v-model="form.workingDir" />
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="10" :md="10" :lg="10" :xl="10">
+                                            <el-form-item :label="$t('commons.table.user')" prop="user">
+                                                <el-input v-model="form.user" />
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                    <el-form-item :label="$t('container.console')">
+                                        <el-checkbox v-model="form.tty">{{ $t('container.tty') }}</el-checkbox>
+                                        <el-checkbox v-model="form.openStdin">
+                                            {{ $t('container.openStdin') }}
+                                        </el-checkbox>
+                                    </el-form-item>
+                                </el-tab-pane>
+
+                                <el-tab-pane :label="$t('container.resource')">
+                                    <el-form-item :label="$t('container.cpuShare')" prop="cpuShares">
+                                        <el-input class="mini-form-item" v-model.number="form.cpuShares" />
+                                        <span class="input-help">{{ $t('container.cpuShareHelper') }}</span>
+                                    </el-form-item>
+                                    <el-form-item
+                                        :label="$t('container.cpuQuota')"
+                                        prop="nanoCPUs"
+                                        :rules="checkFloatNumberRange(0, Number(limits.cpu))"
+                                    >
+                                        <el-input class="mini-form-item" v-model="form.nanoCPUs">
+                                            <template #append>
+                                                <div style="width: 35px">{{ $t('commons.units.core') }}</div>
+                                            </template>
+                                        </el-input>
+                                        <span class="input-help">
+                                            {{ $t('container.limitHelper', [limits.cpu])
+                                            }}{{ $t('commons.units.core') }}
+                                        </span>
+                                    </el-form-item>
+                                    <el-form-item
+                                        :label="$t('container.memoryLimit')"
+                                        prop="memory"
+                                        :rules="checkFloatNumberRange(0, Number(limits.memory))"
+                                    >
+                                        <el-input class="mini-form-item" v-model="form.memory">
+                                            <template #append><div style="width: 35px">MB</div></template>
+                                        </el-input>
+                                        <span class="input-help">
+                                            {{ $t('container.limitHelper', [limits.memory]) }}MB
+                                        </span>
+                                    </el-form-item>
+                                    <el-form-item>
+                                        <el-checkbox v-model="form.privileged">
+                                            {{ $t('container.privileged') }}
+                                        </el-checkbox>
+                                        <span class="input-help">{{ $t('container.privilegedHelper') }}</span>
+                                    </el-form-item>
+                                </el-tab-pane>
+
+                                <el-tab-pane :label="$t('container.tag') + ' & ' + $t('container.env')">
+                                    <el-row :gutter="20">
+                                        <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
+                                            <el-form-item :label="$t('container.tag')" prop="labels">
+                                                <div v-for="(_, index) of form.labels" :key="index" class="w-full">
+                                                    <el-input
+                                                        class="mt-2"
+                                                        placeholder="e.g. key=val"
+                                                        v-model="form.labels[index]"
+                                                    >
+                                                        <template #append>
+                                                            <el-button
+                                                                link
+                                                                icon="Delete"
+                                                                @click="form.labels.splice(index, 1)"
+                                                            />
+                                                        </template>
+                                                    </el-input>
+                                                </div>
+                                                <el-button class="mt-2" @click="form.labels.push('')">
+                                                    {{ $t('commons.button.add') }}
+                                                </el-button>
+                                            </el-form-item>
+                                        </el-col>
+                                        <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
+                                            <el-form-item :label="$t('container.env')" prop="envStr">
+                                                <div v-for="(_, index) of form.env" :key="index" class="w-full">
+                                                    <el-input
+                                                        class="mt-2"
+                                                        placeholder="e.g. key=val"
+                                                        v-model="form.env[index]"
+                                                    >
+                                                        <template #append>
+                                                            <el-button
+                                                                link
+                                                                icon="Delete"
+                                                                @click="form.env.splice(index, 1)"
+                                                            />
+                                                        </template>
+                                                    </el-input>
+                                                </div>
+                                                <el-button class="mt-2" @click="form.env.push('')">
+                                                    {{ $t('commons.button.add') }}
+                                                </el-button>
+                                            </el-form-item>
+                                        </el-col>
+                                    </el-row>
+                                </el-tab-pane>
+
+                                <el-tab-pane :label="$t('container.restartPolicy')">
+                                    <el-form-item prop="restartPolicy">
+                                        <el-radio-group v-model="form.restartPolicy">
+                                            <el-radio value="no">{{ $t('container.no') }}</el-radio>
+                                            <el-radio value="always">{{ $t('container.always') }}</el-radio>
+                                            <el-radio value="on-failure">{{ $t('container.onFailure') }}</el-radio>
+                                            <el-radio value="unless-stopped">
+                                                {{ $t('container.unlessStopped') }}
+                                            </el-radio>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                </el-tab-pane>
+                            </el-tabs>
+
+                            <el-form-item class="mt-5">
+                                <el-button :disabled="loading" @click="goBack">
+                                    {{ $t('commons.button.back') }}
+                                </el-button>
+                                <el-button :disabled="loading" type="primary" @click="onSubmit(formRef)">
+                                    {{ $t('commons.button.confirm') }}
+                                </el-button>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                </el-form>
+            </template>
+        </LayoutContent>
+        <Confirm ref="confirmRef" @submit="submit" />
+        <TaskLog ref="taskLogRef" width="70%" :show-close="false">
+            <template #task-footer>
+                <el-button @click="goBack">{{ $t('commons.table.backToList') }}</el-button>
+                <el-button type="primary" @click="closeTask">{{ $t('commons.table.keepEdit') }}</el-button>
+            </template>
+        </TaskLog>
+        <TerminalDialog ref="dialogTerminalRef" />
+    </div>
 </template>
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue';
 import { Rules, checkFloatNumberRange, checkNumberRange } from '@/global/form-rules';
 import i18n from '@/lang';
-import { ElForm, ElMessageBox } from 'element-plus';
-import DrawerHeader from '@/components/drawer-header/index.vue';
+import { ElForm } from 'element-plus';
+import Confirm from '@/views/container/container/operate/confirm.vue';
+import Volume from '@/views/container/container/operate/volume.vue';
 import {
     listImage,
-    listVolume,
     createContainer,
     updateContainer,
     loadResourceLimit,
     listNetwork,
+    searchContainer,
+    loadContainerInfo,
 } from '@/api/modules/container';
 import { Container } from '@/api/interface/container';
-import { MsgError, MsgSuccess } from '@/utils/message';
-import { checkIpV4V6, checkPort } from '@/utils/util';
+import { MsgError } from '@/utils/message';
+import TaskLog from '@/components/log/task/index.vue';
+import { checkIpV4V6, checkPort, newUUID } from '@/utils/util';
+import router from '@/routers';
+import TerminalDialog from '@/views/host/file-management/terminal/index.vue';
+import { routerToName } from '@/utils/router';
 
 const loading = ref(false);
-interface DialogProps {
-    title: string;
-    rowData?: Container.ContainerHelper;
-    getTableList?: () => Promise<any>;
-}
-
-const title = ref<string>('');
-const drawerVisible = ref(false);
-
-const dialogData = ref<DialogProps>({
-    title: '',
+const isCreate = ref();
+const confirmRef = ref();
+const volumeRef = ref();
+const form = reactive<Container.ContainerHelper>({
+    taskID: '',
+    containerID: '',
+    name: '',
+    image: '',
+    imageInput: false,
+    forcePull: false,
+    network: 'bridge',
+    hostname: '',
+    domainName: '',
+    macAddr: '',
+    ipv4: '',
+    ipv6: '',
+    dns: [],
+    cmdStr: '',
+    entrypointStr: '',
+    memoryItem: 0,
+    cmd: [],
+    workingDir: '',
+    user: '',
+    openStdin: false,
+    tty: false,
+    entrypoint: [],
+    publishAllPorts: false,
+    exposedPorts: [],
+    nanoCPUs: 0,
+    cpuShares: 1024,
+    memory: 0,
+    volumes: [],
+    privileged: false,
+    autoRemove: false,
+    labels: [],
+    env: [],
+    restartPolicy: 'no',
 });
-const acceptParams = (params: DialogProps): void => {
-    dialogData.value = params;
-    title.value = i18n.global.t('container.' + dialogData.value.title);
-    if (params.title === 'edit') {
-        dialogData.value.rowData.memory = Number(dialogData.value.rowData.memory.toFixed(2));
-        dialogData.value.rowData.cmd = dialogData.value.rowData.cmd || [];
-        let itemCmd = '';
-        for (const item of dialogData.value.rowData.cmd) {
-            itemCmd += `'${item}' `;
-        }
-        dialogData.value.rowData.cmdStr = itemCmd ? itemCmd.substring(0, itemCmd.length - 1) : '';
-        if (dialogData.value.rowData.entrypoint) {
-            dialogData.value.rowData.entrypointStr = dialogData.value.rowData.entrypoint.join(' ');
-        }
-        dialogData.value.rowData.labels = dialogData.value.rowData.labels || [];
-        dialogData.value.rowData.env = dialogData.value.rowData.env || [];
-        dialogData.value.rowData.labelsStr = dialogData.value.rowData.labels.join('\n');
-        dialogData.value.rowData.envStr = dialogData.value.rowData.env.join('\n');
-        dialogData.value.rowData.exposedPorts = dialogData.value.rowData.exposedPorts || [];
-        for (const item of dialogData.value.rowData.exposedPorts) {
-            if (item.hostIP) {
-                item.host = item.hostIP + ':' + item.hostPort;
-            } else {
-                item.host = item.hostPort;
-            }
-        }
-        dialogData.value.rowData.volumes = dialogData.value.rowData.volumes || [];
+const search = async () => {
+    if (!isCreate.value) {
+        loading.value = true;
+        await loadContainerInfo(form.containerID)
+            .then((res) => {
+                loading.value = false;
+                form.name = res.data.name;
+                form.image = res.data.image;
+                form.network = res.data.network;
+                form.hostname = res.data.hostname;
+                form.domainName = res.data.domainName;
+                form.dns = res.data.dns || [];
+                form.ipv4 = res.data.ipv4;
+                form.ipv6 = res.data.ipv6;
+                form.openStdin = res.data.openStdin;
+                form.tty = res.data.tty;
+                form.publishAllPorts = res.data.publishAllPorts;
+                form.nanoCPUs = res.data.nanoCPUs;
+                form.cpuShares = res.data.cpuShares;
+                form.privileged = res.data.privileged;
+                form.autoRemove = res.data.autoRemove;
+                form.restartPolicy = res.data.restartPolicy;
+                form.memory = Number(res.data.memory.toFixed(2));
+                form.user = res.data.user;
+                form.workingDir = res.data.workingDir;
+
+                let itemCmd = '';
+                form.cmd = res.data.cmd || [];
+                for (const item of form.cmd) {
+                    if (item.indexOf(' ') !== -1) {
+                        itemCmd += `"${escapeQuotes(item)}" `;
+                    } else {
+                        itemCmd += item + ' ';
+                    }
+                }
+                form.cmdStr = itemCmd.trimEnd();
+                let itemEntrypoint = '';
+                form.entrypoint = res.data.entrypoint || [];
+                for (const item of form.entrypoint) {
+                    if (item.indexOf(' ') !== -1) {
+                        itemEntrypoint += `"${escapeQuotes(item)}" `;
+                    } else {
+                        itemEntrypoint += item + ' ';
+                    }
+                }
+                form.entrypointStr = itemEntrypoint.trimEnd();
+
+                form.labels = res.data.labels || [];
+                form.env = res.data.env || [];
+                form.exposedPorts = res.data.exposedPorts || [];
+                for (const item of form.exposedPorts) {
+                    if (item.hostIP) {
+                        item.host = item.hostIP + ':' + item.hostPort;
+                    } else {
+                        item.host = item.hostPort;
+                    }
+                }
+                form.volumes = res.data.volumes || [];
+            })
+            .catch(() => {
+                loading.value = false;
+            });
     }
     loadLimit();
     loadImageOptions();
-    loadVolumeOptions();
     loadNetworkOptions();
-    drawerVisible.value = true;
 };
-const emit = defineEmits<{ (e: 'search'): void }>();
 
+const taskLogRef = ref();
 const images = ref();
-const volumes = ref();
 const networks = ref();
 const limits = ref<Container.ResourceLimit>({
     cpu: null as number,
     memory: null as number,
 });
 
-const handleClose = () => {
-    emit('search');
-    drawerVisible.value = false;
-};
-
 const rules = reactive({
-    name: [Rules.requiredInput, Rules.volumeName],
-    image: [Rules.requiredInput],
+    name: [Rules.requiredInput, Rules.containerName],
+    image: [Rules.imageName],
     cpuShares: [Rules.integerNumberWith0, checkNumberRange(0, 262144)],
     nanoCPUs: [Rules.floatNumber],
     memory: [Rules.floatNumber],
@@ -330,6 +514,17 @@ const rules = reactive({
 
 type FormInstance = InstanceType<typeof ElForm>;
 const formRef = ref<FormInstance>();
+
+const goBack = () => {
+    routerToName('ContainerItem');
+};
+const closeTask = () => {
+    taskLogRef.value.handleClose();
+};
+const dialogTerminalRef = ref();
+const toTerminal = () => {
+    dialogTerminalRef.value!.acceptParams({ cwd: '$HOME', command: '/bin/sh' });
+};
 
 const handlePortsAdd = () => {
     let item = {
@@ -339,23 +534,14 @@ const handlePortsAdd = () => {
         hostPort: '',
         protocol: 'tcp',
     };
-    dialogData.value.rowData!.exposedPorts.push(item);
+    form.exposedPorts.push(item);
 };
 const handlePortsDelete = (index: number) => {
-    dialogData.value.rowData!.exposedPorts.splice(index, 1);
+    form.exposedPorts.splice(index, 1);
 };
 
-const handleVolumesAdd = () => {
-    let item = {
-        sourceDir: '',
-        containerDir: '',
-        mode: 'rw',
-        isVolume: true,
-    };
-    dialogData.value.rowData!.volumes.push(item);
-};
-const handleVolumesDelete = (index: number) => {
-    dialogData.value.rowData!.volumes.splice(index, 1);
+const goRouter = async () => {
+    routerToName('AppInstalled');
 };
 
 const loadLimit = async () => {
@@ -368,29 +554,14 @@ const loadImageOptions = async () => {
     const res = await listImage();
     images.value = res.data;
 };
-const loadVolumeOptions = async () => {
-    const res = await listVolume();
-    volumes.value = res.data;
-    for (const item of dialogData.value.rowData.volumes) {
-        let isVolume = false;
-        for (const v of volumes.value) {
-            if (item.sourceDir == v.option) {
-                item.isVolume = true;
-                break;
-            }
-            if (!isVolume) {
-                item.isVolume = false;
-            }
-        }
-    }
-};
 const loadNetworkOptions = async () => {
     const res = await listNetwork();
     networks.value = res.data;
 };
 const onSubmit = async (formEl: FormInstance | undefined) => {
-    if (dialogData.value.rowData!.volumes.length !== 0) {
-        for (const item of dialogData.value.rowData!.volumes) {
+    form.volumes = volumeRef.value.loadVolumes();
+    if (form.volumes.length !== 0) {
+        for (const item of form.volumes) {
             if (!item.containerDir || !item.sourceDir) {
                 MsgError(i18n.global.t('container.volumeHelper'));
                 return;
@@ -400,86 +571,89 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     formEl.validate(async (valid) => {
         if (!valid) return;
-        if (dialogData.value.rowData?.envStr) {
-            dialogData.value.rowData.env = dialogData.value.rowData!.envStr.split('\n');
-        }
-        if (dialogData.value.rowData?.labelsStr) {
-            dialogData.value.rowData!.labels = dialogData.value.rowData!.labelsStr.split('\n');
-        }
-        dialogData.value.rowData!.cmd = [];
-        if (dialogData.value.rowData?.cmdStr) {
-            if (dialogData.value.rowData?.cmdStr.indexOf(`'`) !== -1) {
-                let itemCmd = dialogData.value.rowData!.cmdStr.split(`'`);
-                for (const cmd of itemCmd) {
-                    if (cmd && cmd !== ' ') {
-                        dialogData.value.rowData!.cmd.push(cmd);
-                    }
-                }
-            } else {
-                let itemCmd = dialogData.value.rowData!.cmdStr.split(` `);
-                for (const cmd of itemCmd) {
-                    dialogData.value.rowData!.cmd.push(cmd);
-                }
-            }
-        }
-        if (dialogData.value.rowData!.entrypointStr) {
-            dialogData.value.rowData!.entrypoint = dialogData.value.rowData!.entrypointStr.split(' ');
-        }
-        if (dialogData.value.rowData!.publishAllPorts) {
-            dialogData.value.rowData!.exposedPorts = [];
+        if (isCreate.value) {
+            submit();
         } else {
-            if (!checkPortValid()) {
-                return;
-            }
+            confirmRef.value.acceptParams({ isFromApp: isFromApp(form) });
         }
-        dialogData.value.rowData!.memory = Number(dialogData.value.rowData!.memory);
-        dialogData.value.rowData!.nanoCPUs = Number(dialogData.value.rowData!.nanoCPUs);
+    });
+};
+const submit = async () => {
+    form.cmd = [];
+    form.taskID = newUUID();
+    if (form.cmdStr) {
+        let itemCmd = splitStringIgnoringQuotes(form.cmdStr);
+        for (const item of itemCmd) {
+            form.cmd.push(item.replace(/(?<!\\)"/g, '').replaceAll('\\"', '"'));
+        }
+    }
+    form.entrypoint = [];
+    if (form.entrypointStr) {
+        let itemEntrypoint = splitStringIgnoringQuotes(form.entrypointStr);
+        for (const item of itemEntrypoint) {
+            form.entrypoint.push(item.replace(/(?<!\\)"/g, '').replaceAll('\\"', '"'));
+        }
+    }
+    if (form.publishAllPorts) {
+        form.exposedPorts = [];
+    } else {
+        if (!checkPortValid()) {
+            return;
+        }
+    }
+    form.memory = Number(form.memory);
+    form.nanoCPUs = Number(form.nanoCPUs);
 
-        loading.value = true;
-        if (dialogData.value.title === 'create') {
-            await createContainer(dialogData.value.rowData!)
-                .then(() => {
-                    loading.value = false;
-                    MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-                    emit('search');
-                    drawerVisible.value = false;
-                })
-                .catch(() => {
-                    loading.value = false;
-                });
-        } else {
-            ElMessageBox.confirm(
-                i18n.global.t('container.updateContainerHelper'),
-                i18n.global.t('commons.button.edit'),
-                {
-                    confirmButtonText: i18n.global.t('commons.button.confirm'),
-                    cancelButtonText: i18n.global.t('commons.button.cancel'),
-                },
-            )
-                .then(async () => {
-                    await updateContainer(dialogData.value.rowData!)
-                        .then(() => {
-                            loading.value = false;
-                            MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-                            emit('search');
-                            drawerVisible.value = false;
-                        })
-                        .catch(() => {
-                            loading.value = false;
-                        });
-                })
-                .catch(() => {
-                    loading.value = false;
-                });
+    loading.value = true;
+    if (isCreate.value) {
+        await createContainer(form)
+            .then(() => {
+                loading.value = false;
+                openTaskLog(form.taskID);
+            })
+            .catch(() => {
+                loading.value = false;
+            });
+    } else {
+        await updateContainer(form)
+            .then(() => {
+                loading.value = false;
+                openTaskLog(form.taskID);
+            })
+            .catch(() => {
+                updateContainerID();
+                loading.value = false;
+            });
+    }
+};
+
+const openTaskLog = (taskID: string) => {
+    taskLogRef.value.openWithTaskID(taskID);
+};
+
+const updateContainerID = async () => {
+    let params = {
+        page: 1,
+        pageSize: 1,
+        state: 'all',
+        name: form.name,
+        filters: '',
+        orderBy: 'createdAt',
+        order: 'null',
+    };
+    await searchContainer(params).then((res) => {
+        if (res.data.items?.length === 1) {
+            form.containerID = res.data.items[0].containerID;
+            return;
         }
     });
 };
 
 const checkPortValid = () => {
-    if (dialogData.value.rowData!.exposedPorts.length === 0) {
+    if (form.exposedPorts.length === 0) {
         return true;
     }
-    for (const port of dialogData.value.rowData!.exposedPorts) {
+    for (const port of form.exposedPorts) {
         if (port.host.indexOf(':') !== -1) {
             port.hostIP = port.host.substring(0, port.host.lastIndexOf(':'));
             if (checkIpV4V6(port.hostIP)) {
@@ -488,6 +662,7 @@ const checkPortValid = () => {
             }
             port.hostPort = port.host.substring(port.host.lastIndexOf(':') + 1);
         } else {
+            port.hostIP = '';
             port.hostPort = port.host;
         }
         if (port.hostPort.indexOf('-') !== -1) {
@@ -523,8 +698,43 @@ const checkPortValid = () => {
     }
     return true;
 };
-defineExpose({
-    acceptParams,
+
+const isFromApp = (rowData: Container.ContainerHelper) => {
+    if (rowData && rowData.labels) {
+        return rowData.labels.indexOf('createdBy=Apps') > -1;
+    }
+    return false;
+};
+
+const escapeQuotes = (input) => {
+    return input.replace(/(?<!\\)"/g, '\\"');
+};
+
+const splitStringIgnoringQuotes = (input) => {
+    input = input.replace(/\\"/g, '<quota>');
+    const regex = /"([^"]*)"|(\S+)/g;
+    const result = [];
+    let match;
+
+    while ((match = regex.exec(input)) !== null) {
+        if (match[1]) {
+            result.push(match[1].replaceAll('<quota>', '\\"'));
+        } else if (match[2]) {
+            result.push(match[2].replaceAll('<quota>', '\\"'));
+        }
+    }
+
+    return result;
+};
+
+onMounted(() => {
+    if (router.currentRoute.value.query.containerID) {
+        isCreate.value = false;
+        form.containerID = String(router.currentRoute.value.query.containerID);
+    } else {
+        isCreate.value = true;
+    }
+    search();
 });
 </script>
 

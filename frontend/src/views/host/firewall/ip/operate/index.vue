@@ -1,56 +1,53 @@
 <template>
-    <el-drawer v-model="drawerVisiable" :destroy-on-close="true" :close-on-click-modal="false" size="50%">
-        <template #header>
-            <DrawerHeader :header="title" :back="handleClose" />
-        </template>
-        <div v-loading="loading">
-            <el-form ref="formRef" label-position="top" @submit.prevent :model="dialogData.rowData" :rules="rules">
-                <el-row type="flex" justify="center">
-                    <el-col :span="22">
-                        <el-form-item :label="$t('firewall.address')" prop="address">
-                            <el-input
-                                :disabled="dialogData.title === 'edit'"
-                                :autosize="{ minRows: 3, maxRows: 6 }"
-                                type="textarea"
-                                clearable
-                                v-model.trim="dialogData.rowData!.address"
-                            />
-                            <span class="input-help">{{ $t('firewall.addressHelper1') }}</span>
-                            <span class="input-help">{{ $t('firewall.addressHelper2') }}</span>
-                        </el-form-item>
-                        <el-form-item :label="$t('firewall.strategy')" prop="strategy">
-                            <el-radio-group v-model="dialogData.rowData!.strategy">
-                                <el-radio label="accept">{{ $t('firewall.allow') }}</el-radio>
-                                <el-radio label="drop">{{ $t('firewall.deny') }}</el-radio>
-                            </el-radio-group>
-                        </el-form-item>
-                        <el-form-item :label="$t('commons.table.description')" prop="description">
-                            <el-input clearable v-model.trim="dialogData.rowData!.description" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-            </el-form>
-        </div>
+    <DrawerPro v-model="drawerVisible" :header="title" @close="handleClose" size="large">
+        <el-form
+            ref="formRef"
+            label-position="top"
+            @submit.prevent
+            :model="dialogData.rowData"
+            :rules="rules"
+            v-loading="loading"
+        >
+            <el-form-item :label="$t('firewall.address')" prop="address">
+                <el-input
+                    :disabled="dialogData.title === 'edit'"
+                    :rows="3"
+                    type="textarea"
+                    clearable
+                    v-model.trim="dialogData.rowData!.address"
+                />
+                <span class="input-help">{{ $t('firewall.addressHelper1') }}</span>
+                <span class="input-help">{{ $t('firewall.addressHelper2') }}</span>
+            </el-form-item>
+            <el-form-item :label="$t('firewall.strategy')" prop="strategy">
+                <el-radio-group v-model="dialogData.rowData!.strategy">
+                    <el-radio value="accept">{{ $t('firewall.allow') }}</el-radio>
+                    <el-radio value="drop">{{ $t('firewall.deny') }}</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item :label="$t('commons.table.description')" prop="description">
+                <el-input clearable v-model.trim="dialogData.rowData!.description" />
+            </el-form-item>
+        </el-form>
         <template #footer>
             <span class="dialog-footer">
-                <el-button @click="drawerVisiable = false">{{ $t('commons.button.cancel') }}</el-button>
+                <el-button @click="drawerVisible = false">{{ $t('commons.button.cancel') }}</el-button>
                 <el-button type="primary" @click="onSubmit(formRef)">
                     {{ $t('commons.button.confirm') }}
                 </el-button>
             </span>
         </template>
-    </el-drawer>
+    </DrawerPro>
 </template>
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue';
 import i18n from '@/lang';
 import { ElForm } from 'element-plus';
-import DrawerHeader from '@/components/drawer-header/index.vue';
 import { MsgSuccess } from '@/utils/message';
 import { Host } from '@/api/interface/host';
 import { operateIPRule, updateAddrRule } from '@/api/modules/host';
-import { checkCidr, checkIpV4V6, deepCopy } from '@/utils/util';
+import { checkCidr, checkCidrV6, checkIpV4V6, deepCopy } from '@/utils/util';
 
 const loading = ref();
 const oldRule = ref<Host.RuleIP>();
@@ -61,7 +58,7 @@ interface DialogProps {
     getTableList?: () => Promise<any>;
 }
 const title = ref<string>('');
-const drawerVisiable = ref(false);
+const drawerVisible = ref(false);
 const dialogData = ref<DialogProps>({
     title: '',
 });
@@ -71,12 +68,12 @@ const acceptParams = (params: DialogProps): void => {
         oldRule.value = deepCopy(params.rowData);
     }
     title.value = i18n.global.t('firewall.' + dialogData.value.title);
-    drawerVisiable.value = true;
+    drawerVisible.value = true;
 };
 const emit = defineEmits<{ (e: 'search'): void }>();
 
 const handleClose = () => {
-    drawerVisiable.value = false;
+    drawerVisible.value = false;
 };
 
 const rules = reactive({
@@ -89,8 +86,14 @@ function checkAddress(rule: any, value: any, callback: any) {
     let addrs = dialogData.value.rowData.address.split(',');
     for (const item of addrs) {
         if (item.indexOf('/') !== -1) {
-            if (checkCidr(item)) {
-                return callback(new Error(i18n.global.t('firewall.addressFormatError')));
+            if (item.indexOf(':') !== -1) {
+                if (checkCidrV6(item)) {
+                    return callback(new Error(i18n.global.t('firewall.addressFormatError')));
+                }
+            } else {
+                if (checkCidr(item)) {
+                    return callback(new Error(i18n.global.t('firewall.addressFormatError')));
+                }
             }
         } else {
             if (checkIpV4V6(item)) {
@@ -117,7 +120,7 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
                     loading.value = false;
                     MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
                     emit('search');
-                    drawerVisiable.value = false;
+                    drawerVisible.value = false;
                 })
                 .catch(() => {
                     loading.value = false;
@@ -131,7 +134,7 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
                 loading.value = false;
                 MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
                 emit('search');
-                drawerVisiable.value = false;
+                drawerVisible.value = false;
             })
             .catch(() => {
                 loading.value = false;

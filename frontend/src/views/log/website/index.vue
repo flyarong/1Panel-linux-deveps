@@ -1,116 +1,101 @@
 <template>
     <div>
         <LayoutContent v-loading="loading" :title="$t('logs.websiteLog')">
-            <template #toolbar>
-                <el-row>
-                    <el-col :span="16">
-                        <el-button
-                            class="tag-button"
-                            :label="'access.log'"
-                            :type="logReq.logType === 'access.log' ? 'primary' : ''"
-                            @click="changeType('access.log')"
-                        >
-                            {{ $t('logs.runLog') }}
-                        </el-button>
-                        <el-button
-                            class="tag-button"
-                            :label="'error.log'"
-                            :type="logReq.logType === 'error.log' ? 'primary' : ''"
-                            @click="changeType('error.log')"
-                        >
-                            {{ $t('logs.errLog') }}
-                        </el-button>
-                    </el-col>
-                </el-row>
-            </template>
             <template #search>
-                <div>
-                    <el-select v-model="logReq.id" @change="search()">
-                        <template #prefix>{{ $t('website.website') }}</template>
-                        <el-option
-                            v-for="(website, index) in websites"
-                            :key="index"
-                            :label="website.primaryDomain"
-                            :value="website.id"
-                        ></el-option>
-                    </el-select>
-                    <el-button class="left-button">
-                        <el-checkbox v-model="tailLog" @change="changeTail">
-                            {{ $t('commons.button.watch') }}
-                        </el-checkbox>
-                    </el-button>
-                    <el-button class="left-button" @click="onDownload" icon="Download" :disabled="data.content === ''">
-                        {{ $t('file.download') }}
-                    </el-button>
-                    <el-button
-                        type="primary"
-                        plain
-                        @click="onClean()"
-                        class="left-button"
-                        :disabled="data.content.length === 0"
-                    >
-                        {{ $t('logs.deleteLogs') }}
-                    </el-button>
-                </div>
+                <el-button
+                    class="tag-button"
+                    :class="logConfig.name === 'access.log' ? '' : 'no-active'"
+                    :type="logConfig.name === 'access.log' ? 'primary' : ''"
+                    @click="changeType('access.log')"
+                >
+                    {{ $t('logs.runLog') }}
+                </el-button>
+                <el-button
+                    class="tag-button"
+                    :class="logConfig.name === 'error.log' ? '' : 'no-active'"
+                    :type="logConfig.name === 'error.log' ? 'primary' : ''"
+                    @click="changeType('error.log')"
+                >
+                    {{ $t('logs.errLog') }}
+                </el-button>
+            </template>
+            <template #leftToolBar>
+                <el-select v-model="logConfig.id" @change="changeWebsite()" class="p-w-200">
+                    <template #prefix>{{ $t('menu.website') }}</template>
+                    <el-option
+                        v-for="(website, index) in websites"
+                        :key="index"
+                        :label="website.primaryDomain"
+                        :value="website.id"
+                    ></el-option>
+                </el-select>
+                <el-button>
+                    <el-checkbox v-model="tailLog" @change="changeTail" :disabled="logConfig.id == undefined">
+                        {{ $t('commons.button.watch') }}
+                    </el-checkbox>
+                </el-button>
+                <el-button @click="onDownload" icon="Download" :disabled="!hasContent">
+                    {{ $t('commons.button.download') }}
+                </el-button>
+                <el-button type="primary" plain @click="onClean()" :disabled="!hasContent">
+                    {{ $t('logs.deleteLogs') }}
+                </el-button>
             </template>
             <template #main>
-                <Codemirror
-                    style="height: calc(100vh - 368px); width: 100%"
-                    :autofocus="true"
-                    :placeholder="$t('website.noLog')"
-                    :indent-with-tab="true"
-                    :tabSize="4"
-                    :lineWrapping="true"
-                    :matchBrackets="true"
-                    theme="cobalt"
-                    :styleActiveLine="true"
-                    :extensions="extensions"
-                    v-model="data.content"
-                    :disabled="true"
-                    @ready="handleReady"
-                />
+                <MainDiv :heightDiff="370">
+                    <LogFile
+                        ref="logRef"
+                        :config="logConfig"
+                        :default-button="false"
+                        v-if="showLog"
+                        v-model:loading="loading"
+                        v-model:hasContent="hasContent"
+                    />
+                </MainDiv>
             </template>
         </LayoutContent>
         <ConfirmDialog ref="confirmDialogRef" @confirm="onSubmitClean"></ConfirmDialog>
     </div>
 </template>
 <script setup lang="ts">
-import { ListWebsites, OpWebsiteLog } from '@/api/modules/website';
-import { nextTick, reactive, shallowRef } from 'vue';
+import { listWebsites, opWebsiteLog } from '@/api/modules/website';
+import { reactive } from 'vue';
 import { onMounted } from 'vue';
-import { ref } from 'vue';
-import { Codemirror } from 'vue-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { ref, nextTick } from 'vue';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
-import { dateFormatForName, downloadWithContent } from '@/utils/util';
+import LogFile from '@/components/log/file/index.vue';
+import MainDiv from '@/components/main-div/index.vue';
 
-const extensions = [javascript(), oneDark];
-
+const logConfig = reactive({
+    type: 'website',
+    id: undefined,
+    name: 'access.log',
+    colorMode: 'nginx',
+});
+const showLog = ref(false);
 const loading = ref(false);
 const websites = ref();
-const logReq = reactive({
-    id: undefined,
-    operate: 'get',
-    logType: 'access.log',
-});
-const data = ref({
-    enable: false,
-    content: '',
-});
 const confirmDialogRef = ref();
 const tailLog = ref(false);
-let timer: NodeJS.Timer | null = null;
+const logRef = ref();
+const hasContent = ref(false);
+
+const searchLog = () => {
+    showLog.value = false;
+    nextTick(() => {
+        showLog.value = true;
+    });
+};
 
 const getWebsites = async () => {
     loading.value = true;
-    await ListWebsites()
+    await listWebsites()
         .then((res) => {
             websites.value = res.data || [];
             if (websites.value.length > 0) {
-                logReq.id = websites.value[0].id;
-                search();
+                logConfig.id = websites.value[0].id;
+                showLog.value = true;
             }
         })
         .finally(() => {
@@ -118,34 +103,15 @@ const getWebsites = async () => {
         });
 };
 
-const view = shallowRef();
-const handleReady = (payload) => {
-    view.value = payload.view;
-};
-
 const changeType = (type: string) => {
-    logReq.logType = type;
-    if (logReq.id != undefined) {
-        search();
+    logConfig.name = type;
+    if (logConfig.id != undefined) {
+        searchLog();
     }
 };
 
-const search = () => {
-    loading.value = true;
-    OpWebsiteLog(logReq)
-        .then((res) => {
-            data.value = res.data;
-            nextTick(() => {
-                const state = view.value.state;
-                view.value.dispatch({
-                    selection: { anchor: state.doc.length, head: state.doc.length },
-                    scrollIntoView: true,
-                });
-            });
-        })
-        .finally(() => {
-            loading.value = false;
-        });
+const changeWebsite = () => {
+    searchLog();
 };
 
 const onClean = async () => {
@@ -158,37 +124,24 @@ const onClean = async () => {
 };
 
 const onDownload = async () => {
-    downloadWithContent(data.value.content, logReq.logType + '-' + dateFormatForName(new Date()) + '.log');
+    logRef.value.onDownload();
 };
 
 const changeTail = () => {
-    if (tailLog.value) {
-        timer = setInterval(() => {
-            search();
-        }, 1000 * 5);
-    } else {
-        onCloseLog();
-    }
-};
-
-const onCloseLog = async () => {
-    tailLog.value = false;
-    clearInterval(Number(timer));
-    timer = null;
+    logRef.value.changeTail(true);
 };
 
 const onSubmitClean = async () => {
-    search();
     const req = {
-        id: logReq.id,
+        id: logConfig.id,
         operate: 'delete',
-        logType: logReq.logType,
+        logType: logConfig.name,
     };
     loading.value = true;
-    OpWebsiteLog(req)
+    opWebsiteLog(req)
         .then(() => {
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-            search();
+            searchLog();
         })
         .finally(() => {
             loading.value = false;
@@ -199,14 +152,3 @@ onMounted(() => {
     getWebsites();
 });
 </script>
-
-<style lang="scss" scoped>
-.tag-button {
-    &.el-button--primary:hover {
-        background-color: var(--el-color-primary) !important;
-    }
-    &.el-button--primary:focus {
-        background-color: var(--el-color-primary) !important;
-    }
-}
-</style>

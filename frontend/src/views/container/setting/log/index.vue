@@ -1,15 +1,6 @@
 <template>
     <div>
-        <el-drawer
-            v-model="drawerVisiable"
-            :destroy-on-close="true"
-            :close-on-click-modal="false"
-            @close="handleClose"
-            size="30%"
-        >
-            <template #header>
-                <DrawerHeader :header="$t('container.cutLog')" :back="handleClose" />
-            </template>
+        <DrawerPro v-model="drawerVisible" :header="$t('container.cutLog')" @close="handleClose" size="small">
             <el-alert class="common-prompt" :closable="false" type="warning">
                 <template #default>
                     <ul style="margin-left: -20px">
@@ -20,36 +11,29 @@
                 </template>
             </el-alert>
             <el-form :model="form" ref="formRef" :rules="rules" v-loading="loading" label-position="top">
-                <el-row type="flex" justify="center">
-                    <el-col :span="22">
-                        <el-form-item prop="logMaxSize" :label="$t('container.maxSize')">
-                            <el-input v-model.number="form.logMaxSize">
-                                <template #append>
-                                    <el-select v-model="form.sizeUnit" style="width: 70px">
-                                        <el-option label="Byte" value="b"></el-option>
-                                        <el-option label="KB" value="k"></el-option>
-                                        <el-option label="MB" value="m"></el-option>
-                                        <el-option label="GB" value="g"></el-option>
-                                    </el-select>
-                                </template>
-                            </el-input>
-                        </el-form-item>
-                        <el-form-item prop="logMaxFile" :label="$t('container.maxFile')">
-                            <el-input v-model.number="form.logMaxFile" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
+                <el-form-item prop="logMaxSize" :label="$t('container.maxSize')">
+                    <el-input v-model.number="form.logMaxSize">
+                        <template #append>
+                            <el-select v-model="form.sizeUnit" style="width: 70px">
+                                <el-option label="Byte" value="b"></el-option>
+                                <el-option label="KB" value="k"></el-option>
+                                <el-option label="MB" value="m"></el-option>
+                                <el-option label="GB" value="g"></el-option>
+                            </el-select>
+                        </template>
+                    </el-input>
+                </el-form-item>
+                <el-form-item prop="logMaxFile" :label="$t('container.maxFile')">
+                    <el-input v-model.number="form.logMaxFile" />
+                </el-form-item>
             </el-form>
             <template #footer>
-                <span class="dialog-footer">
-                    <el-button @click="handleClose">{{ $t('commons.button.cancel') }}</el-button>
-                    <el-button :disabled="loading" type="primary" @click="onSave(formRef)">
-                        {{ $t('commons.button.confirm') }}
-                    </el-button>
-                </span>
+                <el-button @click="handleClose">{{ $t('commons.button.cancel') }}</el-button>
+                <el-button :disabled="loading" type="primary" @click="onSave(formRef)">
+                    {{ $t('commons.button.confirm') }}
+                </el-button>
             </template>
-        </el-drawer>
-
+        </DrawerPro>
         <ConfirmDialog ref="confirmDialogRef" @confirm="onSubmitSave"></ConfirmDialog>
     </div>
 </template>
@@ -60,10 +44,9 @@ import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
 import { FormInstance } from 'element-plus';
 import { updateLogOption } from '@/api/modules/container';
-import DrawerHeader from '@/components/drawer-header/index.vue';
 
 const loading = ref();
-const drawerVisiable = ref();
+const drawerVisible = ref();
 const confirmDialogRef = ref();
 const formRef = ref();
 
@@ -92,7 +75,7 @@ const acceptParams = (params: DialogProps): void => {
         form.logMaxSize = 10;
         form.sizeUnit = 'm';
     }
-    drawerVisiable.value = true;
+    drawerVisible.value = true;
 };
 
 const onSave = async (formEl: FormInstance | undefined) => {
@@ -113,7 +96,7 @@ const onSubmitSave = async () => {
     await updateLogOption(form.logMaxSize + form.sizeUnit, form.logMaxFile + '')
         .then(() => {
             loading.value = false;
-            drawerVisiable.value = false;
+            drawerVisible.value = false;
             emit('search');
             MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
         })
@@ -143,7 +126,7 @@ const loadSize = (value: string) => {
 
 const handleClose = () => {
     emit('search');
-    drawerVisiable.value = false;
+    drawerVisible.value = false;
 };
 
 defineExpose({

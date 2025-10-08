@@ -1,20 +1,7 @@
 <template>
     <div v-loading="loading">
-        <codemirror
-            :autofocus="true"
-            :placeholder="$t('commons.msg.noneData')"
-            :indent-with-tab="true"
-            :tabSize="4"
-            style="width: 100%; height: calc(100vh - 375px)"
-            :lineWrapping="true"
-            :matchBrackets="true"
-            theme="cobalt"
-            :styleActiveLine="true"
-            :extensions="extensions"
-            :mode="'text/x-nginx-conf'"
-            v-model="content"
-        />
-        <div style="margin-top: 10px">
+        <CodemirrorPro v-model="content" mode="nginx" :heightDiff="350"></CodemirrorPro>
+        <div class="mt-2.5">
             <el-button @click="getDefaultConfig()" :disabled="loading">
                 {{ $t('app.defaultConfig') }}
             </el-button>
@@ -26,7 +13,7 @@
             <el-col :span="4">
                 <el-alert
                     v-if="useOld"
-                    style="margin-top: 10px"
+                    class="mt-2.5"
                     :title="$t('app.defaultConfigHelper')"
                     type="info"
                     :closable="false"
@@ -36,17 +23,12 @@
     </div>
 </template>
 <script lang="ts" setup>
-import { GetNginx, UpdateNginxConfigFile } from '@/api/modules/nginx';
+import { getNginx, updateNginxConfigFile } from '@/api/modules/nginx';
 import { onMounted, ref } from 'vue';
-import { Codemirror } from 'vue-codemirror';
-import { StreamLanguage } from '@codemirror/language';
-import { nginx } from '@codemirror/legacy-modes/mode/nginx';
-import { oneDark } from '@codemirror/theme-one-dark';
 import i18n from '@/lang';
-import { GetAppDefaultConfig } from '@/api/modules/app';
+import { getAppDefaultConfig } from '@/api/modules/app';
 import { MsgSuccess } from '@/utils/message';
-
-const extensions = [StreamLanguage.define(nginx), oneDark];
+import CodemirrorPro from '@/components/codemirror-pro/index.vue';
 
 let content = ref('');
 let loading = ref(false);
@@ -54,22 +36,22 @@ let useOld = ref(false);
 
 const submit = () => {
     loading.value = true;
-    UpdateNginxConfigFile({
+    updateNginxConfigFile({
         content: content.value,
         backup: useOld.value,
     })
         .then(() => {
             MsgSuccess(i18n.global.t('commons.msg.updateSuccess'));
-            getNginx();
+            getNginxConfig();
         })
         .finally(() => {
             loading.value = false;
         });
 };
 
-const getNginx = async () => {
+const getNginxConfig = async () => {
     try {
-        const res = await GetNginx();
+        const res = await getNginx();
         content.value = res.data.content;
         useOld.value = false;
     } catch (error) {}
@@ -78,7 +60,7 @@ const getNginx = async () => {
 const getDefaultConfig = async () => {
     loading.value = true;
     try {
-        const res = await GetAppDefaultConfig('openresty', '');
+        const res = await getAppDefaultConfig('openresty', '');
         content.value = res.data;
         useOld.value = true;
     } catch (error) {}
@@ -86,6 +68,6 @@ const getDefaultConfig = async () => {
 };
 
 onMounted(() => {
-    getNginx();
+    getNginxConfig();
 });
 </script>

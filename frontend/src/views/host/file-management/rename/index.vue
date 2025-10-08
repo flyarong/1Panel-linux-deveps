@@ -1,45 +1,37 @@
 <template>
-    <el-drawer v-model="open" size="40%">
-        <template #header>
-            <DrawerHeader :header="$t('file.rename')" :resource="oldName" :back="handleClose" />
-        </template>
-        <el-row>
-            <el-col :span="22" :offset="1">
-                <el-form
-                    ref="fileForm"
-                    label-position="top"
-                    :model="addForm"
-                    label-width="100px"
-                    :rules="rules"
-                    v-loading="loading"
-                >
-                    <el-form-item :label="$t('file.path')" prop="path">
-                        <el-input v-model="addForm.path" disabled />
-                    </el-form-item>
-                    <el-form-item :label="$t('commons.table.name')" prop="newName">
-                        <el-input v-model.trim="addForm.newName" />
-                    </el-form-item>
-                </el-form>
-            </el-col>
-        </el-row>
+    <DrawerPro v-model="open" :header="$t('file.rename')" :resource="oldName" @close="handleClose" size="normal">
+        <el-form
+            ref="fileForm"
+            label-position="top"
+            :model="addForm"
+            label-width="100px"
+            :rules="rules"
+            v-loading="loading"
+        >
+            <el-form-item :label="$t('file.path')" prop="path">
+                <el-input v-model="addForm.path" disabled />
+            </el-form-item>
+            <el-form-item :label="$t('commons.table.name')" prop="newName">
+                <el-input v-model.trim="addForm.newName" />
+            </el-form-item>
+        </el-form>
         <template #footer>
             <span class="dialog-footer">
                 <el-button @click="handleClose">{{ $t('commons.button.cancel') }}</el-button>
                 <el-button type="primary" @click="submit(fileForm)">{{ $t('commons.button.confirm') }}</el-button>
             </span>
         </template>
-    </el-drawer>
+    </DrawerPro>
 </template>
 
 <script lang="ts" setup>
-import { RenameRile } from '@/api/modules/files';
+import { renameRile } from '@/api/modules/files';
 import { Rules } from '@/global/form-rules';
 import { FormInstance, FormRules } from 'element-plus';
 import { reactive, ref } from 'vue';
 import { File } from '@/api/interface/file';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
-import DrawerHeader from '@/components/drawer-header/index.vue';
 
 interface RenameProps {
     path: string;
@@ -84,7 +76,7 @@ const submit = async (formEl: FormInstance | undefined) => {
         addItem['oldName'] = getPath(addForm.path, oldName.value);
         addItem['newName'] = getPath(addForm.path, addForm.newName);
         loading.value = true;
-        RenameRile(addItem as File.FileRename)
+        renameRile(addItem as File.FileRename)
             .then(() => {
                 MsgSuccess(i18n.global.t('commons.msg.updateSuccess'));
                 handleClose();

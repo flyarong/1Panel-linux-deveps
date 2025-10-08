@@ -1,31 +1,75 @@
 <template>
     <div v-loading="loading">
-        <div class="app-status" style="margin-top: 20px" v-if="currentDB?.from === 'remote'">
+        <div class="app-status mt-5" v-if="currentDB?.from === 'remote'">
             <el-card>
-                <div>
-                    <el-tag style="float: left" effect="dark" type="success">
-                        {{ currentDB?.type === 'mysql' ? 'Mysql' : 'MariaDB' }}
-                    </el-tag>
-                    <el-tag class="status-content">{{ $t('app.version') }}: {{ currentDB?.version }}</el-tag>
+                <div class="flex w-full flex-col gap-4 md:flex-row">
+                    <div class="flex flex-wrap gap-4 ml-3">
+                        <el-tag class="float-left" effect="dark" type="success">
+                            {{ currentDB?.type === 'mysql' ? 'Mysql' : 'MariaDB' }}
+                        </el-tag>
+                        <el-tag>{{ $t('app.version') }}: {{ currentDB?.version }}</el-tag>
+                    </div>
                 </div>
             </el-card>
         </div>
-        <LayoutContent :title="(currentDB?.type === 'mysql' ? 'MySQL ' : 'MariaDB ') + $t('menu.database')">
+        <LayoutContent>
             <template #app v-if="currentDB?.from === 'local'">
                 <AppStatus
                     :app-key="appKey"
                     :app-name="appName"
                     v-model:loading="loading"
                     v-model:mask-show="maskShow"
-                    @setting="onSetting"
+                    @setting="onSetting()"
                     @is-exist="checkExist"
+                    ref="appStatusRef"
                 ></AppStatus>
             </template>
-
-            <template #search v-if="currentDB">
-                <el-select v-model="currentDBName" @change="changeDatabase()">
+            <template #leftToolBar>
+                <el-button
+                    v-if="currentDB && (currentDB.from !== 'local' || mysqlStatus === 'Running')"
+                    type="primary"
+                    @click="onOpenDialog()"
+                >
+                    {{ $t('database.create') }}
+                </el-button>
+                <el-button v-if="currentDB" @click="onChangeConn()" type="primary" plain>
+                    {{ $t('database.databaseConnInfo') }}
+                </el-button>
+                <el-button
+                    v-if="currentDB && (currentDB.from !== 'local' || mysqlStatus === 'Running')"
+                    @click="loadDB"
+                    type="primary"
+                    plain
+                >
+                    {{ $t('database.loadFromRemote') }}
+                </el-button>
+                <el-button @click="goRemoteDB()" type="primary" plain>
+                    {{ $t('database.remoteDB') }}
+                </el-button>
+                <el-button @click="goTerminal()" :disabled="currentDB?.from !== 'local'" type="primary" plain>
+                    {{ $t('menu.terminal') }}
+                </el-button>
+                <el-dropdown>
+                    <el-button type="primary" plain>
+                        {{ $t('database.manage') }}
+                        <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                        <el-dropdown-menu>
+                            <el-dropdown-item icon="Position" @click="goDashboard('phpMyAdmin')">
+                                phpMyAdmin
+                            </el-dropdown-item>
+                            <el-dropdown-item icon="Position" @click="goDashboard('Adminer')" divided>
+                                Adminer
+                            </el-dropdown-item>
+                        </el-dropdown-menu>
+                    </template>
+                </el-dropdown>
+            </template>
+            <template #rightToolBar>
+                <el-select v-model="currentDBName" @change="changeDatabase()" class="p-w-200" v-if="currentDB">
                     <template #prefix>{{ $t('commons.table.type') }}</template>
-                    <el-option-group :label="$t('database.local')">
+                    <el-option-group :label="$t('commons.table.local')">
                         <div v-for="(item, index) in dbOptionsLocal" :key="index">
                             <el-option v-if="item.from === 'local'" :value="item.database" class="optionClass">
                                 <span v-if="item.database.length < 25">{{ item.database }}</span>
@@ -33,7 +77,7 @@
                                     <span>{{ item.database.substring(0, 25) }}...</span>
                                 </el-tooltip>
                                 <el-tag class="tagClass">
-                                    {{ item.type === 'mysql' ? 'MySQL' : 'MariaDB' }}
+                                    {{ mysqlName(item.type) }}
                                 </el-tag>
                             </el-option>
                         </div>
@@ -49,7 +93,7 @@
                                     <span>{{ item.database.substring(0, 25) }}...</span>
                                 </el-tooltip>
                                 <el-tag class="tagClass">
-                                    {{ item.type === 'mysql' ? 'MySQL' : 'MariaDB' }}
+                                    {{ mysqlName(item.type) }}
                                 </el-tag>
                             </el-option>
                         </div>
@@ -58,91 +102,95 @@
                         </el-button>
                     </el-option-group>
                 </el-select>
+                <TableSearch @search="search()" v-model:searchName="searchName" />
+                <TableRefresh @search="search()" />
             </template>
-
-            <template #toolbar>
-                <el-row>
-                    <el-col :xs="24" :sm="20" :md="20" :lg="20" :xl="20">
-                        <el-button
-                            v-if="currentDB && (currentDB.from !== 'local' || mysqlStatus === 'Running')"
-                            type="primary"
-                            @click="onOpenDialog()"
-                        >
-                            {{ $t('database.create') }}
-                        </el-button>
-                        <el-button
-                            v-if="currentDB && (currentDB.from !== 'local' || mysqlStatus === 'Running')"
-                            @click="onChangeConn"
-                            type="primary"
-                            plain
-                        >
-                            {{ $t('database.databaseConnInfo') }}
-                        </el-button>
-                        <el-button
-                            v-if="currentDB && (currentDB.from !== 'local' || mysqlStatus === 'Running')"
-                            @click="loadDB"
-                            type="primary"
-                            plain
-                        >
-                            {{ $t('database.loadFromRemote') }}
-                        </el-button>
-                        <el-button @click="goRemoteDB" type="primary" plain>
-                            {{ $t('database.remoteDB') }}
-                        </el-button>
-                        <el-button @click="goDashboard" icon="Position" type="primary" plain>phpMyAdmin</el-button>
-                    </el-col>
-                    <el-col :xs="24" :sm="4" :md="4" :lg="4" :xl="4">
-                        <div class="search-button">
-                            <el-input
-                                v-model="searchName"
-                                clearable
-                                @clear="search()"
-                                suffix-icon="Search"
-                                @keyup.enter="search()"
-                                @change="search()"
-                                :placeholder="$t('commons.button.search')"
-                            ></el-input>
-                        </div>
-                    </el-col>
-                </el-row>
-            </template>
-            <template #main v-if="currentDB">
-                <ComplexTable :pagination-config="paginationConfig" @sort-change="search" @search="search" :data="data">
-                    <el-table-column :label="$t('commons.table.name')" prop="name" sortable />
-                    <el-table-column :label="$t('commons.login.username')" prop="username" />
-                    <el-table-column :label="$t('commons.login.password')" prop="password">
+            <template #main>
+                <ComplexTable
+                    v-if="currentDB"
+                    :pagination-config="paginationConfig"
+                    :class="{ mask: maskShow }"
+                    @sort-change="search"
+                    @search="search"
+                    :data="data"
+                    :heightDiff="370"
+                >
+                    <el-table-column :label="$t('commons.table.name')" prop="name" sortable min-width="90">
                         <template #default="{ row }">
-                            <div v-if="row.password">
-                                <span style="float: left; line-height: 25px" v-if="!row.showPassword">***********</span>
-                                <div style="cursor: pointer; float: left" v-if="!row.showPassword">
-                                    <el-icon
-                                        style="margin-left: 5px; margin-top: 3px"
-                                        @click="row.showPassword = true"
-                                        :size="16"
-                                    >
-                                        <View />
-                                    </el-icon>
-                                </div>
-                                <span style="float: left" v-if="row.showPassword">{{ row.password }}</span>
-                                <div style="cursor: pointer; float: left" v-if="row.showPassword">
-                                    <el-icon class="iconInTable" @click="row.showPassword = false" :size="16">
-                                        <Hide />
-                                    </el-icon>
-                                </div>
-                                <div style="cursor: pointer; float: left">
-                                    <el-icon class="iconInTable" :size="16" @click="onCopy(row)">
-                                        <DocumentCopy />
-                                    </el-icon>
-                                </div>
-                            </div>
+                            <Tooltip v-if="!row.isDelete" :islink="false" :text="row.name" />
                             <div v-else>
-                                <el-link @click="onChangePassword(row)">
-                                    <span style="font-size: 12px">{{ $t('database.passwordHelper') }}</span>
-                                </el-link>
+                                <span v-if="row.name.length < 15">{{ row.name }}</span>
+                                <el-tooltip v-else :content="row.name">{{ row.name.substring(0, 10) }}...</el-tooltip>
+                                <el-tag round type="info" class="ml-1" size="small">
+                                    {{ $t('database.isDelete') }}
+                                </el-tag>
                             </div>
                         </template>
                     </el-table-column>
-                    <el-table-column :label="$t('commons.table.description')" prop="description">
+                    <el-table-column :label="$t('commons.login.username')" show-overflow-tooltip prop="username">
+                        <template #default="{ row }">
+                            <div class="flex items-center" v-if="row.username">
+                                <span>
+                                    {{ row.username }}
+                                </span>
+                            </div>
+                            <div v-else>
+                                <el-button
+                                    :disabled="row.isDelete"
+                                    style="margin-left: -3px"
+                                    type="primary"
+                                    link
+                                    @click="onBind(row)"
+                                >
+                                    {{ $t('database.userBind') }}
+                                </el-button>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column :label="$t('commons.login.password')" prop="password">
+                        <template #default="{ row }">
+                            <span v-if="row.username === ''">-</span>
+                            <div class="flex items-center flex-wrap" v-if="row.password && row.username">
+                                <div class="star-center" v-if="!row.showPassword">
+                                    <span>**********</span>
+                                </div>
+                                <div>
+                                    <span v-if="row.showPassword">
+                                        {{ row.password }}
+                                    </span>
+                                </div>
+                                <el-button
+                                    v-if="!row.showPassword"
+                                    link
+                                    @click="row.showPassword = true"
+                                    icon="View"
+                                    class="ml-1.5"
+                                ></el-button>
+                                <el-button
+                                    v-if="row.showPassword"
+                                    link
+                                    @click="row.showPassword = false"
+                                    icon="Hide"
+                                    class="ml-1.5"
+                                ></el-button>
+                                <div>
+                                    <CopyButton :content="row.password" />
+                                </div>
+                            </div>
+                            <div v-if="row.password === '' && row.username">
+                                <el-button
+                                    :disabled="row.isDelete"
+                                    style="margin-left: -3px"
+                                    link
+                                    type="primary"
+                                    @click="onChangePassword(row)"
+                                >
+                                    {{ $t('database.passwordHelper') }}
+                                </el-button>
+                            </div>
+                        </template>
+                    </el-table-column>
+                    <el-table-column :label="$t('commons.table.description')" prop="description" show-overflow-tooltip>
                         <template #default="{ row }">
                             <fu-input-rw-switch v-model="row.description" @blur="onChange(row)" />
                         </template>
@@ -154,80 +202,81 @@
                         show-overflow-tooltip
                     />
                     <fu-table-operations
-                        width="370px"
+                        :ellipsis="mobile ? 0 : 10"
+                        :min-width="mobile ? 'auto' : 300"
                         :buttons="buttons"
-                        :ellipsis="10"
                         :label="$t('commons.table.operate')"
+                        fixed="right"
                         fix
                     />
                 </ComplexTable>
+                <div v-if="isLoaded && dbOptionsLocal.length === 0 && dbOptionsRemote.length === 0" class="app-warn">
+                    <div class="flex flex-col gap-2 items-center justify-center w-full sm:flex-row">
+                        <span>{{ $t('app.checkInstalledWarn', [$t('database.noMysql')]) }}</span>
+                        <span @click="goRouter('app')" class="flex items-center justify-center gap-0.5">
+                            <el-icon><Position /></el-icon>
+                            {{ $t('database.goInstall') }}
+                        </span>
+                    </div>
+                    <div>
+                        <img src="@/assets/images/no_app.svg" />
+                    </div>
+                </div>
             </template>
         </LayoutContent>
 
-        <div v-if="dbOptionsLocal.length === 0 && dbOptionsRemote.length === 0">
-            <LayoutContent :title="'MySQL ' + $t('menu.database')" :divider="true">
-                <template #main>
-                    <div class="app-warn">
-                        <div>
-                            <span>{{ $t('app.checkInstalledWarn', [$t('database.noMysql')]) }}</span>
-                            <span @click="goRouter('app')">
-                                <el-icon><Position /></el-icon>
-                                {{ $t('database.goInstall') }}
-                            </span>
-                            <div>
-                                <img src="@/assets/images/no_app.svg" />
-                            </div>
-                        </div>
-                    </div>
-                </template>
-            </LayoutContent>
-        </div>
-
-        <el-dialog
-            v-model="phpVisiable"
-            :title="$t('app.checkTitle')"
-            width="30%"
-            :close-on-click-modal="false"
-            :destroy-on-close="true"
+        <el-card
+            v-if="mysqlStatus != 'Running' && currentDB && !loading && maskShow && currentDB?.from === 'local'"
+            class="mask-prompt"
         >
-            <el-alert :closable="false" :title="$t('app.checkInstalledWarn', ['phpMyAdmin'])" type="info">
-                <el-link icon="Position" @click="getAppDetail('phpmyadmin')" type="primary">
+            <span>
+                {{ $t('commons.service.serviceNotStarted', [mysqlName(currentDB.type)]) }}
+            </span>
+        </el-card>
+
+        <DialogPro v-model="open" :title="$t('app.checkTitle')" size="small">
+            <div class="flex justify-center items-center gap-2 flex-wrap">
+                {{ $t('app.checkInstalledWarn', [dashboardName]) }}
+                <el-link icon="Position" @click="getAppDetail" type="primary">
                     {{ $t('database.goInstall') }}
                 </el-link>
-            </el-alert>
+            </div>
             <template #footer>
                 <span class="dialog-footer">
-                    <el-button @click="phpVisiable = false">{{ $t('commons.button.cancel') }}</el-button>
+                    <el-button @click="open = false">{{ $t('commons.button.cancel') }}</el-button>
                 </span>
             </template>
-        </el-dialog>
+        </DialogPro>
 
+        <BindDialog ref="bindRef" @search="search" />
         <PasswordDialog ref="passwordRef" @search="search" />
         <RootPasswordDialog ref="connRef" />
         <UploadDialog ref="uploadRef" />
         <OperateDialog @search="search" ref="dialogRef" />
         <Backups ref="dialogBackupRef" />
-
         <AppResources ref="checkRef"></AppResources>
         <DeleteDialog ref="deleteRef" @search="search" />
-
         <PortJumpDialog ref="dialogPortJumpRef" />
+        <TerminalDialog ref="dialogTerminalRef" />
     </div>
 </template>
 
 <script lang="ts" setup>
+import BindDialog from '@/views/database/mysql/bind/index.vue';
 import OperateDialog from '@/views/database/mysql/create/index.vue';
 import DeleteDialog from '@/views/database/mysql/delete/index.vue';
 import PasswordDialog from '@/views/database/mysql/password/index.vue';
 import RootPasswordDialog from '@/views/database/mysql/conn/index.vue';
+import TerminalDialog from '@/components/terminal/database.vue';
 import AppResources from '@/views/database/mysql/check/index.vue';
 import AppStatus from '@/components/app-status/index.vue';
 import Backups from '@/components/backup/index.vue';
 import UploadDialog from '@/components/upload/index.vue';
 import PortJumpDialog from '@/components/port-jump/index.vue';
+import Tooltip from '@/components/tooltip/index.vue';
 import { dateFormat } from '@/utils/util';
 import { ElMessageBox } from 'element-plus';
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import {
     deleteCheckMysqlDB,
     listDatabases,
@@ -238,13 +287,15 @@ import {
 import i18n from '@/lang';
 import { Database } from '@/api/interface/database';
 import { App } from '@/api/interface/app';
-import { GetAppPort } from '@/api/modules/app';
-import router from '@/routers';
-import { MsgError, MsgSuccess } from '@/utils/message';
-import useClipboard from 'vue-clipboard3';
-const { toClipboard } = useClipboard();
+import { getAppPort } from '@/api/modules/app';
+import { MsgSuccess } from '@/utils/message';
 import { GlobalStore } from '@/store';
+import { routerToName, routerToNameWithParams, routerToNameWithQuery } from '@/utils/router';
 const globalStore = GlobalStore();
+
+const mobile = computed(() => {
+    return globalStore.isMobile();
+});
 
 const loading = ref(false);
 const maskShow = ref(true);
@@ -252,16 +303,24 @@ const maskShow = ref(true);
 const appKey = ref('mysql');
 const appName = ref();
 
+const isLoaded = ref(false);
 const dbOptionsLocal = ref<Array<Database.DatabaseOption>>([]);
 const dbOptionsRemote = ref<Array<Database.DatabaseOption>>([]);
 const currentDB = ref<Database.DatabaseOption>();
 const currentDBName = ref();
 
+const bindRef = ref();
 const checkRef = ref();
 const deleteRef = ref();
+const dialogTerminalRef = ref();
 
 const phpadminPort = ref();
-const phpVisiable = ref(false);
+const adminerPort = ref();
+const dashboardName = ref();
+const dashboardKey = ref();
+const open = ref(false);
+
+const appStatusRef = ref();
 
 const dialogPortJumpRef = ref();
 
@@ -269,9 +328,9 @@ const data = ref();
 const paginationConfig = reactive({
     cacheSizeKey: 'mysql-page-size',
     currentPage: 1,
-    pageSize: 10,
+    pageSize: Number(localStorage.getItem('mysql-page-size')) || 20,
     total: 0,
-    orderBy: 'created_at',
+    orderBy: 'createdAt',
     order: 'null',
 });
 const searchName = ref();
@@ -303,11 +362,23 @@ const onChangeConn = async () => {
     });
 };
 
+const mysqlName = (appType: string) => {
+    if (appType === 'mysql' || appType === 'mysql-cluster') {
+        return 'MySQL';
+    } else {
+        return 'MariaDB';
+    }
+};
+
 const goRemoteDB = async () => {
     if (currentDB.value) {
         globalStore.setCurrentDB(currentDB.value.database);
     }
-    router.push({ name: 'MySQL-Remote' });
+    routerToName('MySQL-Remote');
+};
+
+const goTerminal = () => {
+    dialogTerminalRef.value.acceptParams({ databaseType: currentDB.value.type, database: currentDB.value.database });
 };
 
 const passwordRef = ref();
@@ -316,7 +387,7 @@ const onSetting = async () => {
     if (currentDB.value) {
         globalStore.setCurrentDB(currentDB.value.database);
     }
-    router.push({ name: 'MySQL-Setting', params: { type: currentDB.value.type, database: currentDB.value.database } });
+    routerToNameWithParams('MySQL-Setting', { type: currentDB.value.type, database: currentDB.value.database });
 };
 
 const changeDatabase = async () => {
@@ -326,11 +397,13 @@ const changeDatabase = async () => {
             appKey.value = item.type;
             appName.value = item.database;
             search();
+            appStatusRef.value?.onCheck(appKey.value, appName.value);
             return;
         }
     }
     for (const item of dbOptionsRemote.value) {
         if (item.database == currentDBName.value) {
+            maskShow.value = false;
             currentDB.value = item;
             break;
         }
@@ -379,10 +452,10 @@ const loadDB = async () => {
 
 const goRouter = async (target: string) => {
     if (target === 'app') {
-        router.push({ name: 'AppAll', query: { install: 'mysql' } });
+        routerToNameWithQuery('AppAll', { install: 'mysql' });
         return;
     }
-    router.push({ name: 'MySQL-Remote' });
+    routerToName('MySQL-Remote');
 };
 
 const onChange = async (info: any) => {
@@ -390,21 +463,38 @@ const onChange = async (info: any) => {
     MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
 };
 
-const goDashboard = async () => {
-    if (phpadminPort.value === 0) {
-        phpVisiable.value = true;
+const goDashboard = async (name: string) => {
+    if (name === 'phpMyAdmin') {
+        if (phpadminPort.value === 0) {
+            dashboardName.value = 'phpMyAdmin';
+            dashboardKey.value = 'phpmyadmin';
+            open.value = true;
+            return;
+        }
+        dialogPortJumpRef.value.acceptParams({ port: phpadminPort.value });
         return;
     }
-    dialogPortJumpRef.value.acceptParams({ port: phpadminPort.value });
+    if (adminerPort.value === 0) {
+        dashboardName.value = 'Adminer';
+        dashboardKey.value = 'adminer';
+        open.value = true;
+        return;
+    }
+    dialogPortJumpRef.value.acceptParams({ port: adminerPort.value });
 };
 
-const getAppDetail = (key: string) => {
-    router.push({ name: 'AppAll', query: { install: key } });
+const getAppDetail = () => {
+    routerToNameWithQuery('AppAll', { install: dashboardKey.value });
 };
 
-const loadDashboardPort = async () => {
-    const res = await GetAppPort('phpmyadmin', '');
+const loadPhpMyAdminPort = async () => {
+    const res = await getAppPort('phpmyadmin', '');
     phpadminPort.value = res.data;
+};
+
+const loadAdminerPort = async () => {
+    const res = await getAppPort('adminer', '');
+    adminerPort.value = res.data;
 };
 
 const checkExist = (data: App.CheckInstalled) => {
@@ -414,54 +504,54 @@ const checkExist = (data: App.CheckInstalled) => {
 };
 
 const loadDBOptions = async () => {
-    const res = await listDatabases('mysql,mariadb');
-    let datas = res.data || [];
-    dbOptionsLocal.value = [];
-    dbOptionsRemote.value = [];
-    currentDBName.value = globalStore.currentDB;
-    for (const item of datas) {
-        if (currentDBName.value && item.database === currentDBName.value) {
-            currentDB.value = item;
+    try {
+        const res = await listDatabases('mysql,mariadb,mysql-cluster');
+        let datas = res.data || [];
+        dbOptionsLocal.value = [];
+        dbOptionsRemote.value = [];
+        currentDBName.value = globalStore.currentDB;
+        for (const item of datas) {
+            if (currentDBName.value && item.database === currentDBName.value) {
+                currentDB.value = item;
+                if (item.from === 'local') {
+                    appKey.value = item.type;
+                    appName.value = item.database;
+                }
+            }
             if (item.from === 'local') {
-                appKey.value = item.type;
-                appName.value = item.database;
+                dbOptionsLocal.value.push(item);
+            } else {
+                dbOptionsRemote.value.push(item);
             }
         }
-        if (item.from === 'local') {
-            dbOptionsLocal.value.push(item);
-        } else {
-            dbOptionsRemote.value.push(item);
+        if (currentDB.value) {
+            if (currentDB.value?.from === 'remote') {
+                maskShow.value = false;
+            }
+            globalStore.setCurrentDB('');
+            search();
+            return;
         }
-    }
-    if (currentDB.value) {
-        globalStore.setCurrentDB('');
-        search();
-        return;
-    }
-    if (dbOptionsLocal.value.length !== 0) {
-        currentDB.value = dbOptionsLocal.value[0];
-        currentDBName.value = dbOptionsLocal.value[0].database;
-        appKey.value = dbOptionsLocal.value[0].type;
-        appName.value = dbOptionsLocal.value[0].database;
-    }
-    if (!currentDB.value && dbOptionsRemote.value.length !== 0) {
-        currentDB.value = dbOptionsRemote.value[0];
-        currentDBName.value = dbOptionsRemote.value[0].database;
-    }
-    if (currentDB.value) {
-        search();
-    }
-};
-
-const onCopy = async (row: any) => {
-    try {
-        await toClipboard(row.password);
-        MsgSuccess(i18n.global.t('commons.msg.copySuccess'));
-    } catch (e) {
-        MsgError(i18n.global.t('commons.msg.copyfailed'));
+        if (dbOptionsLocal.value.length !== 0) {
+            currentDB.value = dbOptionsLocal.value[0];
+            currentDBName.value = dbOptionsLocal.value[0].database;
+            appKey.value = dbOptionsLocal.value[0].type;
+            appName.value = dbOptionsLocal.value[0].database;
+        }
+        if (!currentDB.value && dbOptionsRemote.value.length !== 0) {
+            currentDB.value = dbOptionsRemote.value[0];
+            currentDBName.value = dbOptionsRemote.value[0].database;
+        }
+        if (currentDB.value) {
+            search();
+        }
+        if (currentDB.value?.from === 'remote') {
+            maskShow.value = false;
+        }
+    } finally {
+        isLoaded.value = true;
     }
 };
-
 const onDelete = async (row: Database.MysqlDBInfo) => {
     let param = {
         id: row.id,
@@ -481,6 +571,15 @@ const onDelete = async (row: Database.MysqlDBInfo) => {
     }
 };
 
+const onBind = async (row: Database.MysqlDBInfo) => {
+    let param = {
+        database: currentDBName.value,
+        mysqlName: row.name,
+        from: row.from,
+    };
+    bindRef.value.acceptParams(param);
+};
+
 const onChangePassword = async (row: Database.MysqlDBInfo) => {
     let param = {
         id: row.id,
@@ -498,6 +597,9 @@ const onChangePassword = async (row: Database.MysqlDBInfo) => {
 const buttons = [
     {
         label: i18n.global.t('database.changePassword'),
+        disabled: (row: Database.MysqlDBInfo) => {
+            return !row.username || row.isDelete;
+        },
         click: (row: Database.MysqlDBInfo) => {
             onChangePassword(row);
         },
@@ -505,7 +607,7 @@ const buttons = [
     {
         label: i18n.global.t('database.permission'),
         disabled: (row: Database.MysqlDBInfo) => {
-            return !row.password;
+            return !row.password || row.isDelete;
         },
         click: (row: Database.MysqlDBInfo) => {
             let param = {
@@ -530,6 +632,9 @@ const buttons = [
     },
     {
         label: i18n.global.t('database.backupList'),
+        disabled: (row: Database.MysqlDBInfo) => {
+            return row.isDelete;
+        },
         click: (row: Database.MysqlDBInfo) => {
             let params = {
                 type: currentDB.value.type,
@@ -541,11 +646,15 @@ const buttons = [
     },
     {
         label: i18n.global.t('database.loadBackup'),
+        disabled: (row: Database.MysqlDBInfo) => {
+            return row.isDelete;
+        },
         click: (row: Database.MysqlDBInfo) => {
             let params = {
                 type: currentDB.value.type,
                 name: currentDBName.value,
                 detailName: row.name,
+                remark: row.format,
             };
             uploadRef.value!.acceptParams(params);
         },
@@ -560,7 +669,8 @@ const buttons = [
 
 onMounted(() => {
     loadDBOptions();
-    loadDashboardPort();
+    loadPhpMyAdminPort();
+    loadAdminerPort();
 });
 </script>
 

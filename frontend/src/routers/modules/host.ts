@@ -3,11 +3,12 @@ import { Layout } from '@/routers/constant';
 const hostRouter = {
     sort: 7,
     path: '/hosts',
+    name: 'System-Menu',
     component: Layout,
     redirect: '/hosts/security',
     meta: {
         icon: 'p-host',
-        title: 'menu.host',
+        title: 'menu.system',
     },
     children: [
         {
@@ -31,22 +32,13 @@ const hostRouter = {
         },
         {
             path: '/hosts/monitor/setting',
-            name: 'MonitorSetting',
+            name: 'HostMonitorSetting',
             component: () => import('@/views/host/monitor/setting/index.vue'),
             hidden: true,
             meta: {
                 activeMenu: '/hosts/monitor/monitor',
                 title: 'menu.monitor',
-                requiresAuth: false,
-            },
-        },
-        {
-            path: '/hosts/terminal',
-            name: 'Terminal',
-            component: () => import('@/views/host/terminal/index.vue'),
-            meta: {
-                title: 'menu.terminal',
-                keepAlive: true,
+                detail: 'commons.button.set',
                 requiresAuth: false,
             },
         },
@@ -55,7 +47,21 @@ const hostRouter = {
             name: 'FirewallPort',
             component: () => import('@/views/host/firewall/port/index.vue'),
             meta: {
+                activeMenu: '/hosts/firewall/port',
                 title: 'menu.firewall',
+                detail: 'firewall.portRule',
+                requiresAuth: false,
+            },
+        },
+        {
+            path: '/hosts/firewall/forward',
+            name: 'FirewallForward',
+            component: () => import('@/views/host/firewall/forward/index.vue'),
+            hidden: true,
+            meta: {
+                activeMenu: '/hosts/firewall/port',
+                parent: 'menu.firewall',
+                title: 'firewall.forwardRule',
                 requiresAuth: false,
             },
         },
@@ -66,6 +72,18 @@ const hostRouter = {
             hidden: true,
             meta: {
                 activeMenu: '/hosts/firewall/port',
+                parent: 'menu.firewall',
+                title: 'firewall.ipRule',
+                requiresAuth: false,
+            },
+        },
+        {
+            path: '/hosts/disk',
+            name: 'Disk',
+            props: true,
+            component: () => import('@/views/host/disk-management/disk/index.vue'),
+            meta: {
+                title: 'menu.disk',
                 requiresAuth: false,
             },
         },
@@ -75,6 +93,7 @@ const hostRouter = {
             component: () => import('@/views/host/process/process/index.vue'),
             meta: {
                 title: 'menu.processManage',
+                detail: 'menu.process',
                 activeMenu: '/hosts/process/process',
                 keepAlive: true,
                 requiresAuth: false,
@@ -86,18 +105,9 @@ const hostRouter = {
             hidden: true,
             component: () => import('@/views/host/process/network/index.vue'),
             meta: {
+                parent: 'menu.processManage',
+                title: 'menu.network',
                 activeMenu: '/hosts/process/process',
-                requiresAuth: false,
-            },
-        },
-        {
-            path: '/hosts/tool/supersivor',
-            name: 'Supervisor',
-            component: () => import('@/views/host/tool/supervisor/index.vue'),
-            meta: {
-                title: 'menu.supervisor',
-                activeMenu: '/hosts/tool/supersivor',
-                keepAlive: true,
                 requiresAuth: false,
             },
         },
@@ -107,6 +117,7 @@ const hostRouter = {
             component: () => import('@/views/host/ssh/ssh/index.vue'),
             meta: {
                 title: 'menu.ssh',
+                detail: 'menu.config',
                 activeMenu: '/hosts/ssh/ssh',
                 keepAlive: true,
                 requiresAuth: false,
@@ -118,6 +129,8 @@ const hostRouter = {
             component: () => import('@/views/host/ssh/log/index.vue'),
             hidden: true,
             meta: {
+                parent: 'menu.ssh',
+                title: 'ssh.loginLogs',
                 activeMenu: '/hosts/ssh/ssh',
                 requiresAuth: false,
             },
@@ -128,6 +141,8 @@ const hostRouter = {
             component: () => import('@/views/host/ssh/session/index.vue'),
             hidden: true,
             meta: {
+                parent: 'menu.ssh',
+                title: 'ssh.session',
                 activeMenu: '/hosts/ssh/ssh',
                 requiresAuth: false,
             },

@@ -1,162 +1,113 @@
 <template>
-    <el-drawer
-        v-model="drawerVisiable"
+    <DrawerPro
+        v-model="drawerVisible"
+        :header="$t('container.compose')"
         @close="handleClose"
-        :destroy-on-close="true"
-        :close-on-click-modal="false"
-        size="50%"
+        size="large"
+        :autoClose="false"
+        :fullScreen="true"
     >
-        <template #header>
-            <DrawerHeader :header="$t('container.compose')" :back="handleClose" />
-        </template>
-        <div v-loading="loading">
-            <el-row type="flex" justify="center">
-                <el-col :span="22">
-                    <el-form ref="formRef" @submit.prevent label-position="top" :model="form" :rules="rules">
-                        <el-form-item :label="$t('container.from')">
-                            <el-radio-group v-model="form.from" @change="changeFrom">
-                                <el-radio label="edit">{{ $t('commons.button.edit') }}</el-radio>
-                                <el-radio label="path">{{ $t('container.pathSelect') }}</el-radio>
-                                <el-radio label="template">{{ $t('container.composeTemplate') }}</el-radio>
-                            </el-radio-group>
-                        </el-form-item>
-                        <el-form-item v-if="form.from === 'path'" prop="path">
-                            <el-input
-                                :placeholder="$t('commons.example') + '/tmp/docker-compose.yml'"
-                                v-model="form.path"
-                            >
-                                <template #prepend>
-                                    <FileList @choose="loadDir" :dir="false"></FileList>
-                                </template>
-                            </el-input>
-                        </el-form-item>
-                        <el-row :gutter="20">
-                            <el-col :span="12">
-                                <el-form-item v-if="form.from === 'edit' || form.from === 'template'" prop="name">
-                                    <el-input @input="changePath" v-model.trim="form.name">
-                                        <template #prefix>
-                                            <span style="margin-right: 8px">{{ $t('file.dir') }}</span>
-                                        </template>
-                                    </el-input>
-                                    <span class="input-help">
-                                        {{ $t('container.composePathHelper', [composeFile]) }}
-                                    </span>
-                                </el-form-item>
-                            </el-col>
-                            <el-col :span="12">
-                                <el-form-item v-if="form.from === 'template'" prop="template">
-                                    <el-select v-model="form.template" @change="changeTemplate">
-                                        <template #prefix>{{ $t('container.template') }}</template>
-                                        <el-option
-                                            v-for="item in templateOptions"
-                                            :key="item.id"
-                                            :value="item.id"
-                                            :label="item.name"
-                                        />
-                                    </el-select>
-                                </el-form-item>
-                            </el-col>
-                        </el-row>
-                        <el-form-item>
-                            <div v-if="form.from === 'edit' || form.from === 'template'" style="width: 100%">
-                                <el-radio-group v-model="mode" size="small">
-                                    <el-radio-button label="edit">{{ $t('commons.button.edit') }}</el-radio-button>
-                                    <el-radio-button label="log">{{ $t('commons.button.log') }}</el-radio-button>
-                                </el-radio-group>
-                                <codemirror
-                                    v-if="mode === 'edit'"
-                                    :autofocus="true"
-                                    placeholder="#Define or paste the content of your docker-compose file here"
-                                    :indent-with-tab="true"
-                                    :tabSize="4"
-                                    style="width: 100%; height: calc(100vh - 375px)"
-                                    :lineWrapping="true"
-                                    :matchBrackets="true"
-                                    theme="cobalt"
-                                    :styleActiveLine="true"
-                                    :extensions="extensions"
-                                    v-model="form.file"
-                                />
-                            </div>
-                            <codemirror
-                                v-if="mode === 'log'"
-                                :autofocus="true"
-                                placeholder="Waiting for docker-compose up output..."
-                                :indent-with-tab="true"
-                                :tabSize="4"
-                                style="width: 100%; height: calc(100vh - 375px)"
-                                :lineWrapping="true"
-                                :matchBrackets="true"
-                                theme="cobalt"
-                                :styleActiveLine="true"
-                                :extensions="extensions"
-                                @ready="handleReady"
-                                v-model="logInfo"
-                                :disabled="true"
-                            />
-                        </el-form-item>
-                    </el-form>
-                </el-col>
-            </el-row>
-        </div>
+        <el-form ref="formRef" @submit.prevent label-position="top" :model="form" :rules="rules" v-loading="loading">
+            <el-form-item :label="$t('app.source')">
+                <el-radio-group v-model="form.from" @change="onEdit('form')">
+                    <el-radio value="edit">{{ $t('commons.button.edit') }}</el-radio>
+                    <el-radio value="path">{{ $t('container.pathSelect') }}</el-radio>
+                    <el-radio value="template">{{ $t('container.composeTemplate') }}</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item v-if="form.from === 'path'" prop="path">
+                <el-input
+                    @change="onEdit('')"
+                    :placeholder="$t('commons.example') + '/tmp/docker-compose.yml'"
+                    v-model="form.path"
+                >
+                    <template #prepend>
+                        <el-button icon="Folder" @click="fileRef.acceptParams({ dir: false })" />
+                    </template>
+                </el-input>
+            </el-form-item>
+            <el-form-item v-if="form.from === 'template'" prop="template">
+                <el-select v-model="form.template" @change="onEdit('template')">
+                    <template #prefix>{{ $t('container.template') }}</template>
+                    <el-option v-for="item in templateOptions" :key="item.id" :value="item.id" :label="item.name" />
+                </el-select>
+            </el-form-item>
+            <el-form-item v-if="form.from === 'edit' || form.from === 'template'" prop="name">
+                <el-input @input="changePath" @change="onEdit('')" v-model.trim="form.name">
+                    <template #prefix>
+                        <span style="margin-right: 8px">{{ $t('file.dir') }}</span>
+                    </template>
+                </el-input>
+                <span class="input-help">
+                    {{ $t('container.composePathHelper', [composeFile]) }}
+                </span>
+            </el-form-item>
+            <el-form-item>
+                <div v-if="form.from === 'edit' || form.from === 'template'" class="w-full">
+                    <CodemirrorPro
+                        v-model="form.file"
+                        placeholder="#Define or paste the content of your docker-compose file here"
+                        mode="yaml"
+                        :heightDiff="400"
+                    ></CodemirrorPro>
+                </div>
+            </el-form-item>
+            <el-form-item :label="$t('container.env')" prop="envStr">
+                <el-input type="textarea" :placeholder="$t('container.tagHelper')" :rows="3" v-model="form.envStr" />
+            </el-form-item>
+            <span class="input-help">{{ $t('container.editComposeHelper') }}</span>
+            <CodemirrorPro v-model="form.envFileContent" :height="45" :minHeight="45" disabled mode="yaml" />
+        </el-form>
         <template #footer>
             <span class="dialog-footer">
-                <el-button @click="drawerVisiable = false">
+                <el-button @click="drawerVisible = false">
                     {{ $t('commons.button.cancel') }}
                 </el-button>
-                <el-button type="primary" :disabled="onCreating" @click="onSubmit(formRef)">
+                <el-button type="primary" @click="onSubmit(formRef)">
                     {{ $t('commons.button.confirm') }}
                 </el-button>
             </span>
         </template>
-    </el-drawer>
+    </DrawerPro>
+    <TaskLog ref="taskLogRef" width="70%" />
+    <FileList ref="fileRef" @choose="loadDir" />
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onBeforeUnmount, reactive, ref, shallowRef } from 'vue';
+import { reactive, ref } from 'vue';
 import FileList from '@/components/file-list/index.vue';
-import { Codemirror } from 'vue-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { Rules } from '@/global/form-rules';
 import i18n from '@/lang';
 import { ElForm, ElMessageBox } from 'element-plus';
-import DrawerHeader from '@/components/drawer-header/index.vue';
-import { listComposeTemplate, loadContainerLog, testCompose, upCompose } from '@/api/modules/container';
 import { loadBaseDir } from '@/api/modules/setting';
-import { formatImageStdout } from '@/utils/docker';
-import { MsgError } from '@/utils/message';
+import { MsgError, MsgSuccess } from '@/utils/message';
+import CodemirrorPro from '@/components/codemirror-pro/index.vue';
+import TaskLog from '@/components/log/task/index.vue';
+import { listComposeTemplate, testCompose, upCompose } from '@/api/modules/container';
+import { newUUID } from '@/utils/util';
 
 const loading = ref();
-
-const mode = ref('edit');
-const onCreating = ref();
 const oldFrom = ref('edit');
-
-const extensions = [javascript(), oneDark];
-const view = shallowRef();
-const handleReady = (payload) => {
-    view.value = payload.view;
-};
-const logInfo = ref();
-
-const drawerVisiable = ref(false);
+const drawerVisible = ref(false);
 const templateOptions = ref();
-
 const baseDir = ref();
 const composeFile = ref();
-
-let timer: NodeJS.Timer | null = null;
+const taskLogRef = ref();
+const fileRef = ref();
 
 const form = reactive({
+    taskID: '',
     name: '',
     from: 'edit',
     path: '',
     file: '',
     template: null as number,
+    env: [],
+    envStr: '',
+    envFileContent: `env_file:\n  - 1panel.env`,
 });
 const rules = reactive({
-    name: [Rules.requiredInput, Rules.imageName],
+    name: [Rules.requiredInput, Rules.composeName],
     path: [Rules.requiredInput],
     template: [Rules.requiredSelect],
 });
@@ -167,14 +118,14 @@ const loadTemplates = async () => {
 };
 
 const acceptParams = (): void => {
-    mode.value = 'edit';
-    drawerVisiable.value = true;
+    drawerVisible.value = true;
     form.name = '';
     form.from = 'edit';
     form.path = '';
     form.file = '';
     form.template = null;
-    logInfo.value = '';
+    form.env = [];
+    form.envStr = '';
     loadTemplates();
     loadPath();
 };
@@ -191,7 +142,7 @@ const changeTemplate = () => {
 
 const changeFrom = () => {
     if ((oldFrom.value === 'edit' || oldFrom.value === 'template') && form.file) {
-        ElMessageBox.confirm(i18n.global.t('container.fromChangeHelper'), i18n.global.t('container.from'), {
+        ElMessageBox.confirm(i18n.global.t('container.fromChangeHelper'), i18n.global.t('app.source'), {
             confirmButtonText: i18n.global.t('commons.button.confirm'),
             cancelButtonText: i18n.global.t('commons.button.cancel'),
             type: 'info',
@@ -216,9 +167,7 @@ const changeFrom = () => {
 
 const handleClose = () => {
     emit('search');
-    clearInterval(Number(timer));
-    timer = null;
-    drawerVisiable.value = false;
+    drawerVisible.value = false;
 };
 
 const loadPath = async () => {
@@ -234,6 +183,14 @@ const changePath = async () => {
 type FormInstance = InstanceType<typeof ElForm>;
 const formRef = ref<FormInstance>();
 
+const onEdit = (item: string) => {
+    if (item === 'template') {
+        changeTemplate();
+    }
+    if (item === 'form') {
+        changeFrom();
+    }
+};
 const onSubmit = async (formEl: FormInstance | undefined) => {
     if (!formEl) return;
     formEl.validate(async (valid) => {
@@ -242,23 +199,18 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
             MsgError(i18n.global.t('container.contentEmpty'));
             return;
         }
+        if (form.envStr) {
+            form.env = form.envStr.split('\n');
+        }
         loading.value = true;
-        logInfo.value = '';
         await testCompose(form)
             .then(async (res) => {
                 loading.value = false;
                 if (res.data) {
-                    onCreating.value = true;
-                    mode.value = 'log';
-                    await upCompose(form)
-                        .then((res) => {
-                            logInfo.value = '';
-                            loadLogs(res.data);
-                        })
-                        .catch(() => {
-                            loading.value = false;
-                            onCreating.value = false;
-                        });
+                    form.taskID = newUUID();
+                    await upCompose(form);
+                    openTaskLog(form.taskID);
+                    MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
                 }
             })
             .catch(() => {
@@ -266,41 +218,15 @@ const onSubmit = async (formEl: FormInstance | undefined) => {
             });
     });
 };
-
-const loadLogs = async (name: string) => {
-    timer = setInterval(async () => {
-        const res = await loadContainerLog('compose-create', name);
-        logInfo.value = formatImageStdout(res.data);
-        nextTick(() => {
-            const state = view.value.state;
-            view.value.dispatch({
-                selection: { anchor: state.doc.length, head: state.doc.length },
-                scrollIntoView: true,
-            });
-        });
-        if (
-            logInfo.value.endsWith('docker-compose up failed!') ||
-            logInfo.value.endsWith('docker-compose up successful!')
-        ) {
-            onCreating.value = false;
-            clearInterval(Number(timer));
-            timer = null;
-        }
-    }, 1000 * 3);
+const openTaskLog = (taskID: string) => {
+    taskLogRef.value.openWithTaskID(taskID);
 };
 
 const loadDir = async (path: string) => {
     form.path = path;
 };
 
-onBeforeUnmount(() => {
-    clearInterval(Number(timer));
-    timer = null;
-});
-
 defineExpose({
     acceptParams,
 });
 </script>
-
-<style scoped lang="scss"></style>

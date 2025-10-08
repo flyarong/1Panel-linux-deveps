@@ -2,59 +2,56 @@
     <div v-loading="loading">
         <FireRouter />
 
-        <div class="app-status" style="margin-top: 20px">
+        <div class="app-status card-interval">
             <el-card>
-                <div>
-                    <el-tag style="float: left" effect="dark" type="success">SSH</el-tag>
-                    <el-tag round class="status-content" v-if="form.status === 'Enable'" type="success">
-                        {{ $t('commons.status.running') }}
-                    </el-tag>
-                    <el-popover
-                        v-if="form.status === 'Disable'"
-                        placement="top-start"
-                        trigger="hover"
-                        width="450"
-                        :content="form.message"
-                    >
-                        <template #reference>
-                            <el-tag round class="status-content" v-if="form.status === 'Disable'" type="info">
-                                {{ $t('commons.status.stopped') }}
-                            </el-tag>
-                        </template>
-                    </el-popover>
-                    <span v-if="form.status === 'Enable'" class="buttons">
-                        <el-button type="primary" @click="onOperate('stop')" link>
+                <div class="flex w-full flex-col gap-4 md:flex-row">
+                    <div class="flex flex-wrap gap-4 ml-3">
+                        <el-tag class="float-left" effect="dark" type="success">SSH</el-tag>
+                        <Status class="mt-0.5" :status="form.isActive ? 'enable' : 'disable'" :msg="form.message" />
+                    </div>
+                    <div class="mt-0.5">
+                        <el-button v-if="form.isActive" type="primary" @click="onOperate('stop')" link>
                             {{ $t('commons.button.stop') }}
                         </el-button>
-                        <el-divider direction="vertical" />
-                        <el-button type="primary" @click="onOperate('restart')" link>
-                            {{ $t('container.restart') }}
-                        </el-button>
-                    </span>
-                    <span v-if="form.status === 'Disable'" class="buttons">
-                        <el-button type="primary" @click="onOperate('start')" link>
+                        <el-button v-if="!form.isActive" type="primary" @click="onOperate('start')" link>
                             {{ $t('commons.button.start') }}
                         </el-button>
                         <el-divider direction="vertical" />
                         <el-button type="primary" @click="onOperate('restart')" link>
-                            {{ $t('container.restart') }}
+                            {{ $t('commons.button.restart') }}
                         </el-button>
-                    </span>
+                        <el-divider direction="vertical" />
+                        <el-button type="primary" link>
+                            {{ $t('ssh.autoStart') }}
+                        </el-button>
+                        <el-switch
+                            size="small"
+                            class="ml-2"
+                            inactive-value="disable"
+                            active-value="enable"
+                            @change="onOperate(autoStart)"
+                            v-model="autoStart"
+                        />
+                    </div>
                 </div>
             </el-card>
         </div>
 
-        <LayoutContent style="margin-top: 20px" :title="$t('menu.config')" :divider="true">
-            <template #main>
+        <LayoutContent>
+            <template #leftToolBar>
                 <el-radio-group v-model="confShowType" @change="changeMode">
-                    <el-radio-button label="base">{{ $t('database.baseConf') }}</el-radio-button>
-                    <el-radio-button label="all">{{ $t('database.allConf') }}</el-radio-button>
+                    <el-radio-button value="base">{{ $t('database.baseConf') }}</el-radio-button>
+                    <el-radio-button value="all">{{ $t('database.allConf') }}</el-radio-button>
                 </el-radio-group>
-                <el-row style="margin-top: 20px" v-if="confShowType === 'base'">
-                    <el-col :span="1"><br /></el-col>
+
+                <el-button @click="onOpenDrawer">{{ $t('ssh.pubkey') }}</el-button>
+                <el-button @click="onOpenAuthKeys">{{ $t('ssh.authKeys') }}</el-button>
+            </template>
+            <template #main>
+                <el-row class="mt-10" v-if="confShowType === 'base'">
                     <el-col :xs="24" :sm="20" :md="20" :lg="10" :xl="10">
-                        <el-form :model="form" label-position="left" ref="formRef" label-width="120px">
-                            <el-form-item :label="$t('commons.table.port')" prop="port">
+                        <el-form :model="form" label-position="right" ref="formRef" label-width="100px">
+                            <el-form-item :label="$t('ssh.port')" prop="port">
                                 <el-input disabled v-model.number="form.port">
                                     <template #append>
                                         <el-button @click="onChangePort" icon="Setting">
@@ -65,7 +62,7 @@
                                 <span class="input-help">{{ $t('ssh.portHelper') }}</span>
                             </el-form-item>
                             <el-form-item :label="$t('ssh.listenAddress')" prop="listenAddress">
-                                <el-input disabled v-model="form.listenAddress">
+                                <el-input disabled v-model="form.listenAddressItem">
                                     <template #append>
                                         <el-button @click="onChangeAddress" icon="Setting">
                                             {{ $t('commons.button.set') }}
@@ -101,9 +98,6 @@
                                     v-model="form.pubkeyAuthentication"
                                 ></el-switch>
                                 <span class="input-help">{{ $t('ssh.keyAuthHelper') }}</span>
-                                <el-button link @click="onOpenDrawer" type="primary">
-                                    {{ $t('ssh.pubkey') }}
-                                </el-button>
                             </el-form-item>
                             <el-form-item :label="$t('ssh.useDNS')" prop="useDNS">
                                 <el-switch
@@ -119,27 +113,22 @@
                 </el-row>
 
                 <div v-if="confShowType === 'all'">
-                    <codemirror
-                        :autofocus="true"
-                        placeholder="# The SSH configuration file does not exist or is empty (/etc/ssh/sshd_config)"
-                        :indent-with-tab="true"
-                        :tabSize="4"
-                        style="margin-top: 10px; height: calc(100vh - 330px)"
-                        :lineWrapping="true"
-                        :matchBrackets="true"
-                        theme="cobalt"
-                        :styleActiveLine="true"
-                        :extensions="extensions"
+                    <CodemirrorPro
+                        :heightDiff="320"
+                        :minHeight="350"
+                        class="mt-5"
                         v-model="sshConf"
-                    />
-                    <el-button :disabled="loading" type="primary" @click="onSaveFile" style="margin-top: 5px">
+                        placeholder="# The SSH configuration file does not exist or is empty (/etc/ssh/sshd_config)"
+                    ></CodemirrorPro>
+                    <el-button :disabled="loading" type="primary" @click="onSaveFile" class="mt-2.5">
                         {{ $t('commons.button.save') }}
                     </el-button>
                 </div>
             </template>
         </LayoutContent>
 
-        <PubKey ref="pubKeyRef" @search="search" />
+        <AuthKeys ref="authKeyRef" />
+        <Cert ref="pubKeyRef" @search="search" />
         <Port ref="portRef" @search="search" />
         <Address ref="addressRef" @search="search" />
         <Root ref="rootsRef" @search="search" />
@@ -148,34 +137,36 @@
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue';
-import { Codemirror } from 'vue-codemirror';
 import FireRouter from '@/views/host/ssh/index.vue';
-import { javascript } from '@codemirror/lang-javascript';
-import { oneDark } from '@codemirror/theme-one-dark';
-import PubKey from '@/views/host/ssh/ssh/pubkey/index.vue';
+import AuthKeys from '@/views/host/ssh/ssh/auth-keys/index.vue';
+import Cert from '@/views/host/ssh/ssh/certification/index.vue';
 import Root from '@/views/host/ssh/ssh/root/index.vue';
 import Port from '@/views/host/ssh/ssh/port/index.vue';
 import Address from '@/views/host/ssh/ssh/address/index.vue';
 import i18n from '@/lang';
 import { MsgSuccess } from '@/utils/message';
-import { getSSHConf, getSSHInfo, operateSSH, updateSSH, updateSSHByfile } from '@/api/modules/host';
+import { loadSSHFile, getSSHInfo, operateSSH, updateSSH, updateSSHByFile } from '@/api/modules/host';
 import { ElMessageBox, FormInstance } from 'element-plus';
+import CodemirrorPro from '@/components/codemirror-pro/index.vue';
 
 const loading = ref(false);
 const formRef = ref();
-const extensions = [javascript(), oneDark];
 const confShowType = ref('base');
 const pubKeyRef = ref();
 const portRef = ref();
 const addressRef = ref();
 const rootsRef = ref();
+const authKeyRef = ref();
+
+const autoStart = ref('enable');
 
 const sshConf = ref();
 const form = reactive({
-    status: 'enable',
+    isActive: false,
     message: '',
     port: 22,
     listenAddress: '',
+    listenAddressItem: '',
     passwordAuthentication: 'yes',
     pubkeyAuthentication: 'yes',
     encryptionMode: '',
@@ -183,6 +174,7 @@ const form = reactive({
     permitRootLogin: 'yes',
     permitRootLoginItem: 'yes',
     useDNS: 'no',
+    currentUser: 'root',
 });
 
 const onSaveFile = async () => {
@@ -192,7 +184,7 @@ const onSaveFile = async () => {
         type: 'info',
     }).then(async () => {
         loading.value = true;
-        await updateSSHByfile(sshConf.value)
+        await updateSSHByFile('sshdConf', sshConf.value)
             .then(() => {
                 loading.value = false;
                 MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
@@ -204,7 +196,10 @@ const onSaveFile = async () => {
 };
 
 const onOpenDrawer = () => {
-    pubKeyRef.value.acceptParams();
+    pubKeyRef.value.acceptParams(form.currentUser);
+};
+const onOpenAuthKeys = () => {
+    authKeyRef.value.acceptParams();
 };
 
 const onChangePort = () => {
@@ -214,26 +209,32 @@ const onChangeRoot = () => {
     rootsRef.value.acceptParams({ permitRootLogin: form.permitRootLogin });
 };
 const onChangeAddress = () => {
-    addressRef.value.acceptParams({ address: form.listenAddress });
+    addressRef.value.acceptParams({ address: form.listenAddress, port: form.port });
 };
 
 const onOperate = async (operation: string) => {
-    ElMessageBox.confirm(i18n.global.t('ssh.sshOperate', [i18n.global.t('commons.button.' + operation)]), 'SSH', {
+    let msg = operation === 'enable' || operation === 'disable' ? 'ssh.' : 'commons.button.';
+    ElMessageBox.confirm(i18n.global.t('ssh.sshOperate', [i18n.global.t(msg + operation)]), 'SSH', {
         confirmButtonText: i18n.global.t('commons.button.confirm'),
         cancelButtonText: i18n.global.t('commons.button.cancel'),
         type: 'info',
-    }).then(async () => {
-        loading.value = true;
-        await operateSSH(operation)
-            .then(() => {
-                loading.value = false;
-                MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
-                search();
-            })
-            .catch(() => {
-                loading.value = false;
-            });
-    });
+    })
+        .then(async () => {
+            loading.value = true;
+            await operateSSH(operation)
+                .then(() => {
+                    loading.value = false;
+                    MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
+                    search();
+                })
+                .catch(() => {
+                    autoStart.value = operation === 'enable' ? 'disable' : 'enable';
+                    loading.value = false;
+                });
+        })
+        .catch(() => {
+            search();
+        });
 };
 
 const onSave = async (formEl: FormInstance | undefined, key: string, value: string) => {
@@ -245,7 +246,7 @@ const onSave = async (formEl: FormInstance | undefined, key: string, value: stri
     }
 
     ElMessageBox.confirm(
-        i18n.global.t('ssh.sshChangeHelper', [i18n.global.t('ssh.' + itemKey), changei18n(value)]),
+        i18n.global.t('ssh.sshChangeHelper', [i18n.global.t('ssh.' + itemKey), changeI18n(value)]),
         i18n.global.t('ssh.sshChange'),
         {
             confirmButtonText: i18n.global.t('commons.button.confirm'),
@@ -254,8 +255,13 @@ const onSave = async (formEl: FormInstance | undefined, key: string, value: stri
         },
     )
         .then(async () => {
+            let params = {
+                key: key,
+                oldValue: '',
+                newValue: value,
+            };
             loading.value = true;
-            await updateSSH(key, value)
+            await updateSSH(params)
                 .then(() => {
                     loading.value = false;
                     MsgSuccess(i18n.global.t('commons.msg.operationSuccess'));
@@ -276,7 +282,7 @@ function callback(error: any) {
     }
 }
 
-const changei18n = (value: string) => {
+const changeI18n = (value: string) => {
     switch (value) {
         case 'yes':
             return i18n.global.t('commons.button.enable');
@@ -288,7 +294,7 @@ const changei18n = (value: string) => {
 };
 
 const loadSSHConf = async () => {
-    const res = await getSSHConf();
+    const res = await loadSSHFile('sshdConf');
     sshConf.value = res.data || '';
 };
 
@@ -302,14 +308,20 @@ const changeMode = async () => {
 
 const search = async () => {
     const res = await getSSHInfo();
-    form.status = res.data.status;
+    form.isActive = res.data.isActive;
     form.port = Number(res.data.port);
+    autoStart.value = res.data.autoStart ? 'enable' : 'disable';
     form.listenAddress = res.data.listenAddress;
+    form.listenAddressItem =
+        form.listenAddress === '' || form.listenAddress === '0.0.0.0,::'
+            ? i18n.global.t('ssh.allV4V6', [form.port])
+            : form.listenAddress;
     form.passwordAuthentication = res.data.passwordAuthentication;
     form.pubkeyAuthentication = res.data.pubkeyAuthentication;
     form.permitRootLogin = res.data.permitRootLogin;
     form.permitRootLoginItem = loadPermitLabel(res.data.permitRootLogin);
     form.useDNS = res.data.useDNS;
+    form.currentUser = res.data.currentUser;
 };
 
 const loadPermitLabel = (value: string) => {
